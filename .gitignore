@@ -1,0 +1,49 @@
+# ============================================================
+# Root .gitignore -- Smart Campus Operations Hub
+# ============================================================
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# Build artifacts
+backend-api/target/
+frontend-web/dist/
+frontend-web/dist-ssr/
+
+# Dependencies
+frontend-web/node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Vite cache
+.vite/
+
+# Uploads (local file storage)
+backend-api/uploads/
+
+# Maven wrapper distribution
+backend-api/.mvn/wrapper/maven-wrapper.jar
+
+# Docker volumes (if bind-mounted locally)
+pgdata/

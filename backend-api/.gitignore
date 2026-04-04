@@ -1,0 +1,27 @@
+# Backend .gitignore
+
+# Build output
+target/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Maven wrapper distribution (large binary, re-downloaded on first run)
+.mvn/wrapper/maven-wrapper.jar
+
+# Local file uploads
+uploads/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
