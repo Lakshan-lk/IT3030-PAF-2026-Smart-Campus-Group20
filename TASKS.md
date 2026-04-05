@@ -378,10 +378,10 @@ These decisions apply to ALL members. Read before starting any task.
   - [ ] Create `.env.example` with `VITE_API_BASE_URL=http://localhost:8080`
   - [ ] Create `.env` (gitignored) with actual values
   - [ ] Update axios base URL to use `import.meta.env.VITE_API_BASE_URL`
-- [ ] **Backend CORS configuration**
-  - [ ] Create `WebConfig` class implementing `WebMvcConfigurer`
-  - [ ] Configure `addCorsMappings` to allow frontend origin (including credentials for session auth)
-  - [ ] Allow credentials: `allowedOrigins` + `allowCredentials(true)`
+- [x] **Backend CORS configuration**
+  - [x] Create `WebConfig` class implementing `WebMvcConfigurer`
+  - [x] Configure `addCorsMappings` to allow frontend origin (including credentials for session auth)
+  - [x] Allow credentials: `allowedOrigins` + `allowCredentials(true)`
 
 ### Project Cleanup
 
