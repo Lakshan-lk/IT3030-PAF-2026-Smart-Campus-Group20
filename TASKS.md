@@ -113,27 +113,27 @@ These decisions apply to ALL members. Read before starting any task.
   - [x] Add conflict check on create and update
 - [x] **Backend: Booking seed data**
   - [x] Add 5-6 sample bookings to `data.sql` (mix of statuses, valid foreign keys)
-- [ ] **Frontend: Connect BookingsPage to API**
-  - [ ] Create `api/bookingApi.js` with axios calls
-  - [ ] Create `hooks/useBookings.js` with React Query hooks
-  - [ ] Fetch bookings from `GET /api/v1/bookings`
-  - [ ] Replace hardcoded table rows with dynamic data
-  - [ ] Add loading and error states
-  - [ ] Support dark mode on table, badges, and all states
-- [ ] **Frontend: New Booking form**
-  - [ ] Implement modal/page with resource selector, date picker, time picker, purpose field
-  - [ ] Add form validation (required fields, endTime after startTime)
-  - [ ] Handle booking conflict error from backend (show user-friendly message)
-  - [ ] Submit to `POST /api/v1/bookings`
-  - [ ] Invalidate bookings query on success (React Query)
-  - [ ] Design with frontend-design skill
-- [ ] **Frontend: Booking actions**
-  - [ ] Add cancel button for user's own pending bookings
-  - [ ] Add approve/reject buttons for admin role
-  - [ ] Refresh list after action (React Query `invalidateQueries`)
-- [ ] **Frontend: Dashboard stats integration**
-  - [ ] Replace hardcoded "Active Bookings: 3" with real count from API
-  - [ ] Support dark mode on stat cards
+- [x] **Frontend: Connect BookingsPage to API**
+  - [x] Create `api/bookingApi.js` with axios calls
+  - [x] Create `hooks/useBookings.js` with React Query hooks
+  - [x] Fetch bookings from `GET /api/v1/bookings`
+  - [x] Replace hardcoded table rows with dynamic data
+  - [x] Add loading and error states
+  - [x] Support dark mode on table, badges, and all states
+- [x] **Frontend: New Booking form**
+  - [x] Implement modal/page with resource selector, date picker, time picker, purpose field
+  - [x] Add form validation (required fields, endTime after startTime)
+  - [x] Handle booking conflict error from backend (show user-friendly message)
+  - [x] Submit to `POST /api/v1/bookings`
+  - [x] Invalidate bookings query on success (React Query)
+  - [x] Design with frontend-design skill
+- [x] **Frontend: Booking actions**
+  - [x] Add cancel button for user's own pending bookings
+  - [x] Add approve/reject buttons for admin role
+  - [x] Refresh list after action (React Query `invalidateQueries`)
+- [x] **Frontend: Dashboard stats integration**
+  - [x] Replace hardcoded "Active Bookings: 3" with real count from API
+  - [x] Support dark mode on stat cards
 
 ---
 
