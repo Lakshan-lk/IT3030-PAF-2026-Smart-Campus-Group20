@@ -9,7 +9,7 @@ const Sidebar = () => {
     { name: 'Facilities & Assets', path: '/facilities', icon: <MdEventSeat /> },
     { name: 'My Bookings', path: '/bookings', icon: <MdEvent /> },
     { name: 'Maintenance Tickets', path: '/tickets', icon: <MdBuild /> },
-    { name: 'Admin', path: '/admin', icon: <MdAdminPanelSettings /> },
+    { name: 'Admin', path: '/admin/overview', icon: <MdAdminPanelSettings /> },
   ];
 
   return (
