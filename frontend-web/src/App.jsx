@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import FacilitiesPage from './pages/FacilitiesPage';
 import BookingsPage from './pages/BookingsPage';
 import TicketsPage from './pages/TicketsPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/facilities" element={<FacilitiesPage />} />
           <Route path="/bookings" element={<BookingsPage />} />
           <Route path="/tickets" element={<TicketsPage />} />
+          <Route path="/admin" element={<AdminDashboardPage />} />
         </Route>
       </Routes>
     </Router>
