@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MdCheck, MdClose, MdCancel, MdSearch, MdEvent, MdPending, MdVerified, MdCancelOutlined } from 'react-icons/md';
+import { MdCheck, MdClose, MdCancel, MdSearch, MdEvent, MdPending, MdVerified, MdOutlineCancel } from 'react-icons/md';
 import { useBookings, useApproveBooking, useRejectBooking, useCancelBooking } from '../hooks/useBookings';
 
 const AdminDashboardPage = () => {
@@ -73,7 +73,7 @@ const AdminDashboardPage = () => {
             { label: 'Pending', value: stats.pending, icon: <MdPending />, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50/80 dark:bg-amber-900/15', border: 'border-amber-200/60 dark:border-amber-700/40' },
             { label: 'Approved', value: stats.approved, icon: <MdVerified />, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50/80 dark:bg-emerald-900/15', border: 'border-emerald-200/60 dark:border-emerald-700/40' },
             { label: 'Rejected', value: stats.rejected, icon: <MdClose />, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50/80 dark:bg-rose-900/15', border: 'border-rose-200/60 dark:border-rose-700/40' },
-            { label: 'Cancelled', value: stats.cancelled, icon: <MdCancelOutlined />, color: 'text-slate-500 dark:text-slate-400', bg: 'bg-slate-50/80 dark:bg-slate-700/40', border: 'border-slate-200/60 dark:border-slate-600/40' },
+            { label: 'Cancelled', value: stats.cancelled, icon: <MdOutlineCancel />, color: 'text-slate-500 dark:text-slate-400', bg: 'bg-slate-50/80 dark:bg-slate-700/40', border: 'border-slate-200/60 dark:border-slate-600/40' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
