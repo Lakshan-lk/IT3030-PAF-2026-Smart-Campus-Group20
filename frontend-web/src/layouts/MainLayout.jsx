@@ -9,7 +9,7 @@ const MainLayout = () => {
   const location = useLocation();
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-200 transition-colors duration-300">
       <Sidebar />
       <div className="flex-1 flex flex-col sm:ml-64">
         <Navbar />
