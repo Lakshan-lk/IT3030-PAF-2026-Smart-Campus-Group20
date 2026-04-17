@@ -1,7 +1,12 @@
 package com.campushub.smartcampus.controller;
 
-import com.campushub.smartcampus.entity.Resource;
-import com.campushub.smartcampus.repository.ResourceRepository;
+import com.campushub.smartcampus.dto.ResourceRequestDTO;
+import com.campushub.smartcampus.dto.ResourceResponseDTO;
+import com.campushub.smartcampus.service.ResourceService;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,69 +17,55 @@ import java.util.List;
 @RequestMapping("/api/v1/resources")
 public class ResourceController {
 
-    private final ResourceRepository resourceRepository;
+    private final ResourceService resourceService;
 
-    public ResourceController(ResourceRepository resourceRepository) {
-        this.resourceRepository = resourceRepository;
+    public ResourceController(ResourceService resourceService) {
+        this.resourceService = resourceService;
     }
 
     @GetMapping
-    public ResponseEntity<List<Resource>> getAllResources(
+    public ResponseEntity<List<ResourceResponseDTO>> getAllResources(
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 20) Pageable pageable) {
+        
         if (search != null && !search.isBlank()) {
-            return ResponseEntity.ok(resourceRepository.findByNameContainingIgnoreCase(search));
+            return ResponseEntity.ok(resourceService.searchResources(search));
         }
         if (type != null && !type.isBlank()) {
-            return ResponseEntity.ok(resourceRepository.findByType(type));
+            return ResponseEntity.ok(resourceService.getResourcesByType(type));
         }
         if (location != null && !location.isBlank()) {
-            return ResponseEntity.ok(resourceRepository.findByLocation(location));
+            return ResponseEntity.ok(resourceService.getResourcesByLocation(location));
         }
         if (status != null && !status.isBlank()) {
-            return ResponseEntity.ok(resourceRepository.findByStatus(status));
+            return ResponseEntity.ok(resourceService.getResourcesByStatus(status));
         }
-        return ResponseEntity.ok(resourceRepository.findAll());
+        Page<ResourceResponseDTO> page = resourceService.getAllResources(pageable);
+        return ResponseEntity.ok(page.getContent());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Resource> getResourceById(@PathVariable Long id) {
-        return resourceRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ResourceResponseDTO> getResourceById(@PathVariable Long id) {
+        return ResponseEntity.ok(resourceService.getResourceById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Resource> createResource(@RequestBody Resource resource) {
-        Resource saved = resourceRepository.save(resource);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    public ResponseEntity<ResourceResponseDTO> createResource(@Valid @RequestBody ResourceRequestDTO dto) {
+        ResourceResponseDTO created = resourceService.createResource(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Resource> updateResource(@PathVariable Long id, @RequestBody Resource resource) {
-        return resourceRepository.findById(id)
-                .map(existing -> {
-                    existing.setName(resource.getName());
-                    existing.setDescription(resource.getDescription());
-                    existing.setType(resource.getType());
-                    existing.setLocation(resource.getLocation());
-                    existing.setStatus(resource.getStatus());
-                    existing.setCapacity(resource.getCapacity());
-                    existing.setImageUrl(resource.getImageUrl());
-                    existing.setAmenities(resource.getAmenities());
-                    return ResponseEntity.ok(resourceRepository.save(existing));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ResourceResponseDTO> updateResource(@PathVariable Long id, @Valid @RequestBody ResourceRequestDTO dto) {
+        return ResponseEntity.ok(resourceService.updateResource(id, dto));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteResource(@PathVariable Long id) {
-        if (!resourceRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        resourceRepository.deleteById(id);
+        resourceService.deleteResource(id);
         return ResponseEntity.noContent().build();
     }
 }
