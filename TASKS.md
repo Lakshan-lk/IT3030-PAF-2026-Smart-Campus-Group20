@@ -168,6 +168,14 @@ These decisions apply to ALL members. Read before starting any task.
 - [x] **Frontend: Dashboard stats integration**
   - [x] Replace hardcoded "Active Bookings: 3" with real count from API
   - [x] Support dark mode on stat cards
+- [ ] **Backend: Booking Tests**
+  - [ ] Write unit tests for conflict detection
+  - [ ] Write integration tests for booking flow
+  - [ ] Test edge cases (timezone, DST, etc.)
+- [ ] **Frontend: BookingDetailPage**
+  - [ ] Create BookingDetailPage (view full booking details)
+- [ ] **Frontend: ConflictWarning component**
+  - [ ] Create ConflictWarning component for display
 
 ---
 
