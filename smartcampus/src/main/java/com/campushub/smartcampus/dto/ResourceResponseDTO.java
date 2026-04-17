@@ -1,0 +1,150 @@
+package com.campushub.smartcampus.dto;
+
+import com.campushub.smartcampus.entity.Resource;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class ResourceResponseDTO {
+
+    private Long id;
+    private String name;
+    private String description;
+    private String type;
+    private String location;
+    private String status;
+    private Integer capacity;
+    private String imageUrl;
+    private String amenities;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private String formattedCreatedAt;
+    private String formattedUpdatedAt;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Integer getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(Integer capacity) {
+        this.capacity = capacity;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public String getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(String amenities) {
+        this.amenities = amenities;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public String getFormattedCreatedAt() {
+        return formattedCreatedAt;
+    }
+
+    public void setFormattedCreatedAt(String formattedCreatedAt) {
+        this.formattedCreatedAt = formattedCreatedAt;
+    }
+
+    public String getFormattedUpdatedAt() {
+        return formattedUpdatedAt;
+    }
+
+    public void setFormattedUpdatedAt(String formattedUpdatedAt) {
+        this.formattedUpdatedAt = formattedUpdatedAt;
+    }
+
+    public static ResourceResponseDTO fromEntity(Resource resource) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm");
+        ResourceResponseDTO dto = new ResourceResponseDTO();
+        dto.setId(resource.getId());
+        dto.setName(resource.getName());
+        dto.setDescription(resource.getDescription());
+        dto.setType(resource.getType());
+        dto.setLocation(resource.getLocation());
+        dto.setStatus(resource.getStatus());
+        dto.setCapacity(resource.getCapacity());
+        dto.setImageUrl(resource.getImageUrl());
+        dto.setAmenities(resource.getAmenities());
+        dto.setCreatedAt(resource.getCreatedAt());
+        dto.setUpdatedAt(resource.getUpdatedAt());
+        if (resource.getCreatedAt() != null) {
+            dto.setFormattedCreatedAt(resource.getCreatedAt().format(formatter));
+        }
+        if (resource.getUpdatedAt() != null) {
+            dto.setFormattedUpdatedAt(resource.getUpdatedAt().format(formatter));
+        }
+        return dto;
+    }
+}
