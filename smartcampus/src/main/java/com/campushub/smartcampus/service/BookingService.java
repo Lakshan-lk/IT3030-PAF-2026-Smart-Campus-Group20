@@ -78,6 +78,11 @@ public class BookingService {
         return bookingRepository.findByStatus(status).size();
     }
 
+    @Transactional(readOnly = true)
+    public long countActiveBookings() {
+        return bookingRepository.findByStatus(BookingStatus.APPROVED).size();
+    }
+
     public BookingResponseDTO createBooking(BookingRequestDTO dto) {
         if (!dto.getEndTime().isAfter(dto.getStartTime())) {
             throw new IllegalArgumentException("End time must be after start time");
