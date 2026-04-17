@@ -121,6 +121,7 @@ These decisions apply to ALL members. Read before starting any task.
   - [x] Create custom query: `findByResourceIdAndStartTimeBeforeAndEndTimeAfter`
   - [x] Create `BookingConflictException` with descriptive message
   - [x] Add handler in `GlobalExceptionHandler`
+  - [x] Validate booking times (no past dates, max 4 hours, etc.)
 - [x] **Backend: Booking status workflow**
   - [x] Create `BookingStatus` enum: `PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`
   - [x] Replace String `status` with enum
@@ -141,12 +142,25 @@ These decisions apply to ALL members. Read before starting any task.
   - [x] Add `PUT /api/v1/bookings/{id}/approve` (admin)
   - [x] Add `PUT /api/v1/bookings/{id}/reject` (admin)
   - [x] Add pagination to `GET /api/v1/bookings`
+  - [x] Add `@PreAuthorize` annotations for role checks
 - [x] **Backend: BookingService update logic**
   - [x] Add `@Transactional` at class level, `@Transactional(readOnly = true)` on reads
   - [x] Replace stub `updateBooking` with proper load-merge-save
   - [x] Add conflict check on create and update
 - [x] **Backend: Booking seed data**
   - [x] Add 5-6 sample bookings to `data.sql` (mix of statuses, valid foreign keys)
+- [x] **Frontend: Booking Components**
+  - [x] Install shadcn: calendar, popover, select, badge, alert, dialog
+  - [x] Create BookingCalendar component (date/time picker)
+  - [x] Create TimeSlotPicker component
+  - [x] Create BookingCard component (display booking)
+  - [x] Create BookingStatusBadge component
+  - [x] Create BookingForm component (wizard)
+- [x] **Frontend: Booking Pages**
+  - [x] Create NewBookingPage (select resource → select time → confirm)
+  - [x] Create MyBookingsPage (list with tabs: upcoming, past, cancelled)
+  - [x] Create AdminBookingsPage (all bookings with filters)
+  - [x] Create BookingApprovalModal (admin approve/reject)
 - [x] **Frontend: Connect BookingsPage to API**
   - [x] Create `api/bookingApi.js` with axios calls
   - [x] Create `hooks/useBookings.js` with React Query hooks
@@ -154,13 +168,11 @@ These decisions apply to ALL members. Read before starting any task.
   - [x] Replace hardcoded table rows with dynamic data
   - [x] Add loading and error states
   - [x] Support dark mode on table, badges, and all states
-- [x] **Frontend: New Booking form**
-  - [x] Implement modal/page with resource selector, date picker, time picker, purpose field
-  - [x] Add form validation (required fields, endTime after startTime)
-  - [x] Handle booking conflict error from backend (show user-friendly message)
-  - [x] Submit to `POST /api/v1/bookings`
-  - [x] Invalidate bookings query on success (React Query)
-  - [x] Design with frontend-design skill
+- [x] **Frontend: Booking Hooks**
+  - [x] Create useBookings hook
+  - [x] Create useCreateBooking hook with conflict handling
+  - [x] Create useUpdateBookingStatus hook
+  - [x] Create useMyBookings hook
 - [x] **Frontend: Booking actions**
   - [x] Add cancel button for user's own pending bookings
   - [x] Add approve/reject buttons for admin role
