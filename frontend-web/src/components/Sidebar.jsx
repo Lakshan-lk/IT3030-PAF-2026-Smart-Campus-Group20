@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MdDashboard, MdEventSeat, MdEvent, MdBuild } from 'react-icons/md';
+import { MdDashboard, MdEventSeat, MdEvent, MdBuild, MdAdminPanelSettings } from 'react-icons/md';
 
 const Sidebar = () => {
   const links = [
@@ -9,16 +9,17 @@ const Sidebar = () => {
     { name: 'Facilities & Assets', path: '/facilities', icon: <MdEventSeat /> },
     { name: 'My Bookings', path: '/bookings', icon: <MdEvent /> },
     { name: 'Maintenance Tickets', path: '/tickets', icon: <MdBuild /> },
+    { name: 'Admin', path: '/admin/overview', icon: <MdAdminPanelSettings /> },
   ];
 
   return (
     <motion.aside
       initial={{ x: -250 }}
       animate={{ x: 0 }}
-      className="w-64 h-screen bg-white shadow-[2px_0_15px_-3px_rgba(0,0,0,0.1)] flex flex-col fixed left-0 top-0 z-20"
+      className="w-64 h-screen bg-white dark:bg-slate-800 shadow-[2px_0_15px_-3px_rgba(0,0,0,0.1)] dark:shadow-black/20 flex flex-col fixed left-0 top-0 z-20"
     >
-      <div className="h-16 flex items-center justify-center border-b border-slate-100">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
+      <div className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-slate-700/40">
+        <h1 className="text-xl font-bold bg-gradient-to-r from-amber-600 to-orange-500 bg-clip-text text-transparent">
           Smart Campus
         </h1>
       </div>
@@ -30,8 +31,8 @@ const Sidebar = () => {
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium ${
                 isActive
-                  ? 'bg-indigo-50 text-indigo-600 shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-500'
+                  ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-amber-500 dark:hover:text-amber-400'
               }`
             }
           >

@@ -1,18 +1,17 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import { Outlet, useLocation } from 'react-router-dom';
+import AdminSidebar from '../components/AdminSidebar';
+import AdminNavbar from '../components/AdminNavbar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLocation } from 'react-router-dom';
 
-const MainLayout = () => {
+const AdminLayout = () => {
   const location = useLocation();
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-200 transition-colors duration-300">
-      <Sidebar />
+      <AdminSidebar />
       <div className="flex-1 flex flex-col sm:ml-64">
-        <Navbar />
+        <AdminNavbar />
         <main className="flex-1 p-8 overflow-x-hidden">
           <AnimatePresence mode="wait">
             <motion.div
@@ -32,4 +31,4 @@ const MainLayout = () => {
   );
 };
 
-export default MainLayout;
+export default AdminLayout;

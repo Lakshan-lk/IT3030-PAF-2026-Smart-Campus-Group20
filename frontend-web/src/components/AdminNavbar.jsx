@@ -3,7 +3,7 @@ import { MdNotifications, MdAccountCircle, MdLightMode, MdDarkMode } from 'react
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 
-const Navbar = () => {
+const AdminNavbar = () => {
   const { theme, toggleTheme } = useTheme();
 
   return (
@@ -28,8 +28,8 @@ const Navbar = () => {
         </motion.button>
         <div className="flex items-center gap-3 cursor-pointer p-1.5 rounded-full hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight">Alex Johnson</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Student</p>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight">Admin User</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Administrator</p>
           </div>
           <MdAccountCircle className="w-9 h-9 text-slate-300 dark:text-slate-500" />
         </div>
@@ -38,4 +38,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default AdminNavbar;

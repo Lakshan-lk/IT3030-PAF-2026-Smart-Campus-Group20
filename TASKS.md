@@ -77,63 +77,63 @@ These decisions apply to ALL members. Read before starting any task.
 
 ## Member 2: Booking Workflow + Conflict Checking
 
-- [ ] **Backend: Enhance Booking entity**
-  - [ ] Add `purpose` / `description` field
-  - [ ] Add `@CreatedDate` auditing field
-  - [ ] Add JPA `@ManyToOne` relationship to `Resource` (with `@JoinColumn`)
-  - [ ] Add JPA `@ManyToOne` relationship to `User` (with `@JoinColumn`)
-- [ ] **Backend: Booking conflict checking**
-  - [ ] Implement overlap detection: prevent double-booking same resource in overlapping time windows
-  - [ ] Create custom query: `findByResourceIdAndStartTimeBeforeAndEndTimeAfter`
-  - [ ] Create `BookingConflictException` with descriptive message
-  - [ ] Add handler in `GlobalExceptionHandler`
-- [ ] **Backend: Booking status workflow**
-  - [ ] Create `BookingStatus` enum: `PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`
-  - [ ] Replace String `status` with enum
-  - [ ] Implement approval/rejection logic (admin-only)
-  - [ ] Add `cancelBooking` endpoint with validation (can't cancel past or approved bookings)
-- [ ] **Backend: Custom repository queries for Booking**
-  - [ ] `findByUserId(Long userId)`
-  - [ ] `findByResourceId(Long resourceId)`
-  - [ ] `findByStatus(BookingStatus status)`
-  - [ ] `findByUserIdAndStatus(Long userId, BookingStatus status)`
-  - [ ] `findByResourceIdAndStartTimeBetween(Long resourceId, LocalDateTime start, LocalDateTime end)`
-- [ ] **Backend: Booking DTOs** (manual mapper, no MapStruct)
-  - [ ] Create `BookingRequestDTO` (with validation: endTime > startTime)
-  - [ ] Create `BookingResponseDTO` (includes resource name, user name, formatted dates)
-  - [ ] Add static mapper methods
-- [ ] **Backend: BookingController improvements**
-  - [ ] Add `POST /api/v1/bookings/{id}/cancel` endpoint
-  - [ ] Add `PUT /api/v1/bookings/{id}/approve` (admin)
-  - [ ] Add `PUT /api/v1/bookings/{id}/reject` (admin)
-  - [ ] Add pagination to `GET /api/v1/bookings`
-- [ ] **Backend: BookingService update logic**
-  - [ ] Add `@Transactional` at class level, `@Transactional(readOnly = true)` on reads
-  - [ ] Replace stub `updateBooking` with proper load-merge-save
-  - [ ] Add conflict check on create and update
-- [ ] **Backend: Booking seed data**
-  - [ ] Add 5-6 sample bookings to `data.sql` (mix of statuses, valid foreign keys)
-- [ ] **Frontend: Connect BookingsPage to API**
-  - [ ] Create `api/bookingApi.js` with axios calls
-  - [ ] Create `hooks/useBookings.js` with React Query hooks
-  - [ ] Fetch bookings from `GET /api/v1/bookings`
-  - [ ] Replace hardcoded table rows with dynamic data
-  - [ ] Add loading and error states
-  - [ ] Support dark mode on table, badges, and all states
-- [ ] **Frontend: New Booking form**
-  - [ ] Implement modal/page with resource selector, date picker, time picker, purpose field
-  - [ ] Add form validation (required fields, endTime after startTime)
-  - [ ] Handle booking conflict error from backend (show user-friendly message)
-  - [ ] Submit to `POST /api/v1/bookings`
-  - [ ] Invalidate bookings query on success (React Query)
-  - [ ] Design with frontend-design skill
-- [ ] **Frontend: Booking actions**
-  - [ ] Add cancel button for user's own pending bookings
-  - [ ] Add approve/reject buttons for admin role
-  - [ ] Refresh list after action (React Query `invalidateQueries`)
-- [ ] **Frontend: Dashboard stats integration**
-  - [ ] Replace hardcoded "Active Bookings: 3" with real count from API
-  - [ ] Support dark mode on stat cards
+- [x] **Backend: Enhance Booking entity**
+  - [x] Add `purpose` / `description` field
+  - [x] Add `@CreatedDate` auditing field
+  - [x] Add JPA `@ManyToOne` relationship to `Resource` (with `@JoinColumn`)
+  - [x] Add JPA `@ManyToOne` relationship to `User` (with `@JoinColumn`)
+- [x] **Backend: Booking conflict checking**
+  - [x] Implement overlap detection: prevent double-booking same resource in overlapping time windows
+  - [x] Create custom query: `findByResourceIdAndStartTimeBeforeAndEndTimeAfter`
+  - [x] Create `BookingConflictException` with descriptive message
+  - [x] Add handler in `GlobalExceptionHandler`
+- [x] **Backend: Booking status workflow**
+  - [x] Create `BookingStatus` enum: `PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`
+  - [x] Replace String `status` with enum
+  - [x] Implement approval/rejection logic (admin-only)
+  - [x] Add `cancelBooking` endpoint with validation (can't cancel past or approved bookings)
+- [x] **Backend: Custom repository queries for Booking**
+  - [x] `findByUserId(Long userId)`
+  - [x] `findByResourceId(Long resourceId)`
+  - [x] `findByStatus(BookingStatus status)`
+  - [x] `findByUserIdAndStatus(Long userId, BookingStatus status)`
+  - [x] `findByResourceIdAndStartTimeBetween(Long resourceId, LocalDateTime start, LocalDateTime end)`
+- [x] **Backend: Booking DTOs** (manual mapper, no MapStruct)
+  - [x] Create `BookingRequestDTO` (with validation: endTime > startTime)
+  - [x] Create `BookingResponseDTO` (includes resource name, user name, formatted dates)
+  - [x] Add static mapper methods
+- [x] **Backend: BookingController improvements**
+  - [x] Add `POST /api/v1/bookings/{id}/cancel` endpoint
+  - [x] Add `PUT /api/v1/bookings/{id}/approve` (admin)
+  - [x] Add `PUT /api/v1/bookings/{id}/reject` (admin)
+  - [x] Add pagination to `GET /api/v1/bookings`
+- [x] **Backend: BookingService update logic**
+  - [x] Add `@Transactional` at class level, `@Transactional(readOnly = true)` on reads
+  - [x] Replace stub `updateBooking` with proper load-merge-save
+  - [x] Add conflict check on create and update
+- [x] **Backend: Booking seed data**
+  - [x] Add 5-6 sample bookings to `data.sql` (mix of statuses, valid foreign keys)
+- [x] **Frontend: Connect BookingsPage to API**
+  - [x] Create `api/bookingApi.js` with axios calls
+  - [x] Create `hooks/useBookings.js` with React Query hooks
+  - [x] Fetch bookings from `GET /api/v1/bookings`
+  - [x] Replace hardcoded table rows with dynamic data
+  - [x] Add loading and error states
+  - [x] Support dark mode on table, badges, and all states
+- [x] **Frontend: New Booking form**
+  - [x] Implement modal/page with resource selector, date picker, time picker, purpose field
+  - [x] Add form validation (required fields, endTime after startTime)
+  - [x] Handle booking conflict error from backend (show user-friendly message)
+  - [x] Submit to `POST /api/v1/bookings`
+  - [x] Invalidate bookings query on success (React Query)
+  - [x] Design with frontend-design skill
+- [x] **Frontend: Booking actions**
+  - [x] Add cancel button for user's own pending bookings
+  - [x] Add approve/reject buttons for admin role
+  - [x] Refresh list after action (React Query `invalidateQueries`)
+- [x] **Frontend: Dashboard stats integration**
+  - [x] Replace hardcoded "Active Bookings: 3" with real count from API
+  - [x] Support dark mode on stat cards
 
 ---
 
@@ -378,10 +378,10 @@ These decisions apply to ALL members. Read before starting any task.
   - [ ] Create `.env.example` with `VITE_API_BASE_URL=http://localhost:8080`
   - [ ] Create `.env` (gitignored) with actual values
   - [ ] Update axios base URL to use `import.meta.env.VITE_API_BASE_URL`
-- [ ] **Backend CORS configuration**
-  - [ ] Create `WebConfig` class implementing `WebMvcConfigurer`
-  - [ ] Configure `addCorsMappings` to allow frontend origin (including credentials for session auth)
-  - [ ] Allow credentials: `allowedOrigins` + `allowCredentials(true)`
+- [x] **Backend CORS configuration**
+  - [x] Create `WebConfig` class implementing `WebMvcConfigurer`
+  - [x] Configure `addCorsMappings` to allow frontend origin (including credentials for session auth)
+  - [x] Allow credentials: `allowedOrigins` + `allowCredentials(true)`
 
 ### Project Cleanup
 
