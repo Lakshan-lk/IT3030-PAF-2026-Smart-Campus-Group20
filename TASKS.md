@@ -111,83 +111,52 @@ These decisions apply to ALL members. Read before starting any task.
 
 ## Member 2: Booking Workflow + Conflict Checking
 
-- [x] **Backend: Enhance Booking entity**
-  - [x] Add `purpose` / `description` field
-  - [x] Add `@CreatedDate` auditing field
-  - [x] Add JPA `@ManyToOne` relationship to `Resource` (with `@JoinColumn`)
-  - [x] Add JPA `@ManyToOne` relationship to `User` (with `@JoinColumn`)
-- [x] **Backend: Booking conflict checking**
-  - [x] Implement overlap detection: prevent double-booking same resource in overlapping time windows
-  - [x] Create custom query: `findByResourceIdAndStartTimeBeforeAndEndTimeAfter`
-  - [x] Create `BookingConflictException` with descriptive message
-  - [x] Add handler in `GlobalExceptionHandler`
-  - [x] Validate booking times (no past dates, max 4 hours, etc.)
-- [x] **Backend: Booking status workflow**
-  - [x] Create `BookingStatus` enum: `PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`
-  - [x] Replace String `status` with enum
-  - [x] Implement approval/rejection logic (admin-only)
-  - [x] Add `cancelBooking` endpoint with validation (can't cancel past or approved bookings)
-- [x] **Backend: Custom repository queries for Booking**
-  - [x] `findByUserId(Long userId)`
-  - [x] `findByResourceId(Long resourceId)`
-  - [x] `findByStatus(BookingStatus status)`
-  - [x] `findByUserIdAndStatus(Long userId, BookingStatus status)`
-  - [x] `findByResourceIdAndStartTimeBetween(Long resourceId, LocalDateTime start, LocalDateTime end)`
-- [x] **Backend: Booking DTOs** (manual mapper, no MapStruct)
-  - [x] Create `BookingRequestDTO` (with validation: endTime > startTime)
-  - [x] Create `BookingResponseDTO` (includes resource name, user name, formatted dates)
-  - [x] Add static mapper methods
-- [x] **Backend: BookingController improvements**
-  - [x] Add `POST /api/v1/bookings/{id}/cancel` endpoint
-  - [x] Add `PUT /api/v1/bookings/{id}/approve` (admin)
-  - [x] Add `PUT /api/v1/bookings/{id}/reject` (admin)
-  - [x] Add pagination to `GET /api/v1/bookings`
-  - [x] Add `@PreAuthorize` annotations for role checks
-- [x] **Backend: BookingService update logic**
-  - [x] Add `@Transactional` at class level, `@Transactional(readOnly = true)` on reads
-  - [x] Replace stub `updateBooking` with proper load-merge-save
-  - [x] Add conflict check on create and update
-- [x] **Backend: Booking seed data**
-  - [x] Add 5-6 sample bookings to `data.sql` (mix of statuses, valid foreign keys)
-- [x] **Frontend: Booking Components**
-  - [x] Install shadcn: calendar, popover, select, badge, alert, dialog
-  - [x] Create BookingCalendar component (date/time picker)
-  - [x] Create TimeSlotPicker component
-  - [x] Create BookingCard component (display booking)
-  - [x] Create BookingStatusBadge component
-  - [x] Create BookingForm component (wizard)
-- [x] **Frontend: Booking Pages**
-  - [x] Create NewBookingPage (select resource → select time → confirm)
-  - [x] Create MyBookingsPage (list with tabs: upcoming, past, cancelled)
-  - [x] Create AdminBookingsPage (all bookings with filters)
-  - [x] Create BookingApprovalModal (admin approve/reject)
-- [x] **Frontend: Connect BookingsPage to API**
-  - [x] Create `api/bookingApi.js` with axios calls
-  - [x] Create `hooks/useBookings.js` with React Query hooks
-  - [x] Fetch bookings from `GET /api/v1/bookings`
-  - [x] Replace hardcoded table rows with dynamic data
-  - [x] Add loading and error states
-  - [x] Support dark mode on table, badges, and all states
-- [x] **Frontend: Booking Hooks**
-  - [x] Create useBookings hook
-  - [x] Create useCreateBooking hook with conflict handling
-  - [x] Create useUpdateBookingStatus hook
-  - [x] Create useMyBookings hook
-- [x] **Frontend: Booking actions**
-  - [x] Add cancel button for user's own pending bookings
-  - [x] Add approve/reject buttons for admin role
-  - [x] Refresh list after action (React Query `invalidateQueries`)
-- [x] **Frontend: Dashboard stats integration**
-  - [x] Replace hardcoded "Active Bookings: 3" with real count from API
-  - [x] Support dark mode on stat cards
+> **Status:** Phase 2 from IMPLEMENTATION_PLAN.md - Complete booking workflow with conflict detection
+
+- [x] **Backend: Booking Entity & Repository**
+  - [x] Booking entity with fields: id, resourceId, userId, startTime, endTime, purpose, attendees, status, rejectionReason, createdAt, updatedAt
+  - [x] BookingRepository with custom queries
+- [x] **Backend: Conflict Detection**
+  - [x] Overlap detection SQL query
+  - [x] BookinConflictException for 409 responses
+  - [x] Validate booking times (no past dates, max 4 hours)
+- [x] **Backend: Booking API**
+  - [x] POST /api/bookings (create, with conflict check)
+  - [x] GET /api/bookings/my (my bookings)
+  - [x] GET /api/bookings (all bookings, ADMIN)
+  - [x] PUT /api/bookings/{id}/approve (ADMIN)
+  - [x] PUT /api/bookings/{id}/reject (ADMIN + reason)
+  - [x] PUT /api/bookings/{id}/cancel (owner or ADMIN)
+  - [x] GET /api/bookings/{id}
+  - [x] @PreAuthorize annotations for role checks
 - [ ] **Backend: Booking Tests**
   - [ ] Write unit tests for conflict detection
   - [ ] Write integration tests for booking flow
   - [ ] Test edge cases (timezone, DST, etc.)
+- [x] **Frontend: Booking Components**
+  - [x] BookingCalendar (date/time picker)
+  - [x] TimeSlotPicker
+  - [x] BookingCard (display booking)
+  - [x] BookingStatusBadge
+  - [x] BookingForm (wizard)
+- [x] **Frontend: Booking Pages**
+  - [x] NewBookingPage (select resource → select time → confirm)
+  - [x] MyBookingsPage (list with tabs: upcoming, past, cancelled)
+  - [x] AdminBookingsPage (all bookings with filters)
+  - [x] BookingApprovalModal (admin approve/reject)
 - [ ] **Frontend: BookingDetailPage**
   - [ ] Create BookingDetailPage (view full booking details)
 - [ ] **Frontend: ConflictWarning component**
   - [ ] Create ConflictWarning component for display
+- [x] **Frontend: Booking Hooks**
+  - [x] useBookings
+  - [x] useCreateBooking with conflict handling
+  - [x] useUpdateBookingStatus
+  - [x] useMyBookings
+- [x] **Frontend: Booking actions**
+  - [x] Cancel button (own pending bookings)
+  - [x] Approve/Reject buttons (admin)
+  - [x] Refresh list after action
 
 ---
 
