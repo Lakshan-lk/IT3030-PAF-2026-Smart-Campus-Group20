@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to agent, when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 Smart Campus Operations Hub — IT3030 PAF 2026 group assignment. Spring Boot 4.0.5 REST API + React 19 (Vite) frontend. Manages facility bookings and maintenance ticket workflows for a university.
