@@ -1,9 +1,10 @@
 # Smart Campus Operations Hub -- Task Breakdown
 
-> **Last updated:** 2026-04-04
+> **Last updated:** 2026-04-17
 > **Team:** 4 members
 > **Branching strategy:** Feature branch per task (e.g., `feat/resource-dtos`, `feat/booking-conflict`)
 > **Commit rule:** Every completed sub-task must have its own git commit. See AGENTS.md.
+> **Reference:** This file is synchronized with IMPLEMENTATION_PLAN.md - additional phases from the implementation plan are incorporated below.
 
 ---
 
@@ -15,15 +16,48 @@ These decisions apply to ALL members. Read before starting any task.
 |---|---|
 | **Service transactions** | All service classes must have `@Transactional` at class level. Use `@Transactional(readOnly = true)` on read-only methods (`getAll`, `getById`). |
 | **DTOs** | All controllers must use DTOs for request/response. No JPA entities exposed directly. Use manual mappers (static `fromEntity()` / `toEntity()` methods). No MapStruct. |
-| **Authentication** | OAuth2 session-based only (Google). No JWT. Spring Security manages session cookies. |
+| **Authentication** | OAuth2 session-based only (Google + Microsoft). No JWT. Spring Security manages session cookies. |
 | **File storage** | Local filesystem (`uploads/tickets/`). Store file path in DB. |
 | **Real-time notifications** | STOMP over WebSocket (`spring-boot-starter-websocket`). Frontend uses `@stomp/stompjs`. |
 | **Database migrations** | Dev keeps `ddl-auto=update`. Each new migration is its own `Vx__description.sql` file. Seed data via `data.sql`. |
 | **Frontend HTTP** | Axios + React Query (`@tanstack/react-query`). Axios for calls, React Query for caching/loading/refetch. |
 | **Frontend structure** | Reorganized `src/`: `api/`, `context/`, `hooks/`, `utils/`, `components/`, `pages/`, `layouts/`, `assets/`. |
 | **Theme** | Dark mode AND light mode. Toggle available in Navbar. Use CSS variables or Tailwind `dark:` classes. |
-| **Frontend design** | Modern, refined UI. "Luminous Depth" aesthetic: glass-like panels, warm neutrals, striking accent color, layered shadows, choreographed staggered animations. Use frontend-design skill for all new/updated UI. |
+| **Frontend design** | Vibrant SaaS aesthetic (Linear + LangChain + Google Material You): large rounded corners (`rounded-2xl`, `rounded-3xl`), subtle layered shadows, rich colors, smooth animations. Use frontend-design skill for all new/updated UI. |
 | **Git workflow** | Feature branch per task. One commit per completed sub-task. See AGENTS.md. |
+
+### Design System Guidelines
+
+**Visual Aesthetic:**
+- **Style**: Modern SaaS dashboard (Linear + LangChain + Google Material You)
+- **Corners**: Large rounded corners (`rounded-2xl`, `rounded-3xl` for cards)
+- **Shadows**: Subtle, layered shadows (`shadow-lg`, `shadow-xl` with low opacity)
+- **Spacing**: Compact but breathable (not excessive whitespace)
+- **Typography**: Inter font, clean hierarchy
+
+**Color Palette:**
+- **Primary**: Indigo/Violet gradient (`from-indigo-500 to-violet-600`)
+- **Background**: Slate 50/900 (light/dark modes)
+- **Surface**: White with subtle borders (`border-slate-200`)
+- **Accents**: Success (Emerald 500), Warning (Amber 500), Error (Rose 500), Info (Blue 500)
+
+**Material Design Components:**
+- **Elevation**: Use shadow levels (0dp, 1dp, 2dp, 4dp, 8dp, 16dp)
+- **Ripple Effect**: Add to buttons and interactive elements
+- **FAB**: Floating Action Button (`rounded-full shadow-lg`)
+- **Chips**: For filters and tags (`rounded-full bg-slate-100`)
+- **Bottom Sheets**: For mobile detail views
+
+**Glassmorphism Patterns:**
+- **Cards**: `bg-white/80 backdrop-blur-xl border border-white/20`
+- **Navigation**: `bg-slate-900/80 backdrop-blur-md sticky top-0 z-50`
+- **Modals**: `bg-white/90 backdrop-blur-2xl rounded-3xl shadow-2xl`
+
+**Animation Guidelines** (install `framer-motion` when needed):
+- **Page Transitions**: Slide up + fade (`y: 20 → 0, opacity: 0 → 1`)
+- **Stagger Children**: Delay of 0.05s between list items
+- **Transitions**: `duration-200` for hovers, `duration-300` for page changes
+- **Micro-interactions**: Scale on hover `hover:scale-[1.02]`, Lift effect `hover:-translate-y-1`
 
 ---
 
@@ -314,6 +348,195 @@ These decisions apply to ALL members. Read before starting any task.
 
 ---
 
+## Phase 4.5: Room Scheduling + Recurring Bookings (Week 7.5)
+
+- [x] **Backend: Schedule Template Entities**
+  - [x] Create `DayOfWeek` enum (MONDAY, TUESDAY, ..., SUNDAY)
+  - [x] Create `RoomSchedule` entity: id, roomId, operatingStart, operatingEnd
+  - [x] Create `DaySchedule` entity: id, roomScheduleId, dayOfWeek
+  - [x] Create `ScheduleBlock` entity: id, dayScheduleId, startHour, endHour, assignedUserId
+  - [x] Create repositories for all three entities
+- [x] **Backend: Booking Entity Updates**
+  - [x] Add `recurringGroupId` (nullable UUID)
+  - [x] Add `isOverride` (boolean)
+  - [x] Add `parentBookingId` (nullable)
+  - [x] Add `equipment` (JSON/string array)
+  - [x] Create `RecurringType` enum (NONE, WEEKLY, CUSTOM_DAYS)
+  - [x] Add `recurringDays` (JSON array of DayOfWeek)
+  - [x] Add `recurringEndDate` (nullable)
+- [x] **Backend: Schedule Template API**
+  - [x] Create RoomScheduleController endpoints
+  - [x] GET /api/schedules/room/{roomId} - Get room's weekly schedule
+  - [x] POST /api/schedules/room/{roomId} - Create/update weekly schedule
+  - [x] PUT /api/schedules/room/{roomId}/blocks - Add/update blocks
+  - [x] DELETE /api/schedules/room/{roomId}/blocks/{blockId} - Remove block
+  - [x] ScheduleService: auto-generate bookings for 6 months
+  - [x] Conflict detection against template
+- [x] **Backend: Recurring Booking Logic**
+  - [x] Create RecurringBookingService
+  - [x] Expand recurring pattern into individual Booking records
+  - [x] Validate 6-month max advance limit
+  - [x] Check availability for ALL dates before confirming
+  - [x] Detect conflicts with weekly schedule template → mark as override (PENDING)
+- [x] **Backend: Override Workflow**
+  - [x] Create OverrideService
+  - [x] Check if booking conflicts with template
+  - [x] Create in-app notification for current slot holder
+  - [x] PUT /api/bookings/{id}/approve (ADMIN)
+  - [x] PUT /api/bookings/{id}/reject (ADMIN)
+- [x] **Backend: Cancellation Logic**
+  - [x] Create CancellationService
+  - [x] Cancel single instance
+  - [x] Cancel from date forward (all future instances)
+  - [x] Cancel entire series
+  - [x] POST /api/bookings/{id}/cancel with body: scope, reason
+- [x] **Backend: Schedule View API**
+  - [x] GET /api/schedule/daily?date=&building=&type=
+  - [x] GET /api/schedule/room/{roomId}/daily?date=
+  - [x] GET /api/schedule/availability?date=&startHour=&endHour=&equipment=
+- [ ] **Backend: Tests (SKIPPED)**
+  - [ ] Unit tests for recurring booking expansion
+  - [ ] Unit tests for override detection
+  - [ ] Integration tests for schedule template CRUD
+- [x] **Frontend: Schedule Page (Admin)**
+  - [x] Create `/admin/schedule` route
+  - [x] Create ScheduleGrid component (grouped by building/floor)
+  - [x] Filterable by building, type, capacity
+  - [x] Click empty cell → pre-filled booking form
+  - [x] Click occupied cell → booking detail view
+- [x] **Frontend: Booking Form Updates**
+  - [x] Add recurring booking toggle
+  - [x] Add day-of-week multi-select
+  - [x] Add recurring end date picker (max 6 months)
+  - [x] Preview section showing all dates
+  - [x] Highlight conflicting dates in red
+- [x] **Frontend: Cancellation Flow**
+  - [x] Create CancelBookingModal component
+  - [x] Step 1: Select scope (Instance / Forward / Series)
+  - [x] Step 2: Summary of affected bookings
+  - [x] Step 3: Confirm button
+- [x] **Frontend: Override Notifications**
+  - [x] Create OverrideRequestNotification component
+  - [x] Add to notification panel
+- [x] **Frontend: Room Schedule Template Editor**
+  - [ ] Create ScheduleTemplateEditor component
+  - [ ] Weekly view (Mon-Sun columns, hourly blocks rows)
+  - [ ] Click-to-assign blocks to lecturers
+  - [ ] Drag-to-select multiple blocks
+- [x] **Frontend: Recurring Bookings UI**
+  - [x] Create RecurringBookingCard component
+  - [x] Date range display + days of week
+  - [x] Total sessions count
+  - [x] Group bookings by recurringGroupId
+- [x] **Frontend: QR Code Timing Logic**
+  - [x] QR button only shows when check-in time (30 min before start)
+  - [x] Disabled button for future dates
+- [x] **Backend: BookingResponse Updates**
+  - [x] Add recurring fields to BookingResponse
+  - [x] Update fromEntity() mapping
+
+---
+
+## Phase 5: Admin Dashboard + AI Foundation (Week 8+)
+
+### 5.1 Admin Dashboard
+- [x] **Install chart library** (Recharts or Chart.js)
+- [ ] Create DashboardStats component
+- [ ] Create booking statistics endpoint
+- [ ] Create ticket statistics endpoint
+- [ ] Create resource utilization chart
+- [ ] Create recent activity feed
+
+### 5.2 Additional Features (Optional)
+- [x] QR code generation for bookings
+- [x] QR code scanner/check-in page
+- [ ] Notification preferences (email settings)
+- [x] Dark mode toggle
+- [ ] Export bookings to CSV (admin)
+
+### 5.3 AI Foundation - Multi-Agent System
+
+**Dependencies:**
+```xml
+<dependency>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j</artifactId>
+    <version>0.35.0</version>
+</dependency>
+<dependency>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j-open-ai</artifactId>
+    <version>0.35.0</version>
+</dependency>
+```
+
+- [ ] **Backend: LangChain Setup**
+  - [ ] Create LangChainConfig.java with @Configuration
+  - [ ] Create OpenRouterChatModel bean (DeepSeek model)
+  - [ ] Configure in application.properties
+
+- [ ] **Backend: Booking Tools**
+  - [ ] Create CreateBookingTool with @Tool annotation
+  - [ ] Create CancelBookingTool with @Tool annotation
+  - [ ] Create ApproveBookingTool with @Tool annotation
+  - [ ] Create RejectBookingTool with @Tool annotation
+  - [ ] Create QueryBookingsTool with @Tool annotation
+
+- [ ] **Backend: Resource Tools**
+  - [ ] Create SearchResourcesTool with @Tool annotation
+  - [ ] Create CheckAvailabilityTool with @Tool annotation
+  - [ ] Create GetResourceDetailsTool with @Tool annotation
+
+- [ ] **Backend: Ticket Tools**
+  - [ ] Create CreateTicketTool with @Tool annotation
+  - [ ] Create UpdateTicketStatusTool with @Tool annotation
+  - [ ] Create AssignTicketTool with @Tool annotation
+  - [ ] Create AddCommentTool with @Tool annotation
+
+- [ ] **Backend: Sub-Agents**
+  - [ ] Define BookingAgent system prompt
+  - [ ] Create BookingAgent using Agent.builder()
+  - [ ] Attach booking tools
+  - [ ] Implement handoff mechanism
+  - [ ] Define ResourceAgent system prompt
+  - [ ] Create ResourceAgent
+  - [ ] Define TicketAgent system prompt
+  - [ ] Create TicketAgent
+
+- [ ] **Backend: Supervisor Agent**
+  - [ ] Define SupervisorAgent system prompt
+  - [ ] Wrap sub-agents as tools
+  - [ ] Implement handoff communication
+  - [ ] Create response synthesis logic
+  - [ ] Add intent detection
+
+- [ ] **Backend: Memory System**
+  - [ ] Add MessageWindowChatMemory
+  - [ ] Configure max messages (10)
+  - [ ] Enable per-session conversation context
+
+- [ ] **Backend: REST API**
+  - [ ] Create AIController
+  - [ ] POST /api/ai/chat - Main chat endpoint
+  - [ ] POST /api/ai/booking - Direct to Booking Agent
+  - [ ] POST /api/ai/resources - Direct to Resource Agent
+  - [ ] POST /api/ai/tickets - Direct to Ticket Agent
+  - [ ] Secure endpoints (require authentication)
+
+- [ ] **Frontend: AI Chat**
+  - [ ] Create AIChat component
+  - [ ] Add chat input UI
+  - [ ] Display AI responses
+  - [ ] Add loading states
+  - [ ] Create useAIChat hook
+
+- [ ] **Frontend: Testing**
+  - [ ] Test supervisor routing
+  - [ ] Test handoff between agents
+  - [ ] Test multi-turn conversations
+
+---
+
 ## General Tasks (Not Assigned to Specific Members)
 
 ### CI/CD Pipeline
@@ -424,11 +647,23 @@ These decisions apply to ALL members. Read before starting any task.
 
 ## Recommended Execution Order
 
-1. **Week 1:** General tasks (CI/CD, README, CORS, env vars, project cleanup, Flyway setup) + all members start backend entity/repository enhancements
-2. **Week 2:** Backend service/controller improvements + DTOs + seed data + Member 4 starts auth + WebSocket setup
-3. **Week 3:** Frontend API integration begins (Member 3 leads) + Member 4 completes auth + others finish backend
-4. **Week 4:** Frontend form implementations, role-based UI, notification integration, dark/light mode across all pages, WebSocket real-time updates
-5. **Week 5:** Testing, documentation, bug fixes, deployment prep
+1. **Week 1 (Foundation):** Project skeleton, auth foundation, Docker setup, development environment ready
+2. **Week 2 (Facilities):** Resource management with search/filter - browse, search, view resources, admin CRUD
+3. **Week 3-4 (Bookings):** Complete booking workflow with conflict detection - full booking lifecycle
+4. **Week 5-6 (Tickets):** Maintenance ticket system with attachments - incident management
+5. **Week 7 (Notifications):** Real-time notifications + UI polish - loading skeletons, error states, responsive design
+6. **Week 8+ (Advanced/AI):** Admin dashboard, AI foundation preparation
+
+### Timeline Summary
+
+| Week | Focus | Key Deliverable |
+|------|-------|-----------------|
+| 1 | Foundation | Auth works, dev environment ready |
+| 2 | Resources | Browse/search resources |
+| 3-4 | Bookings | Full booking workflow |
+| 5-6 | Tickets | Incident management with files |
+| 7 | Notifications + Polish | Real-time updates, UI polish |
+| 8 | Advanced/AI | Dashboard, AI prep |
 
 ---
 
