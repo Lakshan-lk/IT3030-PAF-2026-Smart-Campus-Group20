@@ -29,49 +29,49 @@ These decisions apply to ALL members. Read before starting any task.
 
 ## Member 1: Facilities Catalogue + Resource Management
 
-- [ ] **Backend: Enhance Resource entity**
-  - [ ] Add fields: `name`, `description`, `imageUrl`, `amenities` (JSON or separate table)
-  - [ ] Add `@NotBlank`, `@Size` validation annotations
-  - [ ] Add `@CreatedDate`, `@LastModifiedDate` auditing fields
-  - [ ] Add `@EntityListeners(AuditingEntityListener.class)` and enable auditing in config
-- [ ] **Backend: Custom repository queries for Resource**
-  - [ ] `findByType(String type)`
-  - [ ] `findByLocation(String location)`
-  - [ ] `findByStatus(String status)`
-  - [ ] `findByNameContainingIgnoreCase(String keyword)`
-  - [ ] `findAll(Pageable pageable)` support
-- [ ] **Backend: Resource DTOs** (manual mapper, no MapStruct)
-  - [ ] Create `ResourceRequestDTO` (for POST/PUT)
-  - [ ] Create `ResourceResponseDTO` (for GET responses)
-  - [ ] Add static mapper methods: `toEntity()`, `fromEntity()`
-- [ ] **Backend: ResourceController improvements**
-  - [ ] Add pagination & sorting to `GET /api/v1/resources`
-  - [ ] Add query param filtering: `?type=`, `?location=`, `?status=`, `?search=`
-  - [ ] Replace entity with DTOs in request/response
-- [ ] **Backend: ResourceService update logic**
-  - [ ] Add `@Transactional` at class level, `@Transactional(readOnly = true)` on reads
-  - [ ] Replace stub `updateResource` with proper load-merge-save pattern
-  - [ ] Add business validation (e.g., capacity > 0)
-- [ ] **Backend: Resource seed data**
-  - [ ] Add 8-10 sample resources to `data.sql` (lecture halls, labs, meeting rooms, equipment)
-- [ ] **Frontend: Connect FacilitiesPage to API**
-  - [ ] Add `@tanstack/react-query` to `package.json`
-  - [ ] Create `api/resourceApi.js` with axios calls
-  - [ ] Create `hooks/useResources.js` with React Query hooks
-  - [ ] Fetch resources from `GET /api/v1/resources`
-  - [ ] Replace hardcoded cards with dynamic data
-  - [ ] Add loading skeleton/spinner
-  - [ ] Add error state handling
-  - [ ] Support dark mode on all cards and states
-- [ ] **Frontend: Search & filter on FacilitiesPage**
-  - [ ] Wire search bar to `?search=` query param
-  - [ ] Wire filter button to type/location/status filters
-  - [ ] Use React Query `refetch` or `invalidateQueries` on filter change
-- [ ] **Frontend: Resource detail view**
-  - [ ] Add modal or detail page showing full resource info
-  - [ ] Show availability status
-  - [ ] Link to booking flow
-  - [ ] Design with frontend-design skill (modern, refined, dark+light mode)
+- [x] **Backend: Enhance Resource entity**
+  - [x] Add fields: `name`, `description`, `imageUrl`, `amenities` (JSON or separate table)
+  - [x] Add `@NotBlank`, `@Size` validation annotations
+  - [x] Add `@CreatedDate`, `@LastModifiedDate` auditing fields
+  - [x] Add `@EntityListeners(AuditingEntityListener.class)` and enable auditing in config
+- [x] **Backend: Custom repository queries for Resource**
+  - [x] `findByType(String type)`
+  - [x] `findByLocation(String location)`
+  - [x] `findByStatus(String status)`
+  - [x] `findByNameContainingIgnoreCase(String keyword)`
+  - [x] `findAll(Pageable pageable)` support
+- [x] **Backend: Resource DTOs** (manual mapper, no MapStruct)
+  - [x] Create `ResourceRequestDTO` (for POST/PUT)
+  - [x] Create `ResourceResponseDTO` (for GET responses)
+  - [x] Add static mapper methods: `toEntity()`, `fromEntity()`
+- [x] **Backend: ResourceController improvements**
+  - [x] Add pagination & sorting to `GET /api/v1/resources`
+  - [x] Add query param filtering: `?type=`, `?location=`, `?status=`, `?search=`
+  - [x] Replace entity with DTOs in request/response
+- [x] **Backend: ResourceService update logic**
+  - [x] Add `@Transactional` at class level, `@Transactional(readOnly = true)` on reads
+  - [x] Replace stub `updateResource` with proper load-merge-save pattern
+  - [x] Add business validation (e.g., capacity > 0)
+- [x] **Backend: Resource seed data**
+  - [x] Add 8-10 sample resources to `data.sql` (lecture halls, labs, meeting rooms, equipment)
+- [x] **Frontend: Connect FacilitiesPage to API**
+  - [x] Add `@tanstack/react-query` to `package.json`
+  - [x] Create `api/resourceApi.js` with axios calls
+  - [x] Create `hooks/useResources.js` with React Query hooks
+  - [x] Fetch resources from `GET /api/v1/resources`
+  - [x] Replace hardcoded cards with dynamic data
+  - [x] Add loading skeleton/spinner
+  - [x] Add error state handling
+  - [x] Support dark mode on all cards and states
+- [x] **Frontend: Search & filter on FacilitiesPage**
+  - [x] Wire search bar to `?search=` query param
+  - [x] Wire filter button to type/location/status filters
+  - [x] Use React Query `refetch` or `invalidateQueries` on filter change
+- [x] **Frontend: Resource detail view**
+  - [x] Add modal or detail page showing full resource info
+  - [x] Show availability status
+  - [x] Link to booking flow
+  - [x] Design with frontend-design skill (modern, refined, dark+light mode)
 
 ---
 
