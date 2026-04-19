@@ -24,27 +24,15 @@ public class ResourceController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ResourceResponseDTO>> getAllResources(
+    public ResponseEntity<Page<ResourceResponseDTO>> getAllResources(
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20) Pageable pageable) {
         
-        if (search != null && !search.isBlank()) {
-            return ResponseEntity.ok(resourceService.searchResources(search));
-        }
-        if (type != null && !type.isBlank()) {
-            return ResponseEntity.ok(resourceService.getResourcesByType(type));
-        }
-        if (location != null && !location.isBlank()) {
-            return ResponseEntity.ok(resourceService.getResourcesByLocation(location));
-        }
-        if (status != null && !status.isBlank()) {
-            return ResponseEntity.ok(resourceService.getResourcesByStatus(status));
-        }
-        Page<ResourceResponseDTO> page = resourceService.getAllResources(pageable);
-        return ResponseEntity.ok(page.getContent());
+        Page<ResourceResponseDTO> page = resourceService.getResources(type, location, status, search, pageable);
+        return ResponseEntity.ok(page);
     }
 
     @GetMapping("/{id}")

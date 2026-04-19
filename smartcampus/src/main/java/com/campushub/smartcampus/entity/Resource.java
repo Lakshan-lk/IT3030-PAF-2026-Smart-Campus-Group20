@@ -9,6 +9,9 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
+import com.campushub.smartcampus.enums.ResourceType;
+import com.campushub.smartcampus.enums.ResourceStatus;
+
 @Entity
 @Table(name = "resources")
 @EntityListeners(AuditingEntityListener.class)
@@ -25,12 +28,16 @@ public class Resource {
     @Size(max = 500)
     private String description;
 
-    @NotBlank(message = "Resource type is required")
-    private String type;
+    @NotNull(message = "Resource type is required")
+    @Enumerated(EnumType.STRING)
+    private ResourceType type;
 
     private String location;
 
-    private String status = "AVAILABLE";
+    @Enumerated(EnumType.STRING)
+    private ResourceStatus status = ResourceStatus.AVAILABLE;
+
+    private boolean isDeleted = false;
 
     private Integer capacity;
 
@@ -72,11 +79,11 @@ public class Resource {
         this.description = description;
     }
 
-    public String getType() {
+    public ResourceType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(ResourceType type) {
         this.type = type;
     }
 
@@ -88,12 +95,20 @@ public class Resource {
         this.location = location;
     }
 
-    public String getStatus() {
+    public ResourceStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ResourceStatus status) {
         this.status = status;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
     }
 
     public Integer getCapacity() {

@@ -5,14 +5,17 @@ import com.campushub.smartcampus.entity.Resource;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import com.campushub.smartcampus.enums.ResourceType;
+import com.campushub.smartcampus.enums.ResourceStatus;
+
 public class ResourceResponseDTO {
 
     private Long id;
     private String name;
     private String description;
-    private String type;
+    private ResourceType type;
     private String location;
-    private String status;
+    private ResourceStatus status;
     private Integer capacity;
     private String imageUrl;
     private String amenities;
@@ -45,11 +48,11 @@ public class ResourceResponseDTO {
         this.description = description;
     }
 
-    public String getType() {
+    public ResourceType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(ResourceType type) {
         this.type = type;
     }
 
@@ -61,11 +64,11 @@ public class ResourceResponseDTO {
         this.location = location;
     }
 
-    public String getStatus() {
+    public ResourceStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ResourceStatus status) {
         this.status = status;
     }
 

@@ -3,14 +3,14 @@ package com.campushub.smartcampus.service;
 import com.campushub.smartcampus.dto.ResourceRequestDTO;
 import com.campushub.smartcampus.dto.ResourceResponseDTO;
 import com.campushub.smartcampus.entity.Resource;
+import com.campushub.smartcampus.enums.ResourceStatus;
+import com.campushub.smartcampus.enums.ResourceType;
 import com.campushub.smartcampus.repository.ResourceRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @Transactional
@@ -23,49 +23,40 @@ public class ResourceService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ResourceResponseDTO> getAllResources(Pageable pageable) {
-        return resourceRepository.findAll(pageable).map(ResourceResponseDTO::fromEntity);
-    }
-
-    @Transactional(readOnly = true)
-    public List<ResourceResponseDTO> getAllResources() {
-        return resourceRepository.findAll().stream()
-                .map(ResourceResponseDTO::fromEntity)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ResourceResponseDTO> getResourcesByType(String type) {
-        return resourceRepository.findByType(type).stream()
-                .map(ResourceResponseDTO::fromEntity)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ResourceResponseDTO> getResourcesByLocation(String location) {
-        return resourceRepository.findByLocation(location).stream()
-                .map(ResourceResponseDTO::fromEntity)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ResourceResponseDTO> getResourcesByStatus(String status) {
-        return resourceRepository.findByStatus(status).stream()
-                .map(ResourceResponseDTO::fromEntity)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ResourceResponseDTO> searchResources(String keyword) {
-        return resourceRepository.findByNameContainingIgnoreCase(keyword).stream()
-                .map(ResourceResponseDTO::fromEntity)
-                .toList();
+    public Page<ResourceResponseDTO> getResources(String type, String location, String status, String search, Pageable pageable) {
+        if (search != null && !search.isBlank()) {
+            return resourceRepository.findByNameContainingIgnoreCaseAndIsDeletedFalse(search, pageable).map(ResourceResponseDTO::fromEntity);
+        }
+        if (type != null && !type.isBlank()) {
+            try {
+                ResourceType rt = ResourceType.valueOf(type.toUpperCase());
+                return resourceRepository.findByTypeAndIsDeletedFalse(rt, pageable).map(ResourceResponseDTO::fromEntity);
+            } catch (IllegalArgumentException e) {
+                // Return empty page if enum is invalid
+                return Page.empty(pageable);
+            }
+        }
+        if (location != null && !location.isBlank()) {
+            return resourceRepository.findByLocationContainingIgnoreCaseAndIsDeletedFalse(location, pageable).map(ResourceResponseDTO::fromEntity);
+        }
+        if (status != null && !status.isBlank()) {
+            try {
+                ResourceStatus rs = ResourceStatus.valueOf(status.toUpperCase());
+                return resourceRepository.findByStatusAndIsDeletedFalse(rs, pageable).map(ResourceResponseDTO::fromEntity);
+            } catch (IllegalArgumentException e) {
+                return Page.empty(pageable);
+            }
+        }
+        return resourceRepository.findByIsDeletedFalse(pageable).map(ResourceResponseDTO::fromEntity);
     }
 
     @Transactional(readOnly = true)
     public ResourceResponseDTO getResourceById(Long id) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
+        if (resource.isDeleted()) {
+            throw new EntityNotFoundException("Resource not found with id: " + id);
+        }
         return ResourceResponseDTO.fromEntity(resource);
     }
 
@@ -82,6 +73,10 @@ public class ResourceService {
     public ResourceResponseDTO updateResource(Long id, ResourceRequestDTO dto) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
+        
+        if (resource.isDeleted()) {
+             throw new EntityNotFoundException("Resource not found with id: " + id);
+        }
 
         if (dto.getCapacity() != null && dto.getCapacity() <= 0) {
             throw new IllegalArgumentException("Capacity must be greater than 0");
@@ -103,9 +98,9 @@ public class ResourceService {
     }
 
     public void deleteResource(Long id) {
-        if (!resourceRepository.existsById(id)) {
-            throw new EntityNotFoundException("Resource not found with id: " + id);
-        }
-        resourceRepository.deleteById(id);
+        Resource resource = resourceRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
+        resource.setDeleted(true);
+        resourceRepository.save(resource);
     }
 }

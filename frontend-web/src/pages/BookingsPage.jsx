@@ -1,13 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MdAdd, MdFilterList, MdCheck, MdClose, MdCancel, MdSearch } from 'react-icons/md';
 import { useBookings, useApproveBooking, useRejectBooking, useCancelBooking } from '../hooks/useBookings';
 import NewBookingForm from '../components/NewBookingForm';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const BookingsPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Open modal if navigated with resourceId
+  useEffect(() => {
+    if (location.state?.resourceId) {
+      setShowForm(true);
+    }
+  }, [location.state]);
 
   const { data: bookings = [], isLoading, error } = useBookings();
   const approveBooking = useApproveBooking();
@@ -217,7 +227,17 @@ const BookingsPage = () => {
         </motion.div>
       </div>
 
-      <NewBookingForm isOpen={showForm} onClose={() => setShowForm(false)} />
+      <NewBookingForm 
+        isOpen={showForm} 
+        onClose={() => {
+          setShowForm(false);
+          // clear the state so refreshing doesn't reopen modal
+          if (location.state?.resourceId) {
+            navigate('/bookings', { replace: true, state: {} });
+          }
+        }} 
+        initialResourceId={location.state?.resourceId || ''}
+      />
     </div>
   );
 };

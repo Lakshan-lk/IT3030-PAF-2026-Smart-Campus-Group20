@@ -2,7 +2,11 @@ package com.campushub.smartcampus.dto;
 
 import com.campushub.smartcampus.entity.Resource;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
+import com.campushub.smartcampus.enums.ResourceType;
+import com.campushub.smartcampus.enums.ResourceStatus;
 
 public class ResourceRequestDTO {
 
@@ -13,12 +17,12 @@ public class ResourceRequestDTO {
     @Size(max = 500)
     private String description;
 
-    @NotBlank(message = "Resource type is required")
-    private String type;
+    @NotNull(message = "Resource type is required")
+    private ResourceType type;
 
     private String location;
 
-    private String status;
+    private ResourceStatus status;
 
     private Integer capacity;
 
@@ -42,11 +46,11 @@ public class ResourceRequestDTO {
         this.description = description;
     }
 
-    public String getType() {
+    public ResourceType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(ResourceType type) {
         this.type = type;
     }
 
@@ -58,11 +62,11 @@ public class ResourceRequestDTO {
         this.location = location;
     }
 
-    public String getStatus() {
+    public ResourceStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ResourceStatus status) {
         this.status = status;
     }
 
@@ -96,7 +100,7 @@ public class ResourceRequestDTO {
         resource.setDescription(dto.getDescription());
         resource.setType(dto.getType());
         resource.setLocation(dto.getLocation());
-        resource.setStatus(dto.getStatus() != null ? dto.getStatus() : "AVAILABLE");
+        resource.setStatus(dto.getStatus() != null ? dto.getStatus() : ResourceStatus.AVAILABLE);
         resource.setCapacity(dto.getCapacity());
         resource.setImageUrl(dto.getImageUrl());
         resource.setAmenities(dto.getAmenities());

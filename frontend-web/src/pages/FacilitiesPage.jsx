@@ -105,7 +105,7 @@ const FacilitiesPage = () => {
           <p className="font-semibold">Failed to load resources.</p>
           <p className="text-sm">{error?.message || "An unexpected error occurred."}</p>
         </div>
-      ) : !resources || resources.length === 0 ? (
+      ) : !(resources?.content || Array.isArray(resources) ? (resources.content || resources) : []).length ? (
         <div className="p-12 text-center bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 transition-colors">
           <MdSearch className="mx-auto text-5xl text-slate-300 dark:text-slate-600 mb-4" />
           <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">No facilities found</h3>
@@ -113,7 +113,7 @@ const FacilitiesPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {resources.map((resource) => (
+          {(resources.content || resources).map((resource) => (
             <motion.div 
               key={resource.id}
               whileHover={{ y: -5 }}

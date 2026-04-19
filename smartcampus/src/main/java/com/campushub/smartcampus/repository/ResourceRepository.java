@@ -4,16 +4,21 @@ import com.campushub.smartcampus.entity.Resource;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import com.campushub.smartcampus.enums.ResourceType;
+import com.campushub.smartcampus.enums.ResourceStatus;
 
 @Repository
 public interface ResourceRepository extends JpaRepository<Resource, Long> {
 
-    List<Resource> findByType(String type);
+    Page<Resource> findByIsDeletedFalse(Pageable pageable);
 
-    List<Resource> findByLocation(String location);
+    Page<Resource> findByTypeAndIsDeletedFalse(ResourceType type, Pageable pageable);
 
-    List<Resource> findByStatus(String status);
+    Page<Resource> findByLocationContainingIgnoreCaseAndIsDeletedFalse(String location, Pageable pageable);
 
-    List<Resource> findByNameContainingIgnoreCase(String keyword);
+    Page<Resource> findByStatusAndIsDeletedFalse(ResourceStatus status, Pageable pageable);
+
+    Page<Resource> findByNameContainingIgnoreCaseAndIsDeletedFalse(String keyword, Pageable pageable);
 }
