@@ -1,57 +1,27 @@
-package com.campushub.smartcampus.entity;
+package com.campushub.smartcampus.dto;
 
+import com.campushub.smartcampus.entity.Equipment;
+import com.campushub.smartcampus.entity.Resource;
 import com.campushub.smartcampus.enums.ResourceStatus;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Entity
-@Table(name = "resources")
-public class Resource {
+public class ResourceResponseDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotBlank(message = "Resource name is required")
-    @Size(max = 100)
     private String name;
-
-    @Size(max = 500)
     private String description;
-
-    @NotBlank(message = "Resource type is required")
     private String type;
-
     private String location;
-
-    @Enumerated(EnumType.STRING)
-    private ResourceStatus status = ResourceStatus.ACTIVE;
-
+    private String status;
     private Integer capacity;
-
     private String imageUrl;
+    private List<EquipmentDTO> equipment;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    @Column(columnDefinition = "TEXT")
-    private String amenities;
-
-    @OneToMany(mappedBy = "room", fetch = FetchType.LAZY)
-    private List<Equipment> equipment;
-
-    @Column(updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    private LocalDateTime updatedAt = LocalDateTime.now();
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    public Resource() {}
+    public ResourceResponseDTO() {}
 
     public Long getId() {
         return id;
@@ -93,11 +63,11 @@ public class Resource {
         this.location = location;
     }
 
-    public ResourceStatus getStatus() {
+    public String getStatus() {
         return status;
     }
 
-    public void setStatus(ResourceStatus status) {
+    public void setStatus(String status) {
         this.status = status;
     }
 
@@ -117,19 +87,11 @@ public class Resource {
         this.imageUrl = imageUrl;
     }
 
-    public String getAmenities() {
-        return amenities;
-    }
-
-    public void setAmenities(String amenities) {
-        this.amenities = amenities;
-    }
-
-    public List<Equipment> getEquipment() {
+    public List<EquipmentDTO> getEquipment() {
         return equipment;
     }
 
-    public void setEquipment(List<Equipment> equipment) {
+    public void setEquipment(List<EquipmentDTO> equipment) {
         this.equipment = equipment;
     }
 
@@ -147,5 +109,27 @@ public class Resource {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public static ResourceResponseDTO fromEntity(Resource resource, List<Equipment> equipmentList) {
+        ResourceResponseDTO dto = new ResourceResponseDTO();
+        dto.setId(resource.getId());
+        dto.setName(resource.getName());
+        dto.setDescription(resource.getDescription());
+        dto.setType(resource.getType());
+        dto.setLocation(resource.getLocation());
+        dto.setStatus(resource.getStatus() != null ? resource.getStatus().name() : ResourceStatus.ACTIVE.name());
+        dto.setCapacity(resource.getCapacity());
+        dto.setImageUrl(resource.getImageUrl());
+        dto.setCreatedAt(resource.getCreatedAt());
+        dto.setUpdatedAt(resource.getUpdatedAt());
+
+        if (equipmentList != null) {
+            dto.setEquipment(equipmentList.stream()
+                    .map(EquipmentDTO::fromEntity)
+                    .toList());
+        }
+
+        return dto;
     }
 }

@@ -7,23 +7,23 @@ Auth module wires security last (auth-04).
 ---
 
 ## Setup (do first, shared)
-- [ ] setup/setup-01 — MySQL migration
+- [x] setup/setup-01 — MySQL migration
 - [ ] setup/setup-02 — GitHub Actions CI
 
 ---
 
 ## Resource Module — Member 1 (independent branch)
-- [ ] resource/resource-01 — Equipment entity + repository + EquipmentController
-- [ ] resource/resource-02 — ResourceService + ResourceResponseDTO + status enum
-- [ ] resource/resource-03 — Availability filter endpoint (equipment, type, capacity, time slot)
+- [x] resource/resource-01 — Equipment entity + repository + EquipmentController
+- [x] resource/resource-02 — ResourceService + ResourceResponseDTO + status enum
+- [x] resource/resource-03 — Availability filter endpoint (equipment, type, capacity, time slot)
 - [ ] resource/resource-04 — Frontend: FacilitiesPage + admin resource/equipment CRUD
 
 ---
 
 ## Booking Module — Member 2 / Lakshika (independent branch)
-- [ ] booking/booking-01 — Booking entity enhancements (attendees, rejectionReason, recurrence fields)
-- [ ] booking/booking-02 — Recurring booking creation + series conflict detection
-- [ ] booking/booking-03 — Approve/reject (with reason) + cancel single + cancel series
+- [x] booking/booking-01 — Booking entity enhancements (attendees, rejectionReason, recurrence fields)
+- [x] booking/booking-02 — Recurring booking creation + series conflict detection
+- [x] booking/booking-03 — Approve/reject (with reason) + cancel single + cancel series
 - [ ] booking/booking-04 — Frontend: booking form with filters, user bookings page, admin bookings page
 
 ---
