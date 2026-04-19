@@ -24,7 +24,7 @@ Auth module wires security last (auth-04).
 - [x] booking/booking-01 — Booking entity enhancements (attendees, rejectionReason, recurrence fields)
 - [x] booking/booking-02 — Recurring booking creation + series conflict detection
 - [x] booking/booking-03 — Approve/reject (with reason) + cancel single + cancel series
-- [ ] booking/booking-04 — Frontend: booking form with filters, user bookings page, admin bookings page
+- [x] booking/booking-04 — Frontend: booking form with filters, user bookings page, admin bookings page
 
 ---
 

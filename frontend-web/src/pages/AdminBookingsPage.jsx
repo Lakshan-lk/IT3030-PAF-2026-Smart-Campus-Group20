@@ -82,7 +82,16 @@ const AdminBookingsPage = () => {
   };
 
   return (
-    <div>
+    <div className="relative">
+      <div className="absolute -top-20 -right-40 w-96 h-96 bg-amber-200/20 dark:bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-50 tracking-tight">Manage Bookings</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Review, approve, and manage all facility bookings</p>
+        </div>
+      </div>
+
       <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl shadow-sm shadow-slate-900/5 dark:shadow-black/20 border border-slate-200/60 dark:border-slate-700/40 overflow-hidden">
         <div className="p-5 border-b border-slate-100 dark:border-slate-700/40">
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
