@@ -55,7 +55,7 @@ class ResourceControllerTest {
     @Test
     void getAllResources_ReturnsPage() throws Exception {
         Page<ResourceResponseDTO> page = new PageImpl<>(List.of(responseDTO));
-        when(resourceService.getResources(any(), any(), any(), any(), any(Pageable.class))).thenReturn(page);
+        when(resourceService.getResources(any(), any(), any(), any(), any(), any(), any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/resources")
                 .contentType(MediaType.APPLICATION_JSON))

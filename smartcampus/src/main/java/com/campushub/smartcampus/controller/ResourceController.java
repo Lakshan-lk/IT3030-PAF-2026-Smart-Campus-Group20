@@ -29,9 +29,11 @@ public class ResourceController {
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) List<String> equipmentTypes,
+            @RequestParam(required = false) Integer minCapacity,
             @PageableDefault(size = 20) Pageable pageable) {
         
-        Page<ResourceResponseDTO> page = resourceService.getResources(type, location, status, search, pageable);
+        Page<ResourceResponseDTO> page = resourceService.getResources(type, location, status, search, equipmentTypes, minCapacity, pageable);
         return ResponseEntity.ok(page);
     }
 
