@@ -6,9 +6,18 @@ import NewBookingForm from '../components/NewBookingForm';
 import BookingCard from '../components/BookingCard';
 
 const BookingsPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [showTab, setShowTab] = useState('upcoming');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Open modal if navigated with resourceId
+  useEffect(() => {
+    if (location.state?.resourceId) {
+      setShowForm(true);
+    }
+  }, [location.state]);
 
   const { data: bookings = [], isLoading, error, refetch } = useBookings();
   const cancelBooking = useCancelBooking();
@@ -192,7 +201,17 @@ const BookingsPage = () => {
         </motion.div>
       </div>
 
-      <NewBookingForm isOpen={showForm} onClose={() => setShowForm(false)} />
+      <NewBookingForm 
+        isOpen={showForm} 
+        onClose={() => {
+          setShowForm(false);
+          // clear the state so refreshing doesn't reopen modal
+          if (location.state?.resourceId) {
+            navigate('/bookings', { replace: true, state: {} });
+          }
+        }} 
+        initialResourceId={location.state?.resourceId || ''}
+      />
     </div>
   );
 };

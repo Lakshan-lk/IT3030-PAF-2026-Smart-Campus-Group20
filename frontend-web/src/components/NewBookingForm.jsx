@@ -8,13 +8,10 @@ const ROOM_TYPES = ['LAB', 'LECTURE_HALL', 'MEETING_ROOM'];
 const EQUIPMENT_TYPES = ['PROJECTOR', 'WHITEBOARD', 'AC', 'MICROPHONE', 'PC', 'CAMERA'];
 
 const NewBookingForm = ({ isOpen, onClose }) => {
-  const [step, setStep] = useState(1);
-  const [selectedResource, setSelectedResource] = useState(null);
-  
-  const [filters, setFilters] = useState({
-    type: '',
-    capacity: '',
-    hasEquipment: '',
+  const [formData, setFormData] = useState({
+    resourceId: '',
+    userId: 2,
+    purpose: '',
     startDate: '',
     startTime: '',
     endDate: '',
@@ -34,9 +31,8 @@ const NewBookingForm = ({ isOpen, onClose }) => {
   const [newSkipDate, setNewSkipDate] = useState('');
   const [errors, setErrors] = useState({});
   const [conflictError, setConflictError] = useState('');
-  const [isLoadingResources, setIsLoadingResources] = useState(false);
-  const [resources, setResources] = useState([]);
-  
+
+  const { data: resources = [] } = useResources();
   const createBooking = useCreateBooking();
 
   const handleFilterChange = (e) => {
@@ -53,6 +49,23 @@ const NewBookingForm = ({ isOpen, onClose }) => {
     setErrors(prev => ({ ...prev, [name]: '' }));
     setConflictError('');
   };
+
+  // Sync form data when modal opens (especially for initialResourceId)
+  React.useEffect(() => {
+    if (isOpen) {
+      setFormData(prev => ({
+        ...prev,
+        resourceId: initialResourceId || '',
+        purpose: '',
+        startDate: '',
+        startTime: '',
+        endDate: '',
+        endTime: ''
+      }));
+      setErrors({});
+      setConflictError('');
+    }
+  }, [isOpen, initialResourceId]);
 
   const searchRooms = async () => {
     if (!filters.startDate || !filters.startTime || !filters.endDate || !filters.endTime) {
@@ -140,8 +153,8 @@ const NewBookingForm = ({ isOpen, onClose }) => {
     e.preventDefault();
     if (!validateStep2()) return;
 
-    const startTime = `${filters.startDate}T${filters.startTime}:00`;
-    const endTime = `${filters.endDate}T${filters.endTime}:00`;
+    const startTime = `${formData.startDate}T${formData.startTime}:00`;
+    const endTime = `${formData.endDate}T${formData.endTime}:00`;
 
     const bookingData = {
       resourceId: selectedResource.id,
@@ -162,9 +175,9 @@ const NewBookingForm = ({ isOpen, onClose }) => {
       onClose();
     } catch (err) {
       if (err.response?.status === 409) {
-        setConflictError(err.response.data.message || 'This time slot is already booked.');
+        setConflictError(err.response.data.message || 'This time slot is already booked. Please choose a different time.');
       } else {
-        setConflictError('Failed to create booking. Please try again.');
+        setConflictError(`Failed to create booking (${err.response?.status || err.message}). Please try again.`);
       }
     }
   };

@@ -5,11 +5,18 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.campushub.smartcampus.enums.ResourceType;
+import com.campushub.smartcampus.enums.ResourceStatus;
+
 @Entity
 @Table(name = "resources")
+@EntityListeners(AuditingEntityListener.class)
 public class Resource {
 
     @Id
@@ -23,8 +30,9 @@ public class Resource {
     @Size(max = 500)
     private String description;
 
-    @NotBlank(message = "Resource type is required")
-    private String type;
+    @NotNull(message = "Resource type is required")
+    @Enumerated(EnumType.STRING)
+    private ResourceType type;
 
     private String location;
 
@@ -42,14 +50,11 @@ public class Resource {
     private List<Equipment> equipment;
 
     @Column(updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreatedDate
+    private LocalDateTime createdAt;
 
-    private LocalDateTime updatedAt = LocalDateTime.now();
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
 
     public Resource() {}
 
@@ -77,11 +82,11 @@ public class Resource {
         this.description = description;
     }
 
-    public String getType() {
+    public ResourceType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(ResourceType type) {
         this.type = type;
     }
 
@@ -99,6 +104,14 @@ public class Resource {
 
     public void setStatus(ResourceStatus status) {
         this.status = status;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
     }
 
     public Integer getCapacity() {

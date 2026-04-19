@@ -9,6 +9,7 @@ import BookingsPage from './pages/BookingsPage';
 import TicketsPage from './pages/TicketsPage';
 import AdminOverviewPage from './pages/AdminOverviewPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
+import AdminResourcesPage from './pages/AdminResourcesPage';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route element={<AdminLayout />}>
           <Route path="/admin/overview" element={<AdminOverviewPage />} />
           <Route path="/admin/bookings" element={<AdminBookingsPage />} />
+          <Route path="/admin/resources" element={<AdminResourcesPage />} />
           <Route path="/admin" element={<AdminOverviewPage />} />
         </Route>
       </Routes>

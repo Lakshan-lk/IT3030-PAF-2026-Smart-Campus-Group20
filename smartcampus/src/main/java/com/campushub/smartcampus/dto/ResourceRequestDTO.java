@@ -1,9 +1,16 @@
 package com.campushub.smartcampus.dto;
 
+import com.campushub.smartcampus.entity.Resource;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
+import com.campushub.smartcampus.enums.ResourceType;
+import com.campushub.smartcampus.enums.ResourceStatus;
 
 public class ResourceRequestDTO {
 
+    @NotBlank(message = "Resource name is required")
     @Size(max = 100)
     private String name;
 

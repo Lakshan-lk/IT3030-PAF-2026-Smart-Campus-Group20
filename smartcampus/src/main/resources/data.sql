@@ -14,26 +14,26 @@ INSERT INTO users (id, name, email, role, provider, created_at) VALUES (6, 'Tom 
 -- Types: LECTURE_HALL, LAB, MEETING_ROOM, SEMINAR_ROOM, EQUIPMENT, WORKSHOP
 -- Statuses: AVAILABLE, MAINTENANCE, UNAVAILABLE
 -- ============================================================
-INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at)
-VALUES (1, 'Main Hall A', 'Large lecture hall with projector and sound system', 'LECTURE_HALL', 'Building A, Floor 1', 'AVAILABLE', 200, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at)
-VALUES (2, 'Computer Lab 3', '30 workstations with development tools installed', 'LAB', 'Building B, Floor 2', 'AVAILABLE', 30, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at)
-VALUES (3, 'Meeting Room C', 'Small meeting room with whiteboard and video conferencing', 'MEETING_ROOM', 'Building A, Floor 3', 'AVAILABLE', 10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at)
-VALUES (4, 'Science Lab 1', 'Chemistry lab with fume hoods and safety equipment', 'LAB', 'Building C, Floor 1', 'AVAILABLE', 25, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at)
-VALUES (5, 'Seminar Room D', 'Medium seminar room with smart board', 'SEMINAR_ROOM', 'Building A, Floor 2', 'AVAILABLE', 40, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at)
-VALUES (6, 'Projector Kit #1', 'Portable projector with HDMI and wireless casting', 'EQUIPMENT', 'Equipment Room, Floor 1', 'AVAILABLE', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at)
-VALUES (7, 'Conference Room E', 'Executive conference room with video wall', 'MEETING_ROOM', 'Building D, Floor 1', 'AVAILABLE', 20, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at)
-VALUES (8, 'Workshop Space F', 'Open workshop area with tools and workbenches', 'WORKSHOP', 'Building C, Floor 2', 'AVAILABLE', 15, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at)
-VALUES (9, 'Audio Visual Kit #2', 'Portable PA system with wireless microphones', 'EQUIPMENT', 'Equipment Room, Floor 1', 'AVAILABLE', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at)
-VALUES (10, 'Lecture Hall B', 'Tiered lecture hall with dual projectors', 'LECTURE_HALL', 'Building B, Floor 1', 'MAINTENANCE', 150, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at, is_deleted)
+VALUES (1, 'Main Hall A', 'Large lecture hall with projector and sound system', 'LECTURE_HALL', 'Building A, Floor 1', 'AVAILABLE', 200, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false);
+INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at, is_deleted)
+VALUES (2, 'Computer Lab 3', '30 workstations with development tools installed', 'LAB', 'Building B, Floor 2', 'AVAILABLE', 30, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false);
+INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at, is_deleted)
+VALUES (3, 'Meeting Room C', 'Small meeting room with whiteboard and video conferencing', 'MEETING_ROOM', 'Building A, Floor 3', 'AVAILABLE', 10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false);
+INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at, is_deleted)
+VALUES (4, 'Science Lab 1', 'Chemistry lab with fume hoods and safety equipment', 'LAB', 'Building C, Floor 1', 'AVAILABLE', 25, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false);
+INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at, is_deleted)
+VALUES (5, 'Seminar Room D', 'Medium seminar room with smart board', 'SEMINAR_ROOM', 'Building A, Floor 2', 'AVAILABLE', 40, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false);
+INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at, is_deleted)
+VALUES (6, 'Projector Kit #1', 'Portable projector with HDMI and wireless casting', 'EQUIPMENT', 'Equipment Room, Floor 1', 'AVAILABLE', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false);
+INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at, is_deleted)
+VALUES (7, 'Conference Room E', 'Executive conference room with video wall', 'MEETING_ROOM', 'Building D, Floor 1', 'AVAILABLE', 20, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false);
+INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at, is_deleted)
+VALUES (8, 'Workshop Space F', 'Open workshop area with tools and workbenches', 'WORKSHOP', 'Building C, Floor 2', 'AVAILABLE', 15, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false);
+INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at, is_deleted)
+VALUES (9, 'Audio Visual Kit #2', 'Portable PA system with wireless microphones', 'EQUIPMENT', 'Equipment Room, Floor 1', 'AVAILABLE', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false);
+INSERT INTO resources (id, name, description, type, location, status, capacity, created_at, updated_at, is_deleted)
+VALUES (10, 'Lecture Hall B', 'Tiered lecture hall with dual projectors', 'LECTURE_HALL', 'Building B, Floor 1', 'MAINTENANCE', 150, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false);
 
 -- ============================================================
 -- BOOKINGS
@@ -106,3 +106,8 @@ VALUES (6, 4, 2, 'Chemistry Practical - Organic Synthesis', '2026-11-01 10:00:00
 -- VALUES (2, 3, 'Your booking for Meeting Room C has been rejected.', 'BOOKING_REJECTED', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 -- INSERT INTO notifications (id, user_id, message, type, is_read, read_at, created_at)
 -- VALUES (3, 4, 'You have been assigned to ticket: Projector not working in Hall A', 'TICKET_ASSIGNED', false, NULL, CURRENT_TIMESTAMP);
+
+ALTER TABLE resources ALTER COLUMN id RESTART WITH 100;
+
+ALTER TABLE users ALTER COLUMN id RESTART WITH 100;
+ALTER TABLE bookings ALTER COLUMN id RESTART WITH 100;
