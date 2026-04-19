@@ -11,9 +11,11 @@ export const bookingApi = {
 
   approve: (id) => api.put(`/api/v1/bookings/${id}/approve`),
 
-  reject: (id) => api.put(`/api/v1/bookings/${id}/reject`),
+  reject: (id, reason) => api.put(`/api/v1/bookings/${id}/reject`, { reason }),
 
   cancel: (id) => api.post(`/api/v1/bookings/${id}/cancel`),
+
+  cancelSeries: (groupId) => api.post(`/api/v1/bookings/series/${groupId}/cancel`),
 
   delete: (id) => api.delete(`/api/v1/bookings/${id}`),
 

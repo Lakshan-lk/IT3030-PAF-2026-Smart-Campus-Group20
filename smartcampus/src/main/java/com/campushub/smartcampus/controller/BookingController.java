@@ -2,6 +2,8 @@ package com.campushub.smartcampus.controller;
 
 import com.campushub.smartcampus.dto.BookingRequestDTO;
 import com.campushub.smartcampus.dto.BookingResponseDTO;
+import com.campushub.smartcampus.dto.CancelSeriesResponse;
+import com.campushub.smartcampus.dto.RejectBookingRequestDTO;
 import com.campushub.smartcampus.enums.BookingStatus;
 import com.campushub.smartcampus.service.BookingService;
 import jakarta.validation.Valid;
@@ -49,8 +51,8 @@ public class BookingController {
     }
 
     @PostMapping
-    public ResponseEntity<BookingResponseDTO> createBooking(@Valid @RequestBody BookingRequestDTO dto) {
-        BookingResponseDTO created = bookingService.createBooking(dto);
+    public ResponseEntity<List<BookingResponseDTO>> createBooking(@Valid @RequestBody BookingRequestDTO dto) {
+        List<BookingResponseDTO> created = bookingService.createBooking(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -65,8 +67,16 @@ public class BookingController {
     }
 
     @PutMapping("/{id}/reject")
-    public ResponseEntity<BookingResponseDTO> rejectBooking(@PathVariable Long id) {
-        return ResponseEntity.ok(bookingService.rejectBooking(id));
+    public ResponseEntity<BookingResponseDTO> rejectBooking(
+            @PathVariable Long id,
+            @Valid @RequestBody RejectBookingRequestDTO dto) {
+        return ResponseEntity.ok(bookingService.rejectBooking(id, dto.getReason()));
+    }
+
+    @PostMapping("/series/{groupId}/cancel")
+    public ResponseEntity<CancelSeriesResponse> cancelSeries(@PathVariable String groupId) {
+        int cancelled = bookingService.cancelSeries(groupId);
+        return ResponseEntity.ok(new CancelSeriesResponse(cancelled));
     }
 
     @PostMapping("/{id}/cancel")

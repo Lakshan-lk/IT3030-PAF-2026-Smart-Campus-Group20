@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MdAdd, MdFilterList, MdCheck, MdClose, MdCancel, MdSearch } from 'react-icons/md';
-import { useBookings, useApproveBooking, useRejectBooking, useCancelBooking } from '../hooks/useBookings';
+import { useBookings, useApproveBooking, useRejectBooking, useCancelBooking, useCancelSeries } from '../hooks/useBookings';
 import NewBookingForm from '../components/NewBookingForm';
 
 const BookingsPage = () => {
@@ -9,10 +9,15 @@ const BookingsPage = () => {
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectBookingId, setRejectBookingId] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+
   const { data: bookings = [], isLoading, error } = useBookings();
   const approveBooking = useApproveBooking();
   const rejectBooking = useRejectBooking();
   const cancelBooking = useCancelBooking();
+  const cancelSeries = useCancelSeries();
 
   const statusColors = {
     PENDING: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800/40', dot: 'bg-amber-400' },

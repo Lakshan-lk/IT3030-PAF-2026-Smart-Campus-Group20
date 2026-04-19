@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -74,10 +75,11 @@ class BookingServiceTest {
             return b;
         });
 
-        BookingResponseDTO result = bookingService.createBooking(validDto);
+        List<BookingResponseDTO> result = bookingService.createBooking(validDto);
 
         assertNotNull(result);
-        assertEquals(BookingStatus.PENDING, result.getStatus());
+        assertEquals(1, result.size());
+        assertEquals(BookingStatus.PENDING, result.get(0).getStatus());
         verify(bookingRepository).save(any(Booking.class));
     }
 
@@ -110,6 +112,11 @@ class BookingServiceTest {
         Booking pendingBooking = new Booking();
         pendingBooking.setId(1L);
         pendingBooking.setStatus(BookingStatus.PENDING);
+        pendingBooking.setResource(testResource);
+        pendingBooking.setUser(testUser);
+        pendingBooking.setPurpose("Test");
+        pendingBooking.setStartTime(LocalDateTime.now().plusDays(1));
+        pendingBooking.setEndTime(LocalDateTime.now().plusDays(1).plusHours(1));
 
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(pendingBooking));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
@@ -135,13 +142,19 @@ class BookingServiceTest {
         Booking pendingBooking = new Booking();
         pendingBooking.setId(1L);
         pendingBooking.setStatus(BookingStatus.PENDING);
+        pendingBooking.setResource(testResource);
+        pendingBooking.setUser(testUser);
+        pendingBooking.setPurpose("Test");
+        pendingBooking.setStartTime(LocalDateTime.now().plusDays(1));
+        pendingBooking.setEndTime(LocalDateTime.now().plusDays(1).plusHours(1));
 
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(pendingBooking));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
 
-        BookingResponseDTO result = bookingService.rejectBooking(1L);
+        BookingResponseDTO result = bookingService.rejectBooking(1L, "Room under maintenance");
 
         assertEquals(BookingStatus.REJECTED, result.getStatus());
+        assertEquals("Room under maintenance", result.getRejectionReason());
     }
 
     @Test
@@ -150,6 +163,10 @@ class BookingServiceTest {
         pendingBooking.setId(1L);
         pendingBooking.setStatus(BookingStatus.PENDING);
         pendingBooking.setStartTime(LocalDateTime.now().plusDays(2));
+        pendingBooking.setEndTime(LocalDateTime.now().plusDays(2).plusHours(1));
+        pendingBooking.setResource(testResource);
+        pendingBooking.setUser(testUser);
+        pendingBooking.setPurpose("Test");
 
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(pendingBooking));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
@@ -160,14 +177,22 @@ class BookingServiceTest {
     }
 
     @Test
-    void cancelBooking_AlreadyApprovedThrowsException() {
+    void cancelBooking_ApprovedBooking_Success() {
         Booking approvedBooking = new Booking();
         approvedBooking.setId(1L);
         approvedBooking.setStatus(BookingStatus.APPROVED);
+        approvedBooking.setStartTime(LocalDateTime.now().plusDays(2));
+        approvedBooking.setEndTime(LocalDateTime.now().plusDays(2).plusHours(1));
+        approvedBooking.setResource(testResource);
+        approvedBooking.setUser(testUser);
+        approvedBooking.setPurpose("Test");
 
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(approvedBooking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
 
-        assertThrows(IllegalArgumentException.class, () -> bookingService.cancelBooking(1L));
+        BookingResponseDTO result = bookingService.cancelBooking(1L);
+
+        assertEquals(BookingStatus.CANCELLED, result.getStatus());
     }
 
     @Test
@@ -176,6 +201,9 @@ class BookingServiceTest {
         pastBooking.setId(1L);
         pastBooking.setStatus(BookingStatus.PENDING);
         pastBooking.setStartTime(LocalDateTime.now().minusDays(1));
+        pastBooking.setResource(testResource);
+        pastBooking.setUser(testUser);
+        pastBooking.setPurpose("Test");
 
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(pastBooking));
 
@@ -190,5 +218,126 @@ class BookingServiceTest {
         long count = bookingService.countActiveBookings();
 
         assertEquals(2, count);
+    }
+
+    @Test
+    void createRecurringBooking_Success() {
+        validDto.setRecurring(true);
+        validDto.setRecurrencePattern("WEEKLY");
+        validDto.setRecurrenceEndDate(LocalDate.now().plusWeeks(3));
+        validDto.setSkipDates(List.of());
+
+        when(resourceRepository.findById(1L)).thenReturn(Optional.of(testResource));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(bookingRepository.findByResourceIdAndStartTimeBeforeAndEndTimeAfter(any(), any(), any()))
+                .thenReturn(List.of());
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> {
+            Booking b = invocation.getArgument(0);
+            b.setId(1L);
+            return b;
+        });
+
+        List<BookingResponseDTO> result = bookingService.createBooking(validDto);
+
+        assertNotNull(result);
+        assertTrue(result.size() > 1);
+        assertTrue(result.get(0).isRecurring());
+        assertNotNull(result.get(0).getRecurrenceGroupId());
+        verify(bookingRepository, times(result.size())).save(any(Booking.class));
+    }
+
+    @Test
+    void createRecurringBooking_ConflictOnAnyOccurrence_ThrowsException() {
+        validDto.setRecurring(true);
+        validDto.setRecurrencePattern("WEEKLY");
+        validDto.setRecurrenceEndDate(LocalDate.now().plusWeeks(3));
+        validDto.setSkipDates(List.of());
+
+        Booking existingBooking = new Booking();
+        existingBooking.setId(2L);
+        existingBooking.setResource(testResource);
+        existingBooking.setStartTime(validDto.getStartTime());
+        existingBooking.setEndTime(validDto.getEndTime());
+
+        when(resourceRepository.findById(1L)).thenReturn(Optional.of(testResource));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(bookingRepository.findByResourceIdAndStartTimeBeforeAndEndTimeAfter(any(), any(), any()))
+                .thenReturn(List.of(existingBooking));
+
+        assertThrows(BookingConflictException.class, () -> bookingService.createBooking(validDto));
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    void createRecurringBooking_InvalidEndDate_ThrowsException() {
+        validDto.setRecurring(true);
+        validDto.setRecurrencePattern("WEEKLY");
+        validDto.setRecurrenceEndDate(LocalDate.now().minusDays(1));
+
+        when(resourceRepository.findById(1L)).thenReturn(Optional.of(testResource));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+        assertThrows(IllegalArgumentException.class, () -> bookingService.createBooking(validDto));
+    }
+
+    @Test
+    void createRecurringBooking_InvalidPattern_ThrowsException() {
+        validDto.setRecurring(true);
+        validDto.setRecurrencePattern("DAILY");
+        validDto.setRecurrenceEndDate(LocalDate.now().plusWeeks(1));
+
+        when(resourceRepository.findById(1L)).thenReturn(Optional.of(testResource));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+        assertThrows(IllegalArgumentException.class, () -> bookingService.createBooking(validDto));
+    }
+
+    @Test
+    void cancelSeries_Success() {
+        Booking booking1 = new Booking();
+        booking1.setId(1L);
+        booking1.setStatus(BookingStatus.APPROVED);
+        booking1.setStartTime(LocalDateTime.now().plusDays(1));
+        booking1.setEndTime(LocalDateTime.now().plusDays(1).plusHours(1));
+        booking1.setRecurrenceGroupId("test-group-123");
+        booking1.setResource(testResource);
+        booking1.setUser(testUser);
+        booking1.setPurpose("Test");
+
+        Booking booking2 = new Booking();
+        booking2.setId(2L);
+        booking2.setStatus(BookingStatus.PENDING);
+        booking2.setStartTime(LocalDateTime.now().plusDays(8));
+        booking2.setEndTime(LocalDateTime.now().plusDays(8).plusHours(1));
+        booking2.setRecurrenceGroupId("test-group-123");
+        booking2.setResource(testResource);
+        booking2.setUser(testUser);
+        booking2.setPurpose("Test");
+
+        when(bookingRepository.findByRecurrenceGroupId("test-group-123")).thenReturn(List.of(booking1, booking2));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
+
+        int cancelled = bookingService.cancelSeries("test-group-123");
+
+        assertEquals(2, cancelled);
+    }
+
+    @Test
+    void cancelSeries_PastBookingsNotCancelled() {
+        Booking pastBooking = new Booking();
+        pastBooking.setId(1L);
+        pastBooking.setStatus(BookingStatus.APPROVED);
+        pastBooking.setStartTime(LocalDateTime.now().minusDays(1));
+        pastBooking.setEndTime(LocalDateTime.now().minusDays(1).plusHours(1));
+        pastBooking.setRecurrenceGroupId("test-group-123");
+        pastBooking.setResource(testResource);
+        pastBooking.setUser(testUser);
+        pastBooking.setPurpose("Test");
+
+        when(bookingRepository.findByRecurrenceGroupId("test-group-123")).thenReturn(List.of(pastBooking));
+
+        int cancelled = bookingService.cancelSeries("test-group-123");
+
+        assertEquals(0, cancelled);
     }
 }

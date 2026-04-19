@@ -56,7 +56,7 @@ export function useApproveBooking() {
 export function useRejectBooking() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id) => bookingApi.reject(id),
+    mutationFn: ({ id, reason }) => bookingApi.reject(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
@@ -67,6 +67,16 @@ export function useCancelBooking() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id) => bookingApi.cancel(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+  });
+}
+
+export function useCancelSeries() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId) => bookingApi.cancelSeries(groupId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
