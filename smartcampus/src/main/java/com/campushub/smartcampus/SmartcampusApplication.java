@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 public class SmartcampusApplication {
 
 	public static void main(String[] args) {
-		Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+		Dotenv dotenv = Dotenv.configure().filename("../.env").ignoreIfMissing().load();
 		System.setProperty("POSTGRES_DB", dotenv.get("POSTGRES_DB", "smartcampusdb"));
 		System.setProperty("POSTGRES_USER", dotenv.get("POSTGRES_USER", "smartcampus"));
 		System.setProperty("POSTGRES_PASSWORD", dotenv.get("POSTGRES_PASSWORD", ""));
