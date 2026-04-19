@@ -1,59 +1,28 @@
-package com.campushub.smartcampus.entity;
+package com.campushub.smartcampus.dto;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import com.campushub.smartcampus.entity.Resource;
+
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import com.campushub.smartcampus.enums.ResourceType;
 import com.campushub.smartcampus.enums.ResourceStatus;
 
-@Entity
-@Table(name = "resources")
-@EntityListeners(AuditingEntityListener.class)
-public class Resource {
+public class ResourceResponseDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotBlank(message = "Resource name is required")
-    @Size(max = 100)
     private String name;
-
-    @Size(max = 500)
     private String description;
-
-    @NotNull(message = "Resource type is required")
-    @Enumerated(EnumType.STRING)
     private ResourceType type;
-
     private String location;
-
-    @Enumerated(EnumType.STRING)
-    private ResourceStatus status = ResourceStatus.AVAILABLE;
-
-    private boolean isDeleted = false;
-
+    private ResourceStatus status;
     private Integer capacity;
-
     private String imageUrl;
-
-    @Column(columnDefinition = "TEXT")
     private String amenities;
-
-    @Column(updatable = false)
-    @CreatedDate
     private LocalDateTime createdAt;
-
-    @LastModifiedDate
     private LocalDateTime updatedAt;
-
-    public Resource() {}
+    private String formattedCreatedAt;
+    private String formattedUpdatedAt;
 
     public Long getId() {
         return id;
@@ -103,14 +72,6 @@ public class Resource {
         this.status = status;
     }
 
-    public boolean isDeleted() {
-        return isDeleted;
-    }
-
-    public void setDeleted(boolean deleted) {
-        isDeleted = deleted;
-    }
-
     public Integer getCapacity() {
         return capacity;
     }
@@ -149,5 +110,44 @@ public class Resource {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getFormattedCreatedAt() {
+        return formattedCreatedAt;
+    }
+
+    public void setFormattedCreatedAt(String formattedCreatedAt) {
+        this.formattedCreatedAt = formattedCreatedAt;
+    }
+
+    public String getFormattedUpdatedAt() {
+        return formattedUpdatedAt;
+    }
+
+    public void setFormattedUpdatedAt(String formattedUpdatedAt) {
+        this.formattedUpdatedAt = formattedUpdatedAt;
+    }
+
+    public static ResourceResponseDTO fromEntity(Resource resource) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm");
+        ResourceResponseDTO dto = new ResourceResponseDTO();
+        dto.setId(resource.getId());
+        dto.setName(resource.getName());
+        dto.setDescription(resource.getDescription());
+        dto.setType(resource.getType());
+        dto.setLocation(resource.getLocation());
+        dto.setStatus(resource.getStatus());
+        dto.setCapacity(resource.getCapacity());
+        dto.setImageUrl(resource.getImageUrl());
+        dto.setAmenities(resource.getAmenities());
+        dto.setCreatedAt(resource.getCreatedAt());
+        dto.setUpdatedAt(resource.getUpdatedAt());
+        if (resource.getCreatedAt() != null) {
+            dto.setFormattedCreatedAt(resource.getCreatedAt().format(formatter));
+        }
+        if (resource.getUpdatedAt() != null) {
+            dto.setFormattedUpdatedAt(resource.getUpdatedAt().format(formatter));
+        }
+        return dto;
     }
 }

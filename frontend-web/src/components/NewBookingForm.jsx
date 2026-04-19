@@ -4,9 +4,9 @@ import { MdClose, MdCalendarToday, MdAccessTime, MdDescription, MdWarning } from
 import { useResources } from '../hooks/useResources';
 import { useCreateBooking } from '../hooks/useBookings';
 
-const NewBookingForm = ({ isOpen, onClose }) => {
+const NewBookingForm = ({ isOpen, onClose, initialResourceId = '' }) => {
   const [formData, setFormData] = useState({
-    resourceId: '',
+    resourceId: initialResourceId,
     userId: 2,
     purpose: '',
     startDate: '',
@@ -17,7 +17,8 @@ const NewBookingForm = ({ isOpen, onClose }) => {
   const [errors, setErrors] = useState({});
   const [conflictError, setConflictError] = useState('');
 
-  const { data: resources = [] } = useResources();
+  const { data: resourcesData } = useResources();
+  const resources = resourcesData?.content || resourcesData || [];
   const createBooking = useCreateBooking();
 
   const handleChange = (e) => {
@@ -26,6 +27,23 @@ const NewBookingForm = ({ isOpen, onClose }) => {
     setErrors(prev => ({ ...prev, [name]: '' }));
     setConflictError('');
   };
+
+  // Sync form data when modal opens (especially for initialResourceId)
+  React.useEffect(() => {
+    if (isOpen) {
+      setFormData(prev => ({
+        ...prev,
+        resourceId: initialResourceId || '',
+        purpose: '',
+        startDate: '',
+        startTime: '',
+        endDate: '',
+        endTime: ''
+      }));
+      setErrors({});
+      setConflictError('');
+    }
+  }, [isOpen, initialResourceId]);
 
   const validate = () => {
     const newErrors = {};
@@ -52,8 +70,10 @@ const NewBookingForm = ({ isOpen, onClose }) => {
     e.preventDefault();
     if (!validate()) return;
 
-    const startTime = `${formData.startDate}T${formData.startTime}:00`;
-    const endTime = `${formData.endDate}T${formData.endTime}:00`;
+    // Ensure time string has seconds, but don't add them if already present
+    const formatTimeStr = (t) => t.split(':').length === 2 ? `${t}:00` : t;
+    const startTime = `${formData.startDate}T${formatTimeStr(formData.startTime)}`;
+    const endTime = `${formData.endDate}T${formatTimeStr(formData.endTime)}`;
 
     try {
       await createBooking.mutateAsync({
@@ -70,8 +90,16 @@ const NewBookingForm = ({ isOpen, onClose }) => {
     } catch (err) {
       if (err.response?.status === 409) {
         setConflictError(err.response.data.message || 'This time slot is already booked. Please choose a different time.');
+      } else if (err.response?.status === 400) {
+        const errorData = err.response.data;
+        if (errorData.errors) {
+           const messages = Object.values(errorData.errors).join(', ');
+           setConflictError(`Validation error: ${messages}`);
+        } else {
+           setConflictError(errorData.message || 'Invalid input provided. Please check your data.');
+        }
       } else {
-        setConflictError('Failed to create booking. Please try again.');
+        setConflictError(`Failed to create booking (${err.response?.status || err.message}). Please try again.`);
       }
     }
   };

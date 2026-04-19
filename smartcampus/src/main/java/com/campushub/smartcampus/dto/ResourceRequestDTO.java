@@ -1,25 +1,14 @@
-package com.campushub.smartcampus.entity;
+package com.campushub.smartcampus.dto;
 
-import jakarta.persistence.*;
+import com.campushub.smartcampus.entity.Resource;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import java.time.LocalDateTime;
 
 import com.campushub.smartcampus.enums.ResourceType;
 import com.campushub.smartcampus.enums.ResourceStatus;
 
-@Entity
-@Table(name = "resources")
-@EntityListeners(AuditingEntityListener.class)
-public class Resource {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class ResourceRequestDTO {
 
     @NotBlank(message = "Resource name is required")
     @Size(max = 100)
@@ -29,39 +18,17 @@ public class Resource {
     private String description;
 
     @NotNull(message = "Resource type is required")
-    @Enumerated(EnumType.STRING)
     private ResourceType type;
 
     private String location;
 
-    @Enumerated(EnumType.STRING)
-    private ResourceStatus status = ResourceStatus.AVAILABLE;
-
-    private boolean isDeleted = false;
+    private ResourceStatus status;
 
     private Integer capacity;
 
     private String imageUrl;
 
-    @Column(columnDefinition = "TEXT")
     private String amenities;
-
-    @Column(updatable = false)
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-
-    public Resource() {}
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
 
     public String getName() {
         return name;
@@ -103,14 +70,6 @@ public class Resource {
         this.status = status;
     }
 
-    public boolean isDeleted() {
-        return isDeleted;
-    }
-
-    public void setDeleted(boolean deleted) {
-        isDeleted = deleted;
-    }
-
     public Integer getCapacity() {
         return capacity;
     }
@@ -135,19 +94,16 @@ public class Resource {
         this.amenities = amenities;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
+    public static Resource toEntity(ResourceRequestDTO dto) {
+        Resource resource = new Resource();
+        resource.setName(dto.getName());
+        resource.setDescription(dto.getDescription());
+        resource.setType(dto.getType());
+        resource.setLocation(dto.getLocation());
+        resource.setStatus(dto.getStatus() != null ? dto.getStatus() : ResourceStatus.AVAILABLE);
+        resource.setCapacity(dto.getCapacity());
+        resource.setImageUrl(dto.getImageUrl());
+        resource.setAmenities(dto.getAmenities());
+        return resource;
     }
 }
