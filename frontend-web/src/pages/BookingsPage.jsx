@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MdAdd, MdFilterList, MdEvent, MdHistory, MdCancel, MdSearch } from 'react-icons/md';
 import { useBookings, useCancelBooking, useCancelSeries } from '../hooks/useBookings';

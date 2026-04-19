@@ -16,11 +16,6 @@ const NewBookingForm = ({ isOpen, onClose }) => {
     startTime: '',
     endDate: '',
     endTime: '',
-  });
-  
-  const [formData, setFormData] = useState({
-    userId: 2,
-    purpose: '',
     attendees: '',
     recurring: false,
     recurrencePattern: 'WEEKLY',
