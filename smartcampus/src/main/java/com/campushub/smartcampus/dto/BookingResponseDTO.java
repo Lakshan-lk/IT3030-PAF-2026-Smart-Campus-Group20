@@ -19,6 +19,12 @@ public class BookingResponseDTO {
     private String formattedStartTime;
     private String formattedEndTime;
     private BookingStatus status;
+    private Integer attendees;
+    private Boolean isRecurring;
+    private String recurrencePattern;
+    private LocalDateTime recurrenceEndDate;
+    private String skipDates;
+    private String groupId;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -117,6 +123,54 @@ public class BookingResponseDTO {
         this.createdAt = createdAt;
     }
 
+    public Integer getAttendees() {
+        return attendees;
+    }
+
+    public void setAttendees(Integer attendees) {
+        this.attendees = attendees;
+    }
+
+    public Boolean getIsRecurring() {
+        return isRecurring;
+    }
+
+    public void setIsRecurring(Boolean isRecurring) {
+        this.isRecurring = isRecurring;
+    }
+
+    public String getRecurrencePattern() {
+        return recurrencePattern;
+    }
+
+    public void setRecurrencePattern(String recurrencePattern) {
+        this.recurrencePattern = recurrencePattern;
+    }
+
+    public LocalDateTime getRecurrenceEndDate() {
+        return recurrenceEndDate;
+    }
+
+    public void setRecurrenceEndDate(LocalDateTime recurrenceEndDate) {
+        this.recurrenceEndDate = recurrenceEndDate;
+    }
+
+    public String getSkipDates() {
+        return skipDates;
+    }
+
+    public void setSkipDates(String skipDates) {
+        this.skipDates = skipDates;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
     public static BookingResponseDTO fromEntity(Booking booking) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm");
         BookingResponseDTO dto = new BookingResponseDTO();
@@ -131,6 +185,12 @@ public class BookingResponseDTO {
         dto.setFormattedStartTime(booking.getStartTime().format(formatter));
         dto.setFormattedEndTime(booking.getEndTime().format(formatter));
         dto.setStatus(booking.getStatus());
+        dto.setAttendees(booking.getAttendees());
+        dto.setIsRecurring(booking.getIsRecurring());
+        dto.setRecurrencePattern(booking.getRecurrencePattern());
+        dto.setRecurrenceEndDate(booking.getRecurrenceEndDate());
+        dto.setSkipDates(booking.getSkipDates());
+        dto.setGroupId(booking.getGroupId());
         dto.setCreatedAt(booking.getCreatedAt());
         return dto;
     }

@@ -28,6 +28,16 @@ public class BookingRequestDTO {
     @NotNull(message = "End time is required")
     private LocalDateTime endTime;
 
+    private Integer attendees;
+
+    private Boolean recurring = false;
+
+    private String recurrencePattern;
+
+    private LocalDateTime recurrenceEndDate;
+
+    private java.util.List<String> skipDates;
+
     public Long getResourceId() {
         return resourceId;
     }
@@ -68,6 +78,46 @@ public class BookingRequestDTO {
         this.endTime = endTime;
     }
 
+    public Integer getAttendees() {
+        return attendees;
+    }
+
+    public void setAttendees(Integer attendees) {
+        this.attendees = attendees;
+    }
+
+    public Boolean getRecurring() {
+        return recurring;
+    }
+
+    public void setRecurring(Boolean recurring) {
+        this.recurring = recurring;
+    }
+
+    public String getRecurrencePattern() {
+        return recurrencePattern;
+    }
+
+    public void setRecurrencePattern(String recurrencePattern) {
+        this.recurrencePattern = recurrencePattern;
+    }
+
+    public LocalDateTime getRecurrenceEndDate() {
+        return recurrenceEndDate;
+    }
+
+    public void setRecurrenceEndDate(LocalDateTime recurrenceEndDate) {
+        this.recurrenceEndDate = recurrenceEndDate;
+    }
+
+    public java.util.List<String> getSkipDates() {
+        return skipDates;
+    }
+
+    public void setSkipDates(java.util.List<String> skipDates) {
+        this.skipDates = skipDates;
+    }
+
     public static Booking toEntity(BookingRequestDTO dto, Resource resource, User user) {
         Booking booking = new Booking();
         booking.setResource(resource);
@@ -76,6 +126,10 @@ public class BookingRequestDTO {
         booking.setStartTime(dto.getStartTime());
         booking.setEndTime(dto.getEndTime());
         booking.setStatus(BookingStatus.PENDING);
+        booking.setAttendees(dto.getAttendees());
+        booking.setIsRecurring(dto.getRecurring() != null ? dto.getRecurring() : false);
+        booking.setRecurrencePattern(dto.getRecurrencePattern());
+        booking.setRecurrenceEndDate(dto.getRecurrenceEndDate());
         return booking;
     }
 }

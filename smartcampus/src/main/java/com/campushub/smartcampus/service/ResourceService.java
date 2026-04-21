@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -34,10 +35,13 @@ public class ResourceService {
 
     @Transactional(readOnly = true)
     public Page<ResourceResponseDTO> getResources(String type, String location, String status, String search,
-                                          List<String> equipmentTypes, Integer minCapacity, Pageable pageable) {
+                                          List<String> equipmentTypes, Integer minCapacity, Pageable pageable,
+                                          LocalDateTime startTime, LocalDateTime endTime) {
         Page<Resource> resources;
 
-        if (search != null && !search.isBlank()) {
+        if (startTime != null && endTime != null) {
+            resources = resourceRepository.findAvailableResources(startTime, endTime, pageable);
+        } else if (search != null && !search.isBlank()) {
             resources = resourceRepository.findByNameContainingIgnoreCaseAndIsDeletedFalse(search, pageable);
         } else if (type != null && !type.isBlank()) {
             try {

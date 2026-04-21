@@ -11,17 +11,25 @@ import com.campushub.smartcampus.repository.BookingRepository;
 import com.campushub.smartcampus.repository.ResourceRepository;
 import com.campushub.smartcampus.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
 public class BookingService {
+
+    private static final Logger log = LoggerFactory.getLogger(BookingService.class);
 
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
@@ -79,21 +87,96 @@ public class BookingService {
     }
 
     public BookingResponseDTO createBooking(BookingRequestDTO dto) {
+        log.info("createBooking called - resourceId={}, userId={}, start={}, end={}, attendees={}",
+                dto.getResourceId(), dto.getUserId(), dto.getStartTime(), dto.getEndTime(), dto.getAttendees());
+
+        Resource resource = resourceRepository.findById(dto.getResourceId())
+                .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + dto.getResourceId()));
+        log.info("Resource found: id={}, name={}", resource.getId(), resource.getName());
+
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
+        log.info("User found: id={}, name={}", user.getId(), user.getName());
+
+        if (dto.getRecurring() != null && dto.getRecurring() && dto.getRecurrenceEndDate() != null) {
+            return createRecurringBooking(dto, resource, user);
+        }
+
         if (!dto.getEndTime().isAfter(dto.getStartTime())) {
             throw new IllegalArgumentException("End time must be after start time");
         }
 
-        Resource resource = resourceRepository.findById(dto.getResourceId())
-                .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + dto.getResourceId()));
-
-        User user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
-
+        log.info("Checking conflicts for resourceId={} from {} to {}", dto.getResourceId(), dto.getStartTime(), dto.getEndTime());
         checkForConflict(dto.getResourceId(), dto.getStartTime(), dto.getEndTime(), null);
 
+        log.info("No conflicts found, creating booking...");
         Booking booking = BookingRequestDTO.toEntity(dto, resource, user);
+        if (dto.getAttendees() != null) {
+            booking.setAttendees(dto.getAttendees());
+        }
         Booking saved = bookingRepository.save(booking);
-        return BookingResponseDTO.fromEntity(saved);
+        log.info("Booking saved with id={}", saved.getId());
+
+        BookingResponseDTO response = BookingResponseDTO.fromEntity(saved);
+        log.info("Response DTO created, returning to controller");
+        return response;
+    }
+
+    private BookingResponseDTO createRecurringBooking(BookingRequestDTO dto, Resource resource, User user) {
+        List<LocalDateTime> bookingDates = generateRecurringDates(dto);
+
+        final List<String> skipDatesList = dto.getSkipDates() != null ? dto.getSkipDates() : new ArrayList<>();
+
+        List<LocalDateTime> validDates = bookingDates.stream()
+                .filter(date -> !skipDatesList.contains(date.toLocalDate().toString()))
+                .toList();
+
+        for (LocalDateTime date : validDates) {
+            LocalDateTime startDateTime = date.withHour(dto.getStartTime().getHour()).withMinute(dto.getStartTime().getMinute());
+            LocalDateTime endDateTime = date.withHour(dto.getEndTime().getHour()).withMinute(dto.getEndTime().getMinute());
+            checkForConflict(dto.getResourceId(), startDateTime, endDateTime, null);
+        }
+
+        String groupId = UUID.randomUUID().toString();
+        List<Booking> savedBookings = new ArrayList<>();
+
+        for (LocalDateTime date : validDates) {
+            LocalDateTime startDateTime = date.withHour(dto.getStartTime().getHour()).withMinute(dto.getStartTime().getMinute());
+            LocalDateTime endDateTime = date.withHour(dto.getEndTime().getHour()).withMinute(dto.getEndTime().getMinute());
+
+            Booking booking = new Booking();
+            booking.setResource(resource);
+            booking.setUser(user);
+            booking.setPurpose(dto.getPurpose());
+            booking.setStartTime(startDateTime);
+            booking.setEndTime(endDateTime);
+            booking.setStatus(BookingStatus.PENDING);
+            booking.setAttendees(dto.getAttendees());
+            booking.setIsRecurring(true);
+            booking.setRecurrencePattern(dto.getRecurrencePattern());
+            booking.setRecurrenceEndDate(dto.getRecurrenceEndDate());
+            booking.setGroupId(groupId);
+
+            savedBookings.add(bookingRepository.save(booking));
+        }
+
+        return BookingResponseDTO.fromEntity(savedBookings.get(0));
+    }
+
+    private List<LocalDateTime> generateRecurringDates(BookingRequestDTO dto) {
+        List<LocalDateTime> dates = new ArrayList<>();
+        LocalDate startDate = dto.getStartTime().toLocalDate();
+        LocalDate endDate = dto.getRecurrenceEndDate().toLocalDate();
+
+        if (dto.getRecurrencePattern() == null || dto.getRecurrencePattern().equals("WEEKLY")) {
+            LocalDate current = startDate;
+            while (!current.isAfter(endDate)) {
+                dates.add(current.atTime(dto.getStartTime().toLocalTime()));
+                current = current.plusWeeks(1);
+            }
+        }
+
+        return dates;
     }
 
     public BookingResponseDTO updateBooking(Long id, BookingRequestDTO dto) {
@@ -178,9 +261,11 @@ public class BookingService {
                 .orElse(null);
 
         if (conflict != null) {
+            log.warn("Conflict found: {}", conflict.getStartTime() + " to " + conflict.getEndTime());
             throw new BookingConflictException(
                     "Resource '" + conflict.getResource().getName() + "' is already booked from "
                     + conflict.getStartTime() + " to " + conflict.getEndTime());
         }
+        log.info("No conflicts found in checkForConflict");
     }
 }
