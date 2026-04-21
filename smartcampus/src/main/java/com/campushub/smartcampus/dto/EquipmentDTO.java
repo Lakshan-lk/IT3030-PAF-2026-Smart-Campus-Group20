@@ -1,17 +1,28 @@
 package com.campushub.smartcampus.dto;
 
 import com.campushub.smartcampus.entity.Equipment;
-import com.campushub.smartcampus.enums.EquipmentType;
 
 public class EquipmentDTO {
 
     private Long id;
     private String name;
-    private EquipmentType type;
+    private String type;
     private String status;
     private Long roomId;
 
     public EquipmentDTO() {}
+
+    public static EquipmentDTO fromEntity(Equipment e) {
+        EquipmentDTO dto = new EquipmentDTO();
+        dto.setId(e.getId());
+        dto.setName(e.getName());
+        dto.setType(e.getType().name());
+        dto.setStatus(e.getStatus());
+        if (e.getRoom() != null) {
+            dto.setRoomId(e.getRoom().getId());
+        }
+        return dto;
+    }
 
     public Long getId() {
         return id;
@@ -29,11 +40,11 @@ public class EquipmentDTO {
         this.name = name;
     }
 
-    public EquipmentType getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(EquipmentType type) {
+    public void setType(String type) {
         this.type = type;
     }
 
@@ -51,17 +62,5 @@ public class EquipmentDTO {
 
     public void setRoomId(Long roomId) {
         this.roomId = roomId;
-    }
-
-    public static EquipmentDTO fromEntity(Equipment equipment) {
-        EquipmentDTO dto = new EquipmentDTO();
-        dto.setId(equipment.getId());
-        dto.setName(equipment.getName());
-        dto.setType(equipment.getType());
-        dto.setStatus(equipment.getStatus());
-        if (equipment.getRoom() != null) {
-            dto.setRoomId(equipment.getRoom().getId());
-        }
-        return dto;
     }
 }

@@ -2,28 +2,28 @@ package com.campushub.smartcampus.entity;
 
 import com.campushub.smartcampus.enums.EquipmentType;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "equipment")
 public class Equipment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "equipment_generator")
+    @SequenceGenerator(name = "equipment_generator", sequenceName = "equipment_seq", allocationSize = 1)
     private Long id;
 
-    @NotBlank(message = "Equipment name is required")
-    @Size(max = 100)
+    @Column(nullable = false, length = 100)
     private String name;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private EquipmentType type;
 
+    @Column(nullable = false)
     private String status = "ACTIVE";
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id")
+    @JoinColumn(name = "room_id", nullable = false)
     private Resource room;
 
     public Equipment() {}

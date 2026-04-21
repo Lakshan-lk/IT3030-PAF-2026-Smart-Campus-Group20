@@ -24,33 +24,15 @@ public class ResourceController {
     @GetMapping
     public ResponseEntity<List<ResourceResponseDTO>> getAllResources(
             @RequestParam(required = false) String type,
-            @RequestParam(required = false) Integer capacity,
-            @RequestParam(required = false) String hasEquipment,
-            @RequestParam(required = false) LocalDateTime startTime,
-            @RequestParam(required = false) LocalDateTime endTime,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) List<String> equipmentTypes,
+            @RequestParam(required = false) Integer minCapacity,
+            @PageableDefault(size = 20) Pageable pageable) {
         
-        List<ResourceResponseDTO> resources;
-        
-        if (capacity != null || hasEquipment != null || startTime != null || endTime != null) {
-            resources = resourceService.getAvailableResources(
-                    type, capacity, hasEquipment, startTime, endTime, status);
-        } else {
-            resources = resourceService.getAllResources();
-            
-            if (type != null && !type.isBlank()) {
-                resources = resources.stream()
-                        .filter(r -> type.equalsIgnoreCase(r.getType()))
-                        .toList();
-            }
-            if (status != null && !status.isBlank()) {
-                resources = resources.stream()
-                        .filter(r -> status.equalsIgnoreCase(r.getStatus()))
-                        .toList();
-            }
-        }
-
-        return ResponseEntity.ok(resources);
+        Page<ResourceResponseDTO> page = resourceService.getResources(type, location, status, search, equipmentTypes, minCapacity, pageable);
+        return ResponseEntity.ok(page);
     }
 
     @GetMapping("/{id}")

@@ -1,4 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { MdAdd, MdEvent, MdHistory, MdCancel as MdCancelIcon, MdClose } from 'react-icons/md';
+import { useBookings, useCancelBooking, useCancelSeries } from '../hooks/useBookings';
+import NewBookingForm from '../components/NewBookingForm';
+import BookingCard from '../components/BookingCard';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MdAdd, MdFilterList, MdEvent, MdHistory, MdCancel, MdSearch } from 'react-icons/md';
@@ -10,73 +15,77 @@ const BookingsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
-  const [showTab, setShowTab] = useState('upcoming');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('upcoming');
+  const [cancelModal, setCancelModal] = useState({ open: false, bookingId: null, isSeries: false });
   
-  // Open modal if navigated with resourceId
   useEffect(() => {
     if (location.state?.resourceId) {
-      setShowForm(true);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      const shouldOpen = true;
+      if (shouldOpen) setShowForm(true);
     }
-  }, [location.state]);
+  }, [location.state?.resourceId]);
 
-  const { data: bookings = [], isLoading, error, refetch } = useBookings();
+  const { data: bookings = [], isLoading, error } = useBookings();
   const cancelBooking = useCancelBooking();
   const cancelSeries = useCancelSeries();
 
-  const handleCancel = async (id) => {
-    try {
-      await cancelBooking.mutateAsync(id);
-    } catch (err) {
-      console.error('Failed to cancel booking:', err);
-    }
-  };
-
-  const handleCancelSeries = async (groupId) => {
-    try {
-      await cancelSeries.mutateAsync(groupId);
-    } catch (err) {
-      console.error('Failed to cancel series:', err);
-    }
-  };
-
-  const groupedBookings = useMemo(() => {
+  const groupedBookings = React.useMemo(() => {
     const now = new Date();
-    
-    const upcoming = bookings.filter(b => {
-      const startTime = new Date(b.startTime);
-      return (b.status === 'PENDING' || b.status === 'APPROVED') && startTime >= now;
+    const upcoming = [];
+    const past = [];
+    const cancelled = [];
+
+    bookings.forEach(booking => {
+      const startTime = new Date(booking.startTime);
+      if (booking.status === 'CANCELLED') {
+        cancelled.push(booking);
+      } else if (startTime < now) {
+        past.push(booking);
+      } else {
+        upcoming.push(booking);
+      }
     });
+
+    const sortByTime = (a, b) => new Date(a.startTime) - new Date(b.startTime);
     
-    const past = bookings.filter(b => {
-      const endTime = new Date(b.endTime);
-      return (b.status === 'PENDING' || b.status === 'APPROVED') && endTime < now;
-    });
-    
-    const cancelled = bookings.filter(b => b.status === 'CANCELLED' || b.status === 'REJECTED');
-    
-    return { upcoming, past, cancelled };
+    return {
+      upcoming: upcoming.sort(sortByTime),
+      past: past.sort(sortByTime).reverse(),
+      cancelled: cancelled.sort(sortByTime).reverse(),
+    };
   }, [bookings]);
 
-  const filteredBookings = useMemo(() => {
-    let list = groupedBookings[showTab] || [];
-    
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(b => 
-        b.resourceName?.toLowerCase().includes(q) ||
-        b.purpose?.toLowerCase().includes(q)
-      );
-    }
-    
-    return list;
-  }, [groupedBookings, showTab, searchQuery]);
+  const displayBookings = activeTab === 'upcoming' ? groupedBookings.upcoming 
+    : activeTab === 'past' ? groupedBookings.past 
+    : groupedBookings.cancelled;
 
   const tabs = [
     { key: 'upcoming', label: 'Upcoming', icon: MdEvent, count: groupedBookings.upcoming.length },
     { key: 'past', label: 'Past', icon: MdHistory, count: groupedBookings.past.length },
-    { key: 'cancelled', label: 'Cancelled', icon: MdCancel, count: groupedBookings.cancelled.length },
+    { key: 'cancelled', label: 'Cancelled', icon: MdCancelIcon, count: groupedBookings.cancelled.length },
   ];
+
+  const handleCancel = (bookingId) => {
+    setCancelModal({ open: true, bookingId, isSeries: false });
+  };
+
+  const handleCancelSeries = (groupId) => {
+    setCancelModal({ open: true, bookingId: groupId, isSeries: true });
+  };
+
+  const confirmCancel = async () => {
+    try {
+      if (cancelModal.isSeries) {
+        await cancelSeries.mutateAsync(cancelModal.bookingId);
+      } else {
+        await cancelBooking.mutateAsync(cancelModal.bookingId);
+      }
+      setCancelModal({ open: false, bookingId: null, isSeries: false });
+    } catch (err) {
+      console.error('Failed to cancel:', err);
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -84,11 +93,6 @@ const BookingsPage = () => {
       opacity: 1,
       transition: { staggerChildren: 0.06, delayChildren: 0.1 }
     }
-  };
-
-  const rowVariants = {
-    hidden: { opacity: 0, y: 12 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } }
   };
 
   return (
@@ -100,7 +104,7 @@ const BookingsPage = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-50 tracking-tight">My Bookings</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">View and manage your room reservations</p>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">View and manage your reservations</p>
           </div>
           <button
             onClick={() => setShowForm(true)}
@@ -109,19 +113,6 @@ const BookingsPage = () => {
             <MdAdd className="text-xl" />
             <span className="text-sm">New Booking</span>
           </button>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
-            <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by resource or purpose..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 dark:focus:border-amber-400 outline-none transition-all text-sm"
-            />
-          </div>
         </div>
 
         <div className="flex gap-2 mb-6">
@@ -152,7 +143,7 @@ const BookingsPage = () => {
         </div>
 
         <motion.div
-          className="space-y-4"
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -177,26 +168,29 @@ const BookingsPage = () => {
                 Retry
               </button>
             </div>
-          ) : filteredBookings.length === 0 ? (
-            <div className="p-12 text-center bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl">
+          ) : displayBookings.length === 0 ? (
+            <div className="col-span-full text-center py-12">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center">
-                <MdFilterList className="text-3xl text-slate-400" />
+                {activeTab === 'upcoming' ? <MdAdd className="text-3xl text-slate-400" /> 
+                  : activeTab === 'past' ? <MdHistory className="text-3xl text-slate-400" />
+                  : <MdCancelIcon className="text-3xl text-slate-400" />}
               </div>
-              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-1">No bookings found</h3>
+              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                No {activeTab} bookings
+              </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {searchQuery ? 'Try adjusting your search' : showTab === 'upcoming' ? 'Create your first booking to get started' : `No ${showTab} bookings`}
+                {activeTab === 'upcoming' ? 'Create your first booking to get started' 
+                  : `You don't have any ${activeTab} bookings`}
               </p>
             </div>
           ) : (
-            filteredBookings.map(booking => (
-              <motion.div key={booking.id} variants={rowVariants}>
-                <BookingCard 
-                  booking={booking} 
-                  onCancel={handleCancel}
-                  onCancelSeries={handleCancelSeries}
-                  isAdminView={false}
-                />
-              </motion.div>
+            displayBookings.map(booking => (
+              <BookingCard
+                key={booking.id}
+                booking={booking}
+                onCancel={handleCancel}
+                onCancelSeries={handleCancelSeries}
+              />
             ))
           )}
         </motion.div>
@@ -206,13 +200,47 @@ const BookingsPage = () => {
         isOpen={showForm} 
         onClose={() => {
           setShowForm(false);
-          // clear the state so refreshing doesn't reopen modal
           if (location.state?.resourceId) {
             navigate('/bookings', { replace: true, state: {} });
           }
         }} 
         initialResourceId={location.state?.resourceId || ''}
       />
+
+      {cancelModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setCancelModal({ open: false, bookingId: null, isSeries: false })} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative w-full max-w-sm bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
+          >
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Cancel Booking?</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              {cancelModal.isSeries 
+                ? 'This will cancel all recurring bookings in this series. This action cannot be undone.'
+                : 'This will cancel this booking. This action cannot be undone.'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCancelModal({ open: false, bookingId: null, isSeries: false })}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-medium text-sm"
+              >
+                Keep Booking
+              </button>
+              <button
+                onClick={confirmCancel}
+                disabled={cancelBooking.isPending || cancelSeries.isPending}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-rose-500 text-white font-medium text-sm hover:bg-rose-600 transition-colors disabled:opacity-50"
+              >
+                {cancelModal.isSeries 
+                  ? (cancelSeries.isPending ? 'Cancelling...' : 'Cancel All')
+                  : (cancelBooking.isPending ? 'Cancelling...' : 'Cancel Booking')}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

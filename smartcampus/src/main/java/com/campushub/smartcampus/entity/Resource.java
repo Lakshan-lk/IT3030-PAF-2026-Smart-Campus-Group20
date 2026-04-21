@@ -20,7 +20,8 @@ import com.campushub.smartcampus.enums.ResourceStatus;
 public class Resource {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "resources_generator")
+    @SequenceGenerator(name = "resources_generator", sequenceName = "resources_seq", allocationSize = 1)
     private Long id;
 
     @NotBlank(message = "Resource name is required")

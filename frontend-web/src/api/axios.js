@@ -8,6 +8,18 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true,
+  paramsSerializer: (params) => {
+    const parts = [];
+    for (const [key, val] of Object.entries(params)) {
+      if (val === undefined || val === null || val === '') continue;
+      if (Array.isArray(val)) {
+        val.forEach(v => parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(v)}`));
+      } else {
+        parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(val)}`);
+      }
+    }
+    return parts.join('&');
+  },
 });
 
 export default api;

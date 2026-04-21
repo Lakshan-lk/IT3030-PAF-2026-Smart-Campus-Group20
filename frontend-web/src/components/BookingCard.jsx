@@ -1,119 +1,148 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MdEvent, MdAccessTime, MdPeople, MdCancel, MdRepeat } from 'react-icons/md';
+import { MdEvent, MdAccessTime, MdPeople, MdCancel, MdInfo, MdRepeat } from 'react-icons/md';
 
 const statusColors = {
-  PENDING: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800/40', dot: 'bg-amber-400' },
-  APPROVED: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800/40', dot: 'bg-emerald-400' },
-  REJECTED: { bg: 'bg-rose-50 dark:bg-rose-900/20', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800/40', dot: 'bg-rose-400' },
-  CANCELLED: { bg: 'bg-slate-50 dark:bg-slate-800/50', text: 'text-slate-500 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-600/50', dot: 'bg-slate-400' },
+  PENDING: { 
+    bg: 'bg-amber-50 dark:bg-amber-900/20', 
+    text: 'text-amber-700 dark:text-amber-300', 
+    border: 'border-amber-200 dark:border-amber-800/40', 
+    dot: 'bg-amber-400' 
+  },
+  APPROVED: { 
+    bg: 'bg-emerald-50 dark:bg-emerald-900/20', 
+    text: 'text-emerald-700 dark:text-emerald-300', 
+    border: 'border-emerald-200 dark:border-emerald-800/40', 
+    dot: 'bg-emerald-400' 
+  },
+  REJECTED: { 
+    bg: 'bg-rose-50 dark:bg-rose-900/20', 
+    text: 'text-rose-700 dark:text-rose-300', 
+    border: 'border-rose-200 dark:border-rose-800/40', 
+    dot: 'bg-rose-400' 
+  },
+  CANCELLED: { 
+    bg: 'bg-slate-50 dark:bg-slate-800/50', 
+    text: 'text-slate-500 dark:text-slate-400', 
+    border: 'border-slate-200 dark:border-slate-600/50', 
+    dot: 'bg-slate-400' 
+  },
 };
 
-const BookingCard = ({ booking, onCancel, onCancelSeries, isAdminView = false }) => {
+const BookingCard = ({ booking, onCancel, onCancelSeries, isAdmin = false }) => {
   const colors = statusColors[booking.status] || statusColors.PENDING;
   
-  const startDate = new Date(booking.startTime);
-  const endDate = new Date(booking.endTime);
-  const isPast = endDate < new Date();
-  const isFuture = startDate > new Date();
-  
-  const formatDate = (date) => {
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
   
-  const formatTime = (date) => {
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const startTime = new Date(booking.startTime);
+  const isFuture = startTime > new Date();
+  const canCancel = (booking.status === 'PENDING' || booking.status === 'APPROVED') && isFuture;
+
   const handleCancel = () => {
-    if (booking.isRecurring && booking.recurrenceGroupId) {
-      if (confirm('This is a recurring booking. Cancel all occurrences?')) {
-        onCancelSeries?.(booking.recurrenceGroupId);
-      }
-    } else {
-      onCancel?.(booking.id);
+    if (onCancel) {
+      onCancel(booking.id);
     }
   };
 
-  const showCancelButton = (booking.status === 'PENDING' || booking.status === 'APPROVED') && 
-    (isFuture || !isPast);
+  const handleCancelSeries = () => {
+    if (onCancelSeries && booking.recurrenceGroupId) {
+      onCancelSeries(booking.recurrenceGroupId);
+    }
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="group relative bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl p-5 border border-slate-200/60 dark:border-slate-700/40 hover:border-amber-200 dark:hover:border-amber-800/40 hover:shadow-lg hover:shadow-amber-500/5 transition-all duration-300"
+      className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/40 p-5 hover:shadow-lg hover:shadow-slate-900/5 dark:hover:shadow-black/20 transition-all duration-300"
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg truncate">
-              {booking.resourceName}
-            </h3>
-            {booking.isRecurring && (
-              <span className="flex items-center gap-0.5 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold rounded-full border border-indigo-200 dark:border-indigo-800/40">
-                <MdRepeat className="text-xs" />
-                WEEKLY
-              </span>
-            )}
-          </div>
-          
-          <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2 mb-3">
-            {booking.purpose}
-          </p>
-          
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
-            <div className="flex items-center gap-1.5">
-              <MdEvent className="text-lg text-amber-500" />
-              <span className="font-medium">{formatDate(startDate)}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <MdAccessTime className="text-lg text-amber-500" />
-              <span>{formatTime(startDate)} - {formatTime(endDate)}</span>
-            </div>
-            {booking.attendees && (
-              <div className="flex items-center gap-1.5">
-                <MdPeople className="text-lg text-amber-500" />
-                <span>{booking.attendees} attendees</span>
-              </div>
-            )}
-          </div>
-          
-          {isAdminView && (
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-              by {booking.userName}
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg truncate">
+            {booking.resourceName}
+          </h3>
+          {isAdmin && booking.userName && (
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Booked by {booking.userName}
             </p>
           )}
-          
-          {booking.status === 'REJECTED' && booking.rejectionReason && (
-            <div className="mt-3 p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/30 rounded-xl">
-              <p className="text-xs text-rose-700 dark:text-rose-300 font-medium">
-                Rejection reason:
-              </p>
-              <p className="text-xs text-rose-600 dark:text-rose-400 mt-0.5">
-                {booking.rejectionReason}
-              </p>
-            </div>
-          )}
+        </div>
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${colors.bg} ${colors.text} border ${colors.border} rounded-full text-xs font-bold flex-shrink-0`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
+          {booking.status}
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+          <MdEvent className="text-lg text-slate-400" />
+          <span>{formatDate(booking.startTime)}</span>
         </div>
         
-        <div className="flex flex-col items-end gap-2">
-          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${colors.bg} ${colors.text} border ${colors.border} rounded-full text-xs font-bold`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
-            {booking.status}
+        <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+          <MdAccessTime className="text-lg text-slate-400" />
+          <span>
+            {formatTime(booking.startTime)} — {formatTime(booking.endTime)}
           </span>
+        </div>
+
+        {booking.attendees > 0 && (
+          <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+            <MdPeople className="text-lg text-slate-400" />
+            <span>{booking.attendees} attendee{booking.attendees !== 1 ? 's' : ''}</span>
+          </div>
+        )}
+
+        <div className="text-sm text-slate-700 dark:text-slate-200 pt-2 border-t border-slate-100 dark:border-slate-700/40">
+          {booking.purpose}
+        </div>
+
+        {booking.isRecurring && (
+          <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+            <MdRepeat className="text-lg" />
+            <span>Recurring booking</span>
+          </div>
+        )}
+
+        {booking.status === 'REJECTED' && booking.rejectionReason && (
+          <div className="flex items-start gap-2 p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/40 rounded-xl">
+            <MdInfo className="text-rose-500 text-lg mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-rose-700 dark:text-rose-300">{booking.rejectionReason}</p>
+          </div>
+        )}
+      </div>
+
+      {canCancel && (
+        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/40 flex items-center gap-3">
+          <button
+            onClick={handleCancel}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+          >
+            <MdCancel className="text-lg" />
+            Cancel
+          </button>
           
-          {showCancelButton && onCancel && (
+          {booking.isRecurring && booking.recurrenceGroupId && (
             <button
-              onClick={handleCancel}
-              className="opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 border border-slate-200 dark:border-slate-600/50 hover:border-rose-200 dark:hover:border-rose-800/40"
+              onClick={handleCancelSeries}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 font-medium text-sm hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
             >
-              <MdCancel className="text-base" />
-              {booking.isRecurring ? 'Cancel all' : 'Cancel'}
+              <MdRepeat className="text-lg" />
+              Cancel All
             </button>
           )}
         </div>
-      </div>
+      )}
     </motion.div>
   );
 };
