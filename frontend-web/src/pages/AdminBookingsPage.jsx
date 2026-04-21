@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MdSearch, MdCheck, MdClose, MdCancel } from 'react-icons/md';
 import { useBookings, useApproveBooking, useRejectBooking, useCancelBooking } from '../hooks/useBookings';
 
@@ -11,6 +11,25 @@ const AdminBookingsPage = () => {
 
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectBookingId, setRejectBookingId] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+
+  const handleRejectClick = (bookingId) => {
+    setRejectBookingId(bookingId);
+    setRejectReason('');
+    setShowRejectModal(true);
+  };
+
+  const handleRejectConfirm = () => {
+    if (rejectReason.trim()) {
+      rejectBooking.mutate({ id: rejectBookingId, reason: rejectReason.trim() });
+      setShowRejectModal(false);
+      setRejectBookingId(null);
+      setRejectReason('');
+    }
+  };
 
   const stats = {
     total: bookings.length,
@@ -63,7 +82,16 @@ const AdminBookingsPage = () => {
   };
 
   return (
-    <div>
+    <div className="relative">
+      <div className="absolute -top-20 -right-40 w-96 h-96 bg-amber-200/20 dark:bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-50 tracking-tight">Manage Bookings</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Review, approve, and manage all facility bookings</p>
+        </div>
+      </div>
+
       <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl shadow-sm shadow-slate-900/5 dark:shadow-black/20 border border-slate-200/60 dark:border-slate-700/40 overflow-hidden">
         <div className="p-5 border-b border-slate-100 dark:border-slate-700/40">
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
@@ -180,7 +208,7 @@ const AdminBookingsPage = () => {
                                   <MdCheck className="text-lg" />
                                 </button>
                                 <button
-                                  onClick={() => rejectBooking.mutate(booking.id)}
+                                  onClick={() => handleRejectClick(booking.id)}
                                   className="p-2 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
                                   title="Reject"
                                 >
@@ -208,6 +236,52 @@ const AdminBookingsPage = () => {
           )}
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {showRejectModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowRejectModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6"
+            >
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
+                Reject Booking
+              </h3>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Enter rejection reason..."
+                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-600/50 bg-white dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-rose-400/40 focus:border-rose-400 dark:focus:border-rose-400 outline-none transition-all text-sm resize-none"
+                rows={3}
+              />
+              <div className="flex gap-3 mt-5 justify-end">
+                <button
+                  onClick={() => setShowRejectModal(false)}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRejectConfirm}
+                  disabled={!rejectReason.trim()}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Reject
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
