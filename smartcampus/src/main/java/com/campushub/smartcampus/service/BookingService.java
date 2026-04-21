@@ -16,8 +16,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -78,7 +81,12 @@ public class BookingService {
         return bookingRepository.findByStatus(status).size();
     }
 
-    public BookingResponseDTO createBooking(BookingRequestDTO dto) {
+    @Transactional(readOnly = true)
+    public long countActiveBookings() {
+        return bookingRepository.findByStatus(BookingStatus.APPROVED).size();
+    }
+
+    public List<BookingResponseDTO> createBooking(BookingRequestDTO dto) {
         if (!dto.getEndTime().isAfter(dto.getStartTime())) {
             throw new IllegalArgumentException("End time must be after start time");
         }
@@ -89,11 +97,80 @@ public class BookingService {
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
 
+        if (dto.isRecurring()) {
+            return createRecurringBookings(dto, resource, user);
+        }
+
         checkForConflict(dto.getResourceId(), dto.getStartTime(), dto.getEndTime(), null);
 
         Booking booking = BookingRequestDTO.toEntity(dto, resource, user);
         Booking saved = bookingRepository.save(booking);
-        return BookingResponseDTO.fromEntity(saved);
+        return List.of(BookingResponseDTO.fromEntity(saved));
+    }
+
+    private List<BookingResponseDTO> createRecurringBookings(BookingRequestDTO dto, Resource resource, User user) {
+        LocalDate startDate = dto.getStartTime().toLocalDate();
+        LocalDate endDate = dto.getRecurrenceEndDate();
+
+        if (endDate == null || !endDate.isAfter(startDate)) {
+            throw new IllegalArgumentException("Recurrence end date must be after start date");
+        }
+
+        if (dto.getRecurrencePattern() == null || !dto.getRecurrencePattern().equals("WEEKLY")) {
+            throw new IllegalArgumentException("Only WEEKLY recurrence pattern is supported");
+        }
+
+        List<LocalDateTime> occurrenceStarts = new ArrayList<>();
+        List<LocalDateTime> occurrenceEnds = new ArrayList<>();
+
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            String currentDateStr = currentDate.toString();
+            boolean shouldSkip = dto.getSkipDates() != null && dto.getSkipDates().contains(currentDateStr);
+
+            if (!shouldSkip) {
+                occurrenceStarts.add(dto.getStartTime().withDayOfMonth(currentDate.getDayOfMonth())
+                        .withMonth(currentDate.getMonthValue())
+                        .withYear(currentDate.getYear()));
+                occurrenceEnds.add(dto.getEndTime().withDayOfMonth(currentDate.getDayOfMonth())
+                        .withMonth(currentDate.getMonthValue())
+                        .withYear(currentDate.getYear()));
+            }
+            currentDate = currentDate.plusDays(7);
+        }
+
+        if (occurrenceStarts.isEmpty()) {
+            throw new IllegalArgumentException("No valid occurrences after applying skip dates");
+        }
+
+        for (int i = 0; i < occurrenceStarts.size(); i++) {
+            checkForConflict(dto.getResourceId(), occurrenceStarts.get(i), occurrenceEnds.get(i), null);
+        }
+
+        String groupId = UUID.randomUUID().toString();
+        String skipDatesStr = dto.getSkipDates() != null ? String.join(",", dto.getSkipDates()) : null;
+
+        List<BookingResponseDTO> results = new ArrayList<>();
+        for (int i = 0; i < occurrenceStarts.size(); i++) {
+            Booking booking = new Booking();
+            booking.setResource(resource);
+            booking.setUser(user);
+            booking.setPurpose(dto.getPurpose());
+            booking.setAttendees(dto.getAttendees());
+            booking.setStartTime(occurrenceStarts.get(i));
+            booking.setEndTime(occurrenceEnds.get(i));
+            booking.setStatus(BookingStatus.PENDING);
+            booking.setRecurring(true);
+            booking.setRecurrenceGroupId(groupId);
+            booking.setRecurrencePattern("WEEKLY");
+            booking.setRecurrenceEndDate(endDate);
+            booking.setSkipDates(skipDatesStr);
+
+            Booking saved = bookingRepository.save(booking);
+            results.add(BookingResponseDTO.fromEntity(saved));
+        }
+
+        return results;
     }
 
     public BookingResponseDTO updateBooking(Long id, BookingRequestDTO dto) {
@@ -131,7 +208,7 @@ public class BookingService {
         return BookingResponseDTO.fromEntity(saved);
     }
 
-    public BookingResponseDTO rejectBooking(Long id) {
+    public BookingResponseDTO rejectBooking(Long id, String reason) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found with id: " + id));
 
@@ -140,6 +217,7 @@ public class BookingService {
         }
 
         booking.setStatus(BookingStatus.REJECTED);
+        booking.setRejectionReason(reason);
         Booking saved = bookingRepository.save(booking);
         return BookingResponseDTO.fromEntity(saved);
     }
@@ -148,8 +226,8 @@ public class BookingService {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found with id: " + id));
 
-        if (booking.getStatus() == BookingStatus.APPROVED) {
-            throw new IllegalArgumentException("Cannot cancel an approved booking");
+        if (booking.getStatus() == BookingStatus.CANCELLED || booking.getStatus() == BookingStatus.REJECTED) {
+            throw new IllegalArgumentException("Cannot cancel a booking that is already " + booking.getStatus());
         }
 
         if (booking.getStartTime().isBefore(LocalDateTime.now())) {
@@ -159,6 +237,22 @@ public class BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         Booking saved = bookingRepository.save(booking);
         return BookingResponseDTO.fromEntity(saved);
+    }
+
+    public int cancelSeries(String groupId) {
+        List<Booking> bookings = bookingRepository.findByRecurrenceGroupId(groupId);
+
+        int cancelledCount = 0;
+        for (Booking booking : bookings) {
+            if ((booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.APPROVED)
+                    && booking.getStartTime().isAfter(LocalDateTime.now())) {
+                booking.setStatus(BookingStatus.CANCELLED);
+                bookingRepository.save(booking);
+                cancelledCount++;
+            }
+        }
+
+        return cancelledCount;
     }
 
     public void deleteBooking(Long id) {

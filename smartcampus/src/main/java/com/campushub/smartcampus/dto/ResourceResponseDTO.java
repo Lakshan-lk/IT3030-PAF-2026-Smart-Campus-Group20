@@ -1,28 +1,27 @@
 package com.campushub.smartcampus.dto;
 
+import com.campushub.smartcampus.entity.Equipment;
 import com.campushub.smartcampus.entity.Resource;
+import com.campushub.smartcampus.enums.ResourceStatus;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-
-import com.campushub.smartcampus.enums.ResourceType;
-import com.campushub.smartcampus.enums.ResourceStatus;
+import java.util.List;
 
 public class ResourceResponseDTO {
 
     private Long id;
     private String name;
     private String description;
-    private ResourceType type;
+    private String type;
     private String location;
-    private ResourceStatus status;
+    private String status;
     private Integer capacity;
     private String imageUrl;
-    private String amenities;
+    private List<EquipmentDTO> equipment;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private String formattedCreatedAt;
-    private String formattedUpdatedAt;
+
+    public ResourceResponseDTO() {}
 
     public Long getId() {
         return id;
@@ -48,11 +47,11 @@ public class ResourceResponseDTO {
         this.description = description;
     }
 
-    public ResourceType getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(ResourceType type) {
+    public void setType(String type) {
         this.type = type;
     }
 
@@ -64,11 +63,11 @@ public class ResourceResponseDTO {
         this.location = location;
     }
 
-    public ResourceStatus getStatus() {
+    public String getStatus() {
         return status;
     }
 
-    public void setStatus(ResourceStatus status) {
+    public void setStatus(String status) {
         this.status = status;
     }
 
@@ -88,12 +87,12 @@ public class ResourceResponseDTO {
         this.imageUrl = imageUrl;
     }
 
-    public String getAmenities() {
-        return amenities;
+    public List<EquipmentDTO> getEquipment() {
+        return equipment;
     }
 
-    public void setAmenities(String amenities) {
-        this.amenities = amenities;
+    public void setEquipment(List<EquipmentDTO> equipment) {
+        this.equipment = equipment;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -112,42 +111,25 @@ public class ResourceResponseDTO {
         this.updatedAt = updatedAt;
     }
 
-    public String getFormattedCreatedAt() {
-        return formattedCreatedAt;
-    }
-
-    public void setFormattedCreatedAt(String formattedCreatedAt) {
-        this.formattedCreatedAt = formattedCreatedAt;
-    }
-
-    public String getFormattedUpdatedAt() {
-        return formattedUpdatedAt;
-    }
-
-    public void setFormattedUpdatedAt(String formattedUpdatedAt) {
-        this.formattedUpdatedAt = formattedUpdatedAt;
-    }
-
-    public static ResourceResponseDTO fromEntity(Resource resource) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm");
+    public static ResourceResponseDTO fromEntity(Resource resource, List<Equipment> equipmentList) {
         ResourceResponseDTO dto = new ResourceResponseDTO();
         dto.setId(resource.getId());
         dto.setName(resource.getName());
         dto.setDescription(resource.getDescription());
         dto.setType(resource.getType());
         dto.setLocation(resource.getLocation());
-        dto.setStatus(resource.getStatus());
+        dto.setStatus(resource.getStatus() != null ? resource.getStatus().name() : ResourceStatus.ACTIVE.name());
         dto.setCapacity(resource.getCapacity());
         dto.setImageUrl(resource.getImageUrl());
-        dto.setAmenities(resource.getAmenities());
         dto.setCreatedAt(resource.getCreatedAt());
         dto.setUpdatedAt(resource.getUpdatedAt());
-        if (resource.getCreatedAt() != null) {
-            dto.setFormattedCreatedAt(resource.getCreatedAt().format(formatter));
+
+        if (equipmentList != null) {
+            dto.setEquipment(equipmentList.stream()
+                    .map(EquipmentDTO::fromEntity)
+                    .toList());
         }
-        if (resource.getUpdatedAt() != null) {
-            dto.setFormattedUpdatedAt(resource.getUpdatedAt().format(formatter));
-        }
+
         return dto;
     }
 }
