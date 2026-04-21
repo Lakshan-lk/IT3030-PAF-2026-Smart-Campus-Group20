@@ -4,6 +4,8 @@ import com.campushub.smartcampus.entity.Resource;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import com.campushub.smartcampus.enums.ResourceType;
 import com.campushub.smartcampus.enums.ResourceStatus;
@@ -19,6 +21,7 @@ public class ResourceResponseDTO {
     private Integer capacity;
     private String imageUrl;
     private String amenities;
+    private List<EquipmentDTO> equipments;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String formattedCreatedAt;
@@ -96,6 +99,14 @@ public class ResourceResponseDTO {
         this.amenities = amenities;
     }
 
+    public List<EquipmentDTO> getEquipments() {
+        return equipments;
+    }
+
+    public void setEquipments(List<EquipmentDTO> equipments) {
+        this.equipments = equipments;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -140,6 +151,11 @@ public class ResourceResponseDTO {
         dto.setCapacity(resource.getCapacity());
         dto.setImageUrl(resource.getImageUrl());
         dto.setAmenities(resource.getAmenities());
+        if (resource.getEquipments() != null) {
+            dto.setEquipments(resource.getEquipments().stream()
+                    .map(EquipmentDTO::fromEntity)
+                    .collect(Collectors.toList()));
+        }
         dto.setCreatedAt(resource.getCreatedAt());
         dto.setUpdatedAt(resource.getUpdatedAt());
         if (resource.getCreatedAt() != null) {

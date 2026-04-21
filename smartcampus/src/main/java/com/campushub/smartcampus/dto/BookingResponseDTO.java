@@ -25,6 +25,7 @@ public class BookingResponseDTO {
     private LocalDateTime recurrenceEndDate;
     private String skipDates;
     private String groupId;
+    private String requestedEquipmentIds;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -171,6 +172,14 @@ public class BookingResponseDTO {
         this.groupId = groupId;
     }
 
+    public String getRequestedEquipmentIds() {
+        return requestedEquipmentIds;
+    }
+
+    public void setRequestedEquipmentIds(String requestedEquipmentIds) {
+        this.requestedEquipmentIds = requestedEquipmentIds;
+    }
+
     public static BookingResponseDTO fromEntity(Booking booking) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm");
         BookingResponseDTO dto = new BookingResponseDTO();
@@ -191,6 +200,7 @@ public class BookingResponseDTO {
         dto.setRecurrenceEndDate(booking.getRecurrenceEndDate());
         dto.setSkipDates(booking.getSkipDates());
         dto.setGroupId(booking.getGroupId());
+        dto.setRequestedEquipmentIds(booking.getRequestedEquipmentIds());
         dto.setCreatedAt(booking.getCreatedAt());
         return dto;
     }

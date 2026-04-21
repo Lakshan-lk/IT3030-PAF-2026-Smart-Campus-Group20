@@ -38,6 +38,8 @@ public class BookingRequestDTO {
 
     private java.util.List<String> skipDates;
 
+    private java.util.List<Long> requestedEquipmentIds;
+
     public Long getResourceId() {
         return resourceId;
     }
@@ -118,6 +120,14 @@ public class BookingRequestDTO {
         this.skipDates = skipDates;
     }
 
+    public java.util.List<Long> getRequestedEquipmentIds() {
+        return requestedEquipmentIds;
+    }
+
+    public void setRequestedEquipmentIds(java.util.List<Long> requestedEquipmentIds) {
+        this.requestedEquipmentIds = requestedEquipmentIds;
+    }
+
     public static Booking toEntity(BookingRequestDTO dto, Resource resource, User user) {
         Booking booking = new Booking();
         booking.setResource(resource);
@@ -130,6 +140,10 @@ public class BookingRequestDTO {
         booking.setIsRecurring(dto.getRecurring() != null ? dto.getRecurring() : false);
         booking.setRecurrencePattern(dto.getRecurrencePattern());
         booking.setRecurrenceEndDate(dto.getRecurrenceEndDate());
+        if (dto.getRequestedEquipmentIds() != null && !dto.getRequestedEquipmentIds().isEmpty()) {
+            booking.setRequestedEquipmentIds(dto.getRequestedEquipmentIds().stream()
+                    .map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(null));
+        }
         return booking;
     }
 }

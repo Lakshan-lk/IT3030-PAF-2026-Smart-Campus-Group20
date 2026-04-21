@@ -156,6 +156,10 @@ public class BookingService {
             booking.setRecurrencePattern(dto.getRecurrencePattern());
             booking.setRecurrenceEndDate(dto.getRecurrenceEndDate());
             booking.setGroupId(groupId);
+            if (dto.getRequestedEquipmentIds() != null && !dto.getRequestedEquipmentIds().isEmpty()) {
+                booking.setRequestedEquipmentIds(dto.getRequestedEquipmentIds().stream()
+                        .map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(null));
+            }
 
             savedBookings.add(bookingRepository.save(booking));
         }

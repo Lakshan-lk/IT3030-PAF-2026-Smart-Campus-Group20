@@ -166,7 +166,7 @@ setFilters({ type: '', minCapacity: '', equipmentTypes: [], startTime: '', endTi
       endTime,
       recurring: formData.isRecurring,
       recurrencePattern: formData.isRecurring ? formData.recurrencePattern : null,
-      recurrenceEndDate: formData.isRecurring ? formData.recurrenceEndDate : null,
+      recurrenceEndDate: formData.isRecurring && formData.recurrenceEndDate ? `${formData.recurrenceEndDate}T23:59:59` : null,
       skipDates: formData.isRecurring && formData.skipDates.length > 0 ? formData.skipDates : [],
     };
 

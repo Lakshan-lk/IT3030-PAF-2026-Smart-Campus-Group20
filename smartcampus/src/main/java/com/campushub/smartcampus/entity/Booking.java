@@ -51,6 +51,8 @@ public class Booking {
 
     private String groupId;
 
+    private String requestedEquipmentIds;
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -166,5 +168,13 @@ public class Booking {
 
     public void setGroupId(String groupId) {
         this.groupId = groupId;
+    }
+
+    public String getRequestedEquipmentIds() {
+        return requestedEquipmentIds;
+    }
+
+    public void setRequestedEquipmentIds(String requestedEquipmentIds) {
+        this.requestedEquipmentIds = requestedEquipmentIds;
     }
 }
