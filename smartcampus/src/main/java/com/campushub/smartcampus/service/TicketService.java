@@ -1,0 +1,278 @@
+package com.campushub.smartcampus.service;
+
+import com.campushub.smartcampus.dto.AttachmentDTO;
+import com.campushub.smartcampus.dto.AssignTicketRequestDTO;
+import com.campushub.smartcampus.dto.StatusUpdateDTO;
+import com.campushub.smartcampus.dto.TicketRequestDTO;
+import com.campushub.smartcampus.dto.TicketResponseDTO;
+import com.campushub.smartcampus.entity.Resource;
+import com.campushub.smartcampus.entity.Ticket;
+import com.campushub.smartcampus.entity.TicketAttachment;
+import com.campushub.smartcampus.entity.User;
+import com.campushub.smartcampus.enums.TicketCategory;
+import com.campushub.smartcampus.enums.TicketPriority;
+import com.campushub.smartcampus.enums.TicketStatus;
+import com.campushub.smartcampus.repository.CommentRepository;
+import com.campushub.smartcampus.repository.ResourceRepository;
+import com.campushub.smartcampus.repository.TicketAttachmentRepository;
+import com.campushub.smartcampus.repository.TicketRepository;
+import com.campushub.smartcampus.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+@Service
+@Transactional
+public class TicketService {
+
+    private final TicketRepository ticketRepository;
+    private final TicketAttachmentRepository ticketAttachmentRepository;
+    private final CommentRepository commentRepository;
+    private final ResourceRepository resourceRepository;
+    private final UserRepository userRepository;
+
+    @Value("${app.upload-dir:uploads}")
+    private String uploadDir;
+
+    public TicketService(TicketRepository ticketRepository,
+                         TicketAttachmentRepository ticketAttachmentRepository,
+                         CommentRepository commentRepository,
+                         ResourceRepository resourceRepository,
+                         UserRepository userRepository) {
+        this.ticketRepository = ticketRepository;
+        this.ticketAttachmentRepository = ticketAttachmentRepository;
+        this.commentRepository = commentRepository;
+        this.resourceRepository = resourceRepository;
+        this.userRepository = userRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketResponseDTO> getAllTickets(String status, String priority, String category, Long assignedTo, Long userId) {
+        Stream<Ticket> stream = ticketRepository.findAll().stream();
+
+        if (status != null && !status.isBlank()) {
+            TicketStatus ticketStatus = TicketStatus.valueOf(status.toUpperCase(Locale.ROOT));
+            stream = stream.filter(ticket -> ticket.getStatus() == ticketStatus);
+        }
+        if (priority != null && !priority.isBlank()) {
+            TicketPriority ticketPriority = TicketPriority.valueOf(priority.toUpperCase(Locale.ROOT));
+            stream = stream.filter(ticket -> ticket.getPriority() == ticketPriority);
+        }
+        if (category != null && !category.isBlank()) {
+            TicketCategory ticketCategory = TicketCategory.valueOf(category.toUpperCase(Locale.ROOT));
+            stream = stream.filter(ticket -> ticket.getCategory() == ticketCategory);
+        }
+        if (assignedTo != null) {
+            stream = stream.filter(ticket -> ticket.getAssignedTo() != null && Objects.equals(ticket.getAssignedTo().getId(), assignedTo));
+        }
+        if (userId != null) {
+            stream = stream.filter(ticket -> ticket.getUser() != null && Objects.equals(ticket.getUser().getId(), userId));
+        }
+
+        return stream
+                .sorted(Comparator.comparing(Ticket::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketResponseDTO> getTicketsByUserId(Long userId) {
+        return ticketRepository.findByUserId(userId).stream()
+                .sorted(Comparator.comparing(Ticket::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TicketResponseDTO getTicketById(Long id) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+        return toResponse(ticket);
+    }
+
+    public TicketResponseDTO createTicket(TicketRequestDTO dto) {
+        Ticket ticket = new Ticket();
+        applyRequest(ticket, dto);
+        ticket.setStatus(TicketStatus.OPEN);
+        Ticket saved = ticketRepository.save(ticket);
+        return toResponse(saved);
+    }
+
+    public TicketResponseDTO updateTicket(Long id, TicketRequestDTO dto) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+
+        if (ticket.getStatus() != TicketStatus.OPEN) {
+            throw new IllegalArgumentException("Only OPEN tickets can be updated");
+        }
+
+        applyRequest(ticket, dto);
+        Ticket saved = ticketRepository.save(ticket);
+        return toResponse(saved);
+    }
+
+    public TicketResponseDTO assignTicket(Long id, AssignTicketRequestDTO dto) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+        User assignee = userRepository.findById(dto.getAssigneeId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getAssigneeId()));
+
+        if (!"TECHNICIAN".equalsIgnoreCase(assignee.getRole())) {
+            throw new IllegalArgumentException("Assignee must have TECHNICIAN role");
+        }
+
+        ticket.setAssignedTo(assignee);
+        Ticket saved = ticketRepository.save(ticket);
+        return toResponse(saved);
+    }
+
+    public TicketResponseDTO updateStatus(Long id, StatusUpdateDTO dto) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+
+        TicketStatus nextStatus = TicketStatus.valueOf(dto.getStatus().toUpperCase(Locale.ROOT));
+        validateTransition(ticket.getStatus(), nextStatus);
+
+        ticket.setStatus(nextStatus);
+        if (nextStatus == TicketStatus.REJECTED) {
+            ticket.setRejectionReason(dto.getReason());
+        } else if (nextStatus == TicketStatus.RESOLVED || nextStatus == TicketStatus.CLOSED || nextStatus == TicketStatus.IN_PROGRESS) {
+            ticket.setResolutionNotes(dto.getResolutionNotes());
+            if (nextStatus != TicketStatus.REJECTED) {
+                ticket.setRejectionReason(null);
+            }
+        }
+
+        Ticket saved = ticketRepository.save(ticket);
+        return toResponse(saved);
+    }
+
+    public void deleteTicket(Long id) {
+        if (!ticketRepository.existsById(id)) {
+            throw new EntityNotFoundException("Ticket not found with id: " + id);
+        }
+        ticketAttachmentRepository.findByTicketId(id).forEach(ticketAttachmentRepository::delete);
+        commentRepository.findByTicketIdOrderByCreatedAtAsc(id).forEach(commentRepository::delete);
+        ticketRepository.deleteById(id);
+    }
+
+    public TicketResponseDTO addAttachments(Long ticketId, List<MultipartFile> files) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + ticketId));
+
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("At least one file is required");
+        }
+
+        long currentCount = ticketAttachmentRepository.countByTicketId(ticketId);
+        if (currentCount + files.size() > 3) {
+            throw new IllegalStateException("Maximum 3 attachments allowed");
+        }
+
+        Path uploadBase = Paths.get(uploadDir);
+        try {
+            Files.createDirectories(uploadBase);
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to prepare upload directory", e);
+        }
+
+        for (MultipartFile file : files) {
+            if (file.isEmpty()) {
+                continue;
+            }
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                throw new IllegalArgumentException("Only image files are allowed");
+            }
+
+            String originalFilename = file.getOriginalFilename();
+            String safeName = (originalFilename == null || originalFilename.isBlank())
+                    ? "ticket-upload"
+                    : originalFilename.replaceAll("[\\\\/]+", "_");
+            String uniqueFilename = UUID.randomUUID() + "_" + safeName;
+            Path target = uploadBase.resolve(uniqueFilename);
+
+            try {
+                Files.write(target, file.getBytes());
+            } catch (IOException e) {
+                throw new IllegalStateException("Failed to store attachment " + safeName, e);
+            }
+
+            TicketAttachment attachment = new TicketAttachment();
+            attachment.setTicket(ticket);
+            attachment.setFileName(safeName);
+            attachment.setFilePath(uniqueFilename);
+            attachment.setContentType(contentType);
+            ticketAttachmentRepository.save(attachment);
+        }
+
+        return toResponse(ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + ticketId)));
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketAttachment> getAttachments(Long ticketId) {
+        return ticketAttachmentRepository.findByTicketId(ticketId);
+    }
+
+    private void applyRequest(Ticket ticket, TicketRequestDTO dto) {
+        Resource resource = null;
+        if (dto.getResourceId() != null) {
+            resource = resourceRepository.findById(dto.getResourceId())
+                    .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + dto.getResourceId()));
+        }
+
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
+
+        ticket.setResource(resource);
+        ticket.setUser(user);
+        ticket.setCategory(TicketCategory.valueOf(dto.getCategory().toUpperCase(Locale.ROOT)));
+        ticket.setDescription(dto.getDescription());
+        ticket.setPriority(TicketPriority.valueOf(dto.getPriority().toUpperCase(Locale.ROOT)));
+        ticket.setPreferredContact(dto.getPreferredContact());
+    }
+
+    private void validateTransition(TicketStatus current, TicketStatus next) {
+        if (current == next) {
+            return;
+        }
+        switch (current) {
+            case OPEN -> {
+                if (next != TicketStatus.IN_PROGRESS && next != TicketStatus.RESOLVED && next != TicketStatus.REJECTED && next != TicketStatus.CLOSED) {
+                    throw new IllegalArgumentException("Invalid status transition from OPEN to " + next);
+                }
+            }
+            case IN_PROGRESS -> {
+                if (next != TicketStatus.RESOLVED && next != TicketStatus.CLOSED && next != TicketStatus.REJECTED) {
+                    throw new IllegalArgumentException("Invalid status transition from IN_PROGRESS to " + next);
+                }
+            }
+            case RESOLVED -> {
+                if (next != TicketStatus.CLOSED) {
+                    throw new IllegalArgumentException("Invalid status transition from RESOLVED to " + next);
+                }
+            }
+            case CLOSED, REJECTED -> throw new IllegalArgumentException("Closed or rejected tickets cannot change status");
+        }
+    }
+
+    private TicketResponseDTO toResponse(Ticket ticket) {
+        List<TicketAttachment> attachments = ticketAttachmentRepository.findByTicketId(ticket.getId());
+        return TicketResponseDTO.fromEntity(ticket, attachments);
+    }
+}

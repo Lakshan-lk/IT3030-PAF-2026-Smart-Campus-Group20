@@ -2,9 +2,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { MdEvent, MdBuild } from 'react-icons/md';
 import { useActiveBookingsCount } from '../hooks/useBookings';
+import { useTickets } from '../hooks/useTickets';
 
 const DashboardPage = () => {
   const { data: activeBookings, isLoading } = useActiveBookingsCount();
+  const { data: tickets = [] } = useTickets();
+  const openTickets = tickets.filter((ticket) => ticket.status === 'OPEN').length;
 
   return (
     <div>
@@ -33,7 +36,7 @@ const DashboardPage = () => {
         >
           <div>
             <p className="text-slate-500 dark:text-slate-400 font-medium mb-1">Open Tickets</p>
-            <h2 className="text-4xl font-extrabold text-emerald-600 dark:text-emerald-400">0</h2>
+            <h2 className="text-4xl font-extrabold text-emerald-600 dark:text-emerald-400">{openTickets}</h2>
           </div>
           <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center text-emerald-500 dark:text-emerald-400">
             <MdBuild className="text-3xl" />

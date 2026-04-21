@@ -1,67 +1,189 @@
-import React from 'react';
-import { MdAdd } from 'react-icons/md';
+import React, { useMemo, useState } from 'react';
+import { MdAdd, MdFilterAlt, MdSearch } from 'react-icons/md';
+import TicketCard from '../components/TicketCard';
+import TicketFormModal from '../components/TicketFormModal';
+import TicketDetailModal from '../components/TicketDetailModal';
+import { useTickets } from '../hooks/useTickets';
+
+const statusGroups = [
+  { key: 'OPEN', label: 'Open', accent: 'from-amber-400 to-orange-400' },
+  { key: 'IN_PROGRESS', label: 'In Progress', accent: 'from-sky-400 to-cyan-400' },
+  { key: 'RESOLVED', label: 'Resolved', accent: 'from-emerald-400 to-teal-400' },
+  { key: 'CLOSED', label: 'Closed', accent: 'from-slate-400 to-slate-500' },
+  { key: 'REJECTED', label: 'Rejected', accent: 'from-rose-400 to-pink-400' },
+];
 
 const TicketsPage = () => {
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [priorityFilter, setPriorityFilter] = useState('ALL');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const queryParams = useMemo(() => {
+    const params = {};
+    if (statusFilter !== 'ALL') params.status = statusFilter;
+    if (priorityFilter !== 'ALL') params.priority = priorityFilter;
+    if (categoryFilter !== 'ALL') params.category = categoryFilter;
+    return params;
+  }, [statusFilter, priorityFilter, categoryFilter]);
+
+  const { data: tickets = [], isLoading, error } = useTickets(queryParams);
+
+  const filteredTickets = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return tickets.filter((ticket) => {
+      if (!q) {
+        return true;
+      }
+      return [ticket.resourceName, ticket.userName, ticket.description, ticket.assignedToName, ticket.category]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(q));
+    });
+  }, [tickets, searchTerm]);
+
+  const groupedTickets = useMemo(() => {
+    return statusGroups.reduce((accumulator, group) => {
+      accumulator[group.key] = filteredTickets.filter((ticket) => ticket.status === group.key);
+      return accumulator;
+    }, {});
+  }, [filteredTickets]);
+
   return (
-    <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-slate-800">Maintenance Tickets</h1>
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200">
-          <MdAdd className="text-xl" /> Create Ticket
+    <div className="relative space-y-6">
+      <div className="absolute -top-24 right-0 h-72 w-72 rounded-full bg-amber-300/15 blur-3xl pointer-events-none dark:bg-amber-500/10" />
+      <div className="absolute top-16 -left-20 h-64 w-64 rounded-full bg-orange-300/10 blur-3xl pointer-events-none dark:bg-orange-500/10" />
+
+      <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-amber-500">Maintenance tickets</p>
+          <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-800 dark:text-slate-50">Ticket board</h1>
+          <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+            Track incidents, upload evidence, and move each ticket through its lifecycle.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsFormOpen(true)}
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:from-amber-600 hover:to-orange-600"
+        >
+          <MdAdd className="text-lg" />
+          Report issue
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Open Tickets */}
-        <div className="bg-slate-100/80 p-5 rounded-2xl border border-slate-200/60 h-[calc(100vh-220px)] overflow-y-auto">
-          <h2 className="font-bold text-slate-600 mb-5 uppercase text-xs tracking-wider flex justify-between items-center">
-            Open <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-black">2</span>
-          </h2>
-          <div className="space-y-4">
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 cursor-pointer hover:border-indigo-300 transition-colors">
-               <div className="flex justify-between items-center mb-3">
-                 <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-1 rounded-md">HIGH PRIORITY</span>
-                 <span className="text-xs font-semibold text-slate-400">#TK-092</span>
-               </div>
-               <h3 className="font-bold text-slate-800 mb-2 leading-tight">Projector not working in Main Hall A</h3>
-               <p className="text-sm text-slate-500 line-clamp-2">The projector is continuously blinking red and fails to connect to any HMDI input.</p>
-            </div>
-
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 cursor-pointer hover:border-indigo-300 transition-colors">
-               <div className="flex justify-between items-center mb-3">
-                 <span className="text-[10px] font-black text-slate-600 bg-slate-100 px-2 py-1 rounded-md">LOW PRIORITY</span>
-                 <span className="text-xs font-semibold text-slate-400">#TK-093</span>
-               </div>
-               <h3 className="font-bold text-slate-800 mb-2 leading-tight">Squeaky door</h3>
-               <p className="text-sm text-slate-500 line-clamp-2">Main entrance door needs oiling.</p>
-            </div>
-          </div>
+      <div className="flex flex-col gap-3 rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/60 p-4 backdrop-blur-sm lg:flex-row lg:items-center">
+        <div className="relative flex-1">
+          <MdSearch className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Search by room, reporter, assignee, or description"
+            className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 py-3 pl-11 pr-4 text-sm text-slate-800 dark:text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+          />
         </div>
 
-        {/* In Progress */}
-        <div className="bg-slate-100/80 p-5 rounded-2xl border border-slate-200/60 h-[calc(100vh-220px)] overflow-y-auto">
-          <h2 className="font-bold text-slate-600 mb-5 uppercase text-xs tracking-wider flex justify-between items-center">
-            In Progress <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-black">1</span>
-          </h2>
-          <div className="space-y-4">
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 cursor-pointer hover:border-indigo-300 transition-colors">
-               <div className="flex justify-between items-center mb-3">
-                 <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-md">MEDIUM PRIORITY</span>
-                 <span className="text-xs font-semibold text-slate-400">#TK-090</span>
-               </div>
-               <h3 className="font-bold text-slate-800 mb-2 leading-tight">AC leaking in Lab 3</h3>
-               <p className="text-sm text-slate-500 line-clamp-2">Water dripping near the third desk row. Maintenance team has been dispatched.</p>
-            </div>
-          </div>
-        </div>
+        <div className="grid gap-3 md:grid-cols-3 lg:w-[42rem]">
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+          >
+            <option value="ALL">All statuses</option>
+            {statusGroups.map((group) => (
+              <option key={group.key} value={group.key}>{group.label}</option>
+            ))}
+          </select>
 
-        {/* Resolved */}
-        <div className="bg-slate-100/80 p-5 rounded-2xl border border-slate-200/60 h-[calc(100vh-220px)] overflow-y-auto">
-          <h2 className="font-bold text-slate-600 mb-5 uppercase text-xs tracking-wider flex justify-between items-center">
-            Resolved <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-black">0</span>
-          </h2>
+          <select
+            value={priorityFilter}
+            onChange={(event) => setPriorityFilter(event.target.value)}
+            className="rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+          >
+            <option value="ALL">All priorities</option>
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+            <option value="CRITICAL">Critical</option>
+          </select>
+
+          <select
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+            className="rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+          >
+            <option value="ALL">All categories</option>
+            <option value="FACILITY_ISSUE">Facility issue</option>
+            <option value="EQUIPMENT_FAULT">Equipment fault</option>
+            <option value="IT_NETWORK">IT / network</option>
+            <option value="SAFETY_HAZARD">Safety hazard</option>
+          </select>
         </div>
       </div>
+
+      <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+        <MdFilterAlt className="text-base" />
+        <span>{filteredTickets.length} ticket{filteredTickets.length === 1 ? '' : 's'} visible</span>
+      </div>
+
+      {isLoading ? (
+        <div className="grid gap-4 xl:grid-cols-5">
+          {statusGroups.map((group) => (
+            <div key={group.key} className="space-y-3 rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/60 p-4">
+              <div className="h-6 w-24 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700/50" />
+              <div className="h-32 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700/50" />
+              <div className="h-32 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700/50" />
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="rounded-3xl border border-rose-200 bg-rose-50 px-6 py-10 text-center text-rose-700 dark:border-rose-800/40 dark:bg-rose-900/20 dark:text-rose-300">
+          Unable to load tickets right now.
+        </div>
+      ) : (
+        <div className="grid gap-4 xl:grid-cols-5">
+          {statusGroups.map((group) => (
+            <section key={group.key} className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/60 p-4 backdrop-blur-sm">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-700 dark:text-slate-100">{group.label}</h2>
+                  <div className={`mt-2 h-1.5 w-14 rounded-full bg-gradient-to-r ${group.accent}`} />
+                </div>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500 dark:bg-slate-700/50 dark:text-slate-300">
+                  {groupedTickets[group.key]?.length || 0}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {groupedTickets[group.key]?.length ? (
+                  groupedTickets[group.key].map((ticket) => (
+                    <TicketCard key={ticket.id} ticket={ticket} onClick={() => setSelectedTicketId(ticket.id)} />
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-700/50 px-4 py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+                    No tickets in this stage.
+                  </div>
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {isFormOpen && (
+        <TicketFormModal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} />
+      )}
+      {selectedTicketId && (
+        <TicketDetailModal
+          key={selectedTicketId}
+          ticketId={selectedTicketId}
+          isOpen={!!selectedTicketId}
+          onClose={() => setSelectedTicketId(null)}
+        />
+      )}
     </div>
   );
 };

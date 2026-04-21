@@ -53,6 +53,35 @@ INSERT INTO bookings (id, resource_id, user_id, purpose, start_time, end_time, s
 VALUES (6, 4, 2, 'Chemistry Practical - Organic Synthesis', '2026-11-01 10:00:00', '2026-11-01 13:00:00', 'APPROVED', CURRENT_TIMESTAMP);
 
 -- ============================================================
+-- TICKETS
+-- Categories: EQUIPMENT_FAULT, FACILITY_ISSUE, IT_NETWORK, SAFETY_HAZARD
+-- Priorities: LOW, MEDIUM, HIGH, CRITICAL
+-- Statuses: OPEN, IN_PROGRESS, RESOLVED, CLOSED, REJECTED
+-- ============================================================
+INSERT INTO tickets (id, resource_id, user_id, category, description, priority, status, assigned_to, resolution_notes, rejection_reason, preferred_contact, created_at, updated_at)
+VALUES (1, 1, 2, 'EQUIPMENT_FAULT', 'Projector in Main Hall A is flickering and losing signal.', 'HIGH', 'OPEN', NULL, NULL, NULL, 'ext-123', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tickets (id, resource_id, user_id, category, description, priority, status, assigned_to, resolution_notes, rejection_reason, preferred_contact, created_at, updated_at)
+VALUES (2, 2, 3, 'FACILITY_ISSUE', 'Air conditioning is leaking above the second row of desks.', 'MEDIUM', 'IN_PROGRESS', 4, 'Technician inspected the leak and ordered replacement parts.', NULL, 'jane@campus.edu', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tickets (id, resource_id, user_id, category, description, priority, status, assigned_to, resolution_notes, rejection_reason, preferred_contact, created_at, updated_at)
+VALUES (3, 3, 2, 'IT_NETWORK', 'WiFi drops every 10 minutes in the meeting room.', 'HIGH', 'OPEN', NULL, NULL, NULL, 'john@campus.edu', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tickets (id, resource_id, user_id, category, description, priority, status, assigned_to, resolution_notes, rejection_reason, preferred_contact, created_at, updated_at)
+VALUES (4, 5, 4, 'SAFETY_HAZARD', 'Loose floor tile near the entrance may cause trips.', 'CRITICAL', 'RESOLVED', 6, 'Area was cordoned off and tile replaced.', NULL, 'tech-mike@campus.edu', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tickets (id, resource_id, user_id, category, description, priority, status, assigned_to, resolution_notes, rejection_reason, preferred_contact, created_at, updated_at)
+VALUES (5, 7, 3, 'FACILITY_ISSUE', 'Conference room whiteboard has permanent marker stains.', 'LOW', 'REJECTED', NULL, NULL, 'Cleaning request not approved for this week.', 'jane@campus.edu', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO tickets (id, resource_id, user_id, category, description, priority, status, assigned_to, resolution_notes, rejection_reason, preferred_contact, created_at, updated_at)
+VALUES (6, 4, 2, 'EQUIPMENT_FAULT', 'Microphone in lab auditorium is producing feedback.', 'MEDIUM', 'CLOSED', 6, 'System reconfigured and feedback eliminated.', NULL, 'ext-456', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- ============================================================
+-- COMMENTS
+-- ============================================================
+INSERT INTO comments (id, ticket_id, user_id, content, created_at, updated_at)
+VALUES (1, 1, 2, 'This started after the last lecture and is getting worse.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO comments (id, ticket_id, user_id, content, created_at, updated_at)
+VALUES (2, 2, 4, 'Leak traced to the AC condensation line. Working on it now.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO comments (id, ticket_id, user_id, content, created_at, updated_at)
+VALUES (3, 4, 6, 'Tile has been replaced and the area is safe again.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- ============================================================
 -- PLACEHOLDER DATA FOR OTHER MEMBERS
 -- Uncomment and adjust when entities are created.
 -- Foreign key references use the IDs defined above.

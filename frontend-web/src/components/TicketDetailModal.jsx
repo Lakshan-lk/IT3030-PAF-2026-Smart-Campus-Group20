@@ -1,0 +1,336 @@
+import React, { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { MdClose, MdUploadFile, MdPersonAdd, MdTune, MdImage, MdWarning } from 'react-icons/md';
+import { useTicketById, useUploadTicketAttachments, useUpdateTicketStatus, useAssignTicket } from '../hooks/useTickets';
+import CommentThread from './CommentThread';
+
+const technicianOptions = [
+  { id: 4, name: 'Tech Mike' },
+  { id: 6, name: 'Tom Technician' },
+];
+
+const statusOptions = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED'];
+
+const statusStyles = {
+  OPEN: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300',
+  IN_PROGRESS: 'bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-300',
+  RESOLVED: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300',
+  CLOSED: 'bg-slate-50 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300',
+  REJECTED: 'bg-rose-50 text-rose-700 dark:bg-rose-900/20 dark:text-rose-300',
+};
+
+const priorityStyles = {
+  LOW: 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300',
+  MEDIUM: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  HIGH: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  CRITICAL: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+};
+
+function formatDate(value) {
+  if (!value) {
+    return '';
+  }
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
+  const { data: ticket, isLoading } = useTicketById(ticketId);
+  const uploadAttachments = useUploadTicketAttachments();
+  const updateStatus = useUpdateTicketStatus();
+  const assignTicket = useAssignTicket();
+
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [statusForm, setStatusForm] = useState({ status: 'IN_PROGRESS', reason: '', resolutionNotes: '' });
+  const [assigneeId, setAssigneeId] = useState('');
+  const [error, setError] = useState('');
+
+  const attachments = useMemo(() => ticket?.attachments ?? [], [ticket]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const handleUpload = async (event) => {
+    event.preventDefault();
+    setError('');
+
+    if (!selectedFiles.length) {
+      setError('Choose at least one image to upload.');
+      return;
+    }
+
+    const formData = new FormData();
+    selectedFiles.forEach((file) => formData.append('files', file));
+
+    try {
+      await uploadAttachments.mutateAsync({ id: ticketId, formData });
+      setSelectedFiles([]);
+    } catch (mutationError) {
+      setError(mutationError.response?.data?.message || 'Could not upload attachments.');
+    }
+  };
+
+  const handleStatusUpdate = async (event) => {
+    event.preventDefault();
+    setError('');
+
+    try {
+      await updateStatus.mutateAsync({
+        id: ticketId,
+        data: statusForm,
+      });
+    } catch (mutationError) {
+      setError(mutationError.response?.data?.message || 'Could not update ticket status.');
+    }
+  };
+
+  const handleAssign = async (event) => {
+    event.preventDefault();
+    setError('');
+
+    if (!assigneeId) {
+      setError('Choose a technician first.');
+      return;
+    }
+
+    try {
+      await assignTicket.mutateAsync({
+        id: ticketId,
+        assigneeId: Number(assigneeId),
+      });
+    } catch (mutationError) {
+      setError(mutationError.response?.data?.message || 'Could not assign technician.');
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
+        <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm" onClick={onClose} />
+        <motion.div
+          className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200/60 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 shadow-2xl shadow-slate-900/30"
+          initial={{ opacity: 0, y: 24, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 18, scale: 0.98 }}
+          transition={{ duration: 0.28 }}
+        >
+          <div className="flex items-center justify-between border-b border-slate-200/70 dark:border-slate-700/50 bg-white/80 dark:bg-slate-900/70 px-6 py-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Ticket details</p>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{ticket?.resourceName || 'Ticket'}</h2>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-600 dark:hover:text-slate-100"
+            >
+              <MdClose className="text-xl" />
+            </button>
+          </div>
+
+          <div className="grid flex-1 gap-6 overflow-y-auto p-6 xl:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-6">
+              {error && (
+                <div className="flex items-start gap-3 rounded-2xl border border-rose-200 dark:border-rose-800/50 bg-rose-50 dark:bg-rose-900/20 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
+                  <MdWarning className="mt-0.5 text-xl shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <section className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/85 dark:bg-slate-800/60 p-5">
+                {isLoading ? (
+                  <div className="space-y-4">
+                    <div className="h-6 w-48 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700/50" />
+                    <div className="h-24 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700/50" />
+                  </div>
+                ) : ticket ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${statusStyles[ticket.status] || statusStyles.OPEN}`}>{ticket.status}</span>
+                      <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${priorityStyles[ticket.priority] || priorityStyles.LOW}`}>{ticket.priority}</span>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-500 dark:bg-slate-700/50 dark:text-slate-300">{ticket.category}</span>
+                    </div>
+
+                    <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{ticket.description}</p>
+
+                    <div className="mt-5 grid gap-4 md:grid-cols-2">
+                      <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/40 p-4">
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Reported by</p>
+                        <p className="mt-1 font-semibold text-slate-800 dark:text-slate-100">{ticket.userName || 'Unknown'}</p>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{ticket.preferredContact || 'No preferred contact'}</p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/40 p-4">
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Assigned to</p>
+                        <p className="mt-1 font-semibold text-slate-800 dark:text-slate-100">{ticket.assignedToName || 'Unassigned'}</p>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{formatDate(ticket.createdAt)}</p>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+              </section>
+
+              <section className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/85 dark:bg-slate-800/60 p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Attachments</p>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Images</h3>
+                  </div>
+                  <MdImage className="text-2xl text-amber-500" />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {attachments.length === 0 ? (
+                    <div className="sm:col-span-2 lg:col-span-3 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700/50 px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                      No attachments uploaded yet.
+                    </div>
+                  ) : (
+                    attachments.map((attachment) => (
+                      <a
+                        key={attachment.id}
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-100 dark:bg-slate-900/50"
+                      >
+                        <div className="aspect-[4/3] overflow-hidden">
+                          <img src={attachment.url} alt={attachment.fileName} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+                        </div>
+                        <div className="p-3">
+                          <p className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">{attachment.fileName}</p>
+                        </div>
+                      </a>
+                    ))
+                  )}
+                </div>
+
+                <form onSubmit={handleUpload} className="mt-4 space-y-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(event) => setSelectedFiles(Array.from(event.target.files || []))}
+                    className="block w-full rounded-2xl border border-dashed border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-600 dark:text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-amber-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-amber-600"
+                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">You can upload up to 3 images per ticket.</p>
+                    <button
+                      type="submit"
+                      disabled={uploadAttachments.isPending}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:from-amber-600 hover:to-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <MdUploadFile className="text-lg" />
+                      Upload
+                    </button>
+                  </div>
+                </form>
+              </section>
+
+              <CommentThread ticketId={ticketId} />
+            </div>
+
+            <div className="space-y-6">
+              <section className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/85 dark:bg-slate-800/60 p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <MdTune className="text-2xl text-slate-500 dark:text-slate-400" />
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Workflow</p>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Status update</h3>
+                  </div>
+                </div>
+
+                <form onSubmit={handleStatusUpdate} className="space-y-4">
+                  <label className="block space-y-2">
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">New status</span>
+                    <select
+                      value={statusForm.status}
+                      onChange={(event) => setStatusForm((current) => ({ ...current, status: event.target.value }))}
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                    >
+                      {statusOptions.map((status) => (
+                        <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Reason / rejection note</span>
+                    <textarea
+                      value={statusForm.reason}
+                      onChange={(event) => setStatusForm((current) => ({ ...current, reason: event.target.value }))}
+                      rows={3}
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                    />
+                  </label>
+
+                  <label className="block space-y-2">
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Resolution notes</span>
+                    <textarea
+                      value={statusForm.resolutionNotes}
+                      onChange={(event) => setStatusForm((current) => ({ ...current, resolutionNotes: event.target.value }))}
+                      rows={3}
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={updateStatus.isPending}
+                    className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Update status
+                  </button>
+                </form>
+              </section>
+
+              <section className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/85 dark:bg-slate-800/60 p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <MdPersonAdd className="text-2xl text-slate-500 dark:text-slate-400" />
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Assignment</p>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Assign technician</h3>
+                  </div>
+                </div>
+
+                <form onSubmit={handleAssign} className="space-y-4">
+                  <label className="block space-y-2">
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Technician</span>
+                    <select
+                      value={assigneeId}
+                      onChange={(event) => setAssigneeId(event.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                    >
+                      <option value="">Choose a technician</option>
+                      {technicianOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.name}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={assignTicket.isPending}
+                    className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Assign ticket
+                  </button>
+                </form>
+              </section>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+export default TicketDetailModal;
