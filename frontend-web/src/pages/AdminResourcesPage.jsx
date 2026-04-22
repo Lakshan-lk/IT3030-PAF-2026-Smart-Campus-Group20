@@ -23,7 +23,7 @@ const AdminResourcesPage = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
-  const [toastMessage, setToastMessage] = useState('');
+  const [toast, setToast] = useState(null);
 
   const filteredResources = resources.filter(r => {
     if (activeTab === 'all') return true;
@@ -60,8 +60,11 @@ const AdminResourcesPage = () => {
   };
 
   const handleSaved = (message) => {
-    setToastMessage(message);
-    window.setTimeout(() => setToastMessage(''), 2500);
+    const id = window.setTimeout(() => {
+      setToast(null);
+    }, 2800);
+
+    setToast({ id, message });
   };
 
   const statusColors = {
@@ -100,21 +103,42 @@ const AdminResourcesPage = () => {
       </div>
 
       <AnimatePresence>
-        {toastMessage && (
+        {toast && (
           <motion.div
             initial={{ opacity: 0, y: 16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            className="fixed bottom-6 right-6 z-[120] max-w-sm"
+            className="fixed bottom-6 right-6 z-[120] max-w-sm w-[calc(100vw-2rem)] sm:w-[22rem]"
           >
-            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-600 text-white shadow-2xl shadow-emerald-950/20">
-              <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-                <MdCheckCircle className="text-xl" />
+            <div className="relative overflow-hidden rounded-2xl bg-slate-950 text-white shadow-2xl shadow-emerald-950/25 ring-1 ring-white/10">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/90 via-teal-500/90 to-cyan-500/90" />
+              <div className="absolute inset-0 bg-black/15" />
+              <div className="relative flex items-start gap-3 px-4 py-3">
+                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0 backdrop-blur-md border border-white/15">
+                  <MdCheckCircle className="text-xl" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-sm leading-5">{toast.message}</p>
+                  <p className="text-xs text-white/80 mt-0.5">Changes are now live in Facilities.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.clearTimeout(toast.id);
+                    setToast(null);
+                  }}
+                  className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center text-sm font-bold"
+                  aria-label="Dismiss notification"
+                >
+                  ×
+                </button>
               </div>
-              <div>
-                <p className="font-semibold text-sm">{toastMessage}</p>
-                <p className="text-xs text-white/80">Changes are now live in Facilities.</p>
-              </div>
+              <motion.div
+                className="h-1 bg-white/35 origin-left"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 2.8, ease: 'linear' }}
+              />
             </div>
           </motion.div>
         )}
