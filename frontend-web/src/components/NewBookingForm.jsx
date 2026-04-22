@@ -195,15 +195,51 @@ setFilters({ type: '', minCapacity: '', equipmentTypes: [], startTime: '', endTi
     }
   };
 
+  const resetForm = () => {
+    setStep(1);
+    setSelectedResource(null);
+    setFilters({
+      type: '',
+      capacity: '',
+      hasEquipment: '',
+      startDate: '',
+      startTime: '',
+      endDate: '',
+      endTime: '',
+    });
+    setFormData({
+      userId: 2,
+      purpose: '',
+      attendees: '',
+      recurring: false,
+      recurrencePattern: 'WEEKLY',
+      recurrenceEndDate: '',
+      skipDates: [],
+    });
+    setErrors({});
+    setConflictError('');
+    setResources([]);
+  };
+
+  const goBack = () => {
+    setStep(1);
+    setSelectedResource(null);
+  };
+
   if (!isOpen) return null;
+
+  const stepVariants = {
+    initial: { opacity: 0, x: 20 },
+    animate: { opacity: 1, x: 0, transition: { duration: 0.3 } },
+    exit: { opacity: 0, x: -20, transition: { duration: 0.2 } }
+  };
 
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
+        initial="hidden"
+        animate="visible"
+        exit="hidden"
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />

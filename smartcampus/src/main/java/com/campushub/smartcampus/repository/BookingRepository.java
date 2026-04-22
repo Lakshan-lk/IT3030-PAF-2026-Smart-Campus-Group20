@@ -22,4 +22,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByResourceIdAndStartTimeBetween(Long resourceId, LocalDateTime start, LocalDateTime end);
 
     List<Booking> findByResourceIdAndStartTimeBeforeAndEndTimeAfter(Long resourceId, LocalDateTime endTime, LocalDateTime startTime);
+
+    List<Booking> findByRecurrenceGroupId(String recurrenceGroupId);
 }

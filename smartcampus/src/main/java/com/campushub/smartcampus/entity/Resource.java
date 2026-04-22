@@ -1,5 +1,6 @@
 package com.campushub.smartcampus.entity;
 
+import com.campushub.smartcampus.enums.ResourceStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -37,9 +38,7 @@ public class Resource {
     private String location;
 
     @Enumerated(EnumType.STRING)
-    private ResourceStatus status = ResourceStatus.AVAILABLE;
-
-    private boolean isDeleted = false;
+    private ResourceStatus status = ResourceStatus.ACTIVE;
 
     private Integer capacity;
 
@@ -49,7 +48,7 @@ public class Resource {
     private String amenities;
 
     @OneToMany(mappedBy = "room", fetch = FetchType.LAZY)
-    private List<Equipment> equipments;
+    private List<Equipment> equipment;
 
     @Column(updatable = false)
     @CreatedDate
@@ -138,6 +137,14 @@ public class Resource {
 
     public void setAmenities(String amenities) {
         this.amenities = amenities;
+    }
+
+    public List<Equipment> getEquipment() {
+        return equipment;
+    }
+
+    public void setEquipment(List<Equipment> equipment) {
+        this.equipment = equipment;
     }
 
     public LocalDateTime getCreatedAt() {

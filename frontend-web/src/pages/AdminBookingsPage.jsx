@@ -42,6 +42,25 @@ const AdminBookingsPage = () => {
     document.head.appendChild(l);
   }, []);
 
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectBookingId, setRejectBookingId] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+
+  const handleRejectClick = (bookingId) => {
+    setRejectBookingId(bookingId);
+    setRejectReason('');
+    setShowRejectModal(true);
+  };
+
+  const handleRejectConfirm = () => {
+    if (rejectReason.trim()) {
+      rejectBooking.mutate({ id: rejectBookingId, reason: rejectReason.trim() });
+      setShowRejectModal(false);
+      setRejectBookingId(null);
+      setRejectReason('');
+    }
+  };
+
   const stats = {
     total:     bookings.length,
     pending:   bookings.filter(b => b.status === 'PENDING').length,

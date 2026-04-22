@@ -4,10 +4,6 @@ import com.campushub.smartcampus.dto.ResourceRequestDTO;
 import com.campushub.smartcampus.dto.ResourceResponseDTO;
 import com.campushub.smartcampus.service.ResourceService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +22,7 @@ public class ResourceController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ResourceResponseDTO>> getAllResources(
+    public ResponseEntity<List<ResourceResponseDTO>> getAllResources(
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String status,
@@ -56,7 +52,8 @@ public class ResourceController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ResourceResponseDTO> getResourceById(@PathVariable Long id) {
-        return ResponseEntity.ok(resourceService.getResourceById(id));
+        ResourceResponseDTO resource = resourceService.getResourceById(id);
+        return ResponseEntity.ok(resource);
     }
 
     @PostMapping
@@ -67,7 +64,8 @@ public class ResourceController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ResourceResponseDTO> updateResource(@PathVariable Long id, @Valid @RequestBody ResourceRequestDTO dto) {
-        return ResponseEntity.ok(resourceService.updateResource(id, dto));
+        ResourceResponseDTO updated = resourceService.updateResource(id, dto);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")

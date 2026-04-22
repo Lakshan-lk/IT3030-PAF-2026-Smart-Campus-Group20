@@ -4,7 +4,12 @@ import { MdAdd, MdEvent, MdHistory, MdCancel as MdCancelIcon, MdClose } from 're
 import { useBookings, useCancelBooking, useCancelSeries } from '../hooks/useBookings';
 import NewBookingForm from '../components/NewBookingForm';
 import BookingCard from '../components/BookingCard';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MdAdd, MdFilterList, MdEvent, MdHistory, MdCancel, MdSearch } from 'react-icons/md';
+import { useBookings, useCancelBooking, useCancelSeries } from '../hooks/useBookings';
+import NewBookingForm from '../components/NewBookingForm';
+import BookingCard from '../components/BookingCard';
 
 const BookingsPage = () => {
   const location = useLocation();
@@ -116,17 +121,19 @@ const BookingsPage = () => {
             return (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => setShowTab(tab.key)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                  activeTab === tab.key
+                  showTab === tab.key
                     ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 shadow-md'
                     : 'bg-white/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50'
                 }`}
               >
                 <Icon className="text-lg" />
                 {tab.label}
-                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                  activeTab === tab.key ? 'bg-white/20 dark:bg-slate-800/30' : 'bg-slate-100 dark:bg-slate-700/50'
+                <span className={`px-2 py-0.5 rounded-full text-xs ${
+                  showTab === tab.key 
+                    ? 'bg-white/20 dark:bg-slate-800/30' 
+                    : 'bg-slate-100 dark:bg-slate-700/50'
                 }`}>
                   {tab.count}
                 </span>
@@ -142,16 +149,24 @@ const BookingsPage = () => {
           animate="visible"
         >
           {isLoading ? (
-            [1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="h-48 bg-slate-100 dark:bg-slate-700/30 rounded-2xl animate-pulse" />
-            ))
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-32 bg-slate-100 dark:bg-slate-700/50 rounded-2xl animate-pulse" />
+              ))}
+            </div>
           ) : error ? (
-            <div className="col-span-full text-center py-12">
+            <div className="p-12 text-center bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center">
-                <MdClose className="text-3xl text-rose-400" />
+                <MdFilterList className="text-3xl text-rose-400" />
               </div>
               <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-1">Unable to load bookings</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Please check your connection and try again</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Please check your connection and try again</p>
+              <button
+                onClick={() => refetch()}
+                className="px-4 py-2 rounded-lg bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition-colors"
+              >
+                Retry
+              </button>
             </div>
           ) : displayBookings.length === 0 ? (
             <div className="col-span-full text-center py-12">

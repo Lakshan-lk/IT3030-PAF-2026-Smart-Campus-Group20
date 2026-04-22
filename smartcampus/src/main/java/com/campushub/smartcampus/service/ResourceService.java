@@ -123,53 +123,53 @@ public class ResourceService {
     public ResourceResponseDTO getResourceById(Long id) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
-        if (resource.isDeleted()) {
-            throw new EntityNotFoundException("Resource not found with id: " + id);
-        }
-        return ResourceResponseDTO.fromEntity(resource);
+        List<Equipment> equipment = equipmentRepository.findByRoomId(id);
+        return ResourceResponseDTO.fromEntity(resource, equipment);
     }
 
     public ResourceResponseDTO createResource(ResourceRequestDTO dto) {
-        if (dto.getCapacity() != null && dto.getCapacity() <= 0) {
-            throw new IllegalArgumentException("Capacity must be greater than 0");
+        Resource resource = new Resource();
+        resource.setName(dto.getName());
+        resource.setDescription(dto.getDescription());
+        resource.setType(dto.getType());
+        resource.setLocation(dto.getLocation());
+        resource.setCapacity(dto.getCapacity());
+        resource.setImageUrl(dto.getImageUrl());
+
+        if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
+            resource.setStatus(ResourceStatus.valueOf(dto.getStatus()));
+        } else {
+            resource.setStatus(ResourceStatus.ACTIVE);
         }
 
-        Resource resource = ResourceRequestDTO.toEntity(dto);
         Resource saved = resourceRepository.save(resource);
-        return ResourceResponseDTO.fromEntity(saved);
+        return ResourceResponseDTO.fromEntity(saved, List.of());
     }
 
     public ResourceResponseDTO updateResource(Long id, ResourceRequestDTO dto) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
-        
-        if (resource.isDeleted()) {
-             throw new EntityNotFoundException("Resource not found with id: " + id);
-        }
-
-        if (dto.getCapacity() != null && dto.getCapacity() <= 0) {
-            throw new IllegalArgumentException("Capacity must be greater than 0");
-        }
 
         resource.setName(dto.getName());
         resource.setDescription(dto.getDescription());
         resource.setType(dto.getType());
         resource.setLocation(dto.getLocation());
-        if (dto.getStatus() != null) {
-            resource.setStatus(dto.getStatus());
-        }
         resource.setCapacity(dto.getCapacity());
         resource.setImageUrl(dto.getImageUrl());
-        resource.setAmenities(dto.getAmenities());
+
+        if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
+            resource.setStatus(ResourceStatus.valueOf(dto.getStatus()));
+        }
 
         Resource saved = resourceRepository.save(resource);
-        return ResourceResponseDTO.fromEntity(saved);
+        List<Equipment> equipment = equipmentRepository.findByRoomId(id);
+        return ResourceResponseDTO.fromEntity(saved, equipment);
     }
 
     public void deleteResource(Long id) {
-        Resource resource = resourceRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
-        resource.setDeleted(true);
-        resourceRepository.save(resource);
+        if (!resourceRepository.existsById(id)) {
+            throw new EntityNotFoundException("Resource not found with id: " + id);
+        }
+        resourceRepository.deleteById(id);
     }
 }

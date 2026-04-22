@@ -1,8 +1,6 @@
 package com.campushub.smartcampus.enums;
 
 public enum ResourceStatus {
-    AVAILABLE,
-    MAINTENANCE,
-    UNAVAILABLE,
+    ACTIVE,
     OUT_OF_SERVICE
 }

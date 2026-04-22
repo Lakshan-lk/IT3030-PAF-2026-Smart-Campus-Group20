@@ -8,7 +8,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class BookingRequestDTO {
 
@@ -22,23 +24,21 @@ public class BookingRequestDTO {
     @Size(max = 500)
     private String purpose;
 
+    private Integer attendees;
+
     @NotNull(message = "Start time is required")
     private LocalDateTime startTime;
 
     @NotNull(message = "End time is required")
     private LocalDateTime endTime;
 
-    private Integer attendees;
-
-    private Boolean recurring = false;
+    private boolean recurring = false;
 
     private String recurrencePattern;
 
-    private LocalDateTime recurrenceEndDate;
+    private LocalDate recurrenceEndDate;
 
-    private java.util.List<String> skipDates;
-
-    private java.util.List<Long> requestedEquipmentIds;
+    private List<String> skipDates;
 
     public Long getResourceId() {
         return resourceId;
@@ -80,20 +80,20 @@ public class BookingRequestDTO {
         this.endTime = endTime;
     }
 
+    public boolean isRecurring() {
+        return recurring;
+    }
+
+    public void setRecurring(boolean recurring) {
+        this.recurring = recurring;
+    }
+
     public Integer getAttendees() {
         return attendees;
     }
 
     public void setAttendees(Integer attendees) {
         this.attendees = attendees;
-    }
-
-    public Boolean getRecurring() {
-        return recurring;
-    }
-
-    public void setRecurring(Boolean recurring) {
-        this.recurring = recurring;
     }
 
     public String getRecurrencePattern() {
@@ -104,28 +104,20 @@ public class BookingRequestDTO {
         this.recurrencePattern = recurrencePattern;
     }
 
-    public LocalDateTime getRecurrenceEndDate() {
+    public LocalDate getRecurrenceEndDate() {
         return recurrenceEndDate;
     }
 
-    public void setRecurrenceEndDate(LocalDateTime recurrenceEndDate) {
+    public void setRecurrenceEndDate(LocalDate recurrenceEndDate) {
         this.recurrenceEndDate = recurrenceEndDate;
     }
 
-    public java.util.List<String> getSkipDates() {
+    public List<String> getSkipDates() {
         return skipDates;
     }
 
-    public void setSkipDates(java.util.List<String> skipDates) {
+    public void setSkipDates(List<String> skipDates) {
         this.skipDates = skipDates;
-    }
-
-    public java.util.List<Long> getRequestedEquipmentIds() {
-        return requestedEquipmentIds;
-    }
-
-    public void setRequestedEquipmentIds(java.util.List<Long> requestedEquipmentIds) {
-        this.requestedEquipmentIds = requestedEquipmentIds;
     }
 
     public static Booking toEntity(BookingRequestDTO dto, Resource resource, User user) {
@@ -133,8 +125,10 @@ public class BookingRequestDTO {
         booking.setResource(resource);
         booking.setUser(user);
         booking.setPurpose(dto.getPurpose());
+        booking.setAttendees(dto.getAttendees());
         booking.setStartTime(dto.getStartTime());
         booking.setEndTime(dto.getEndTime());
+        booking.setRecurring(dto.isRecurring());
         booking.setStatus(BookingStatus.PENDING);
         booking.setAttendees(dto.getAttendees());
         booking.setIsRecurring(dto.getRecurring() != null ? dto.getRecurring() : false);
