@@ -2,6 +2,7 @@ package com.campushub.smartcampus.service;
 
 import com.campushub.smartcampus.dto.ResourceRequestDTO;
 import com.campushub.smartcampus.dto.ResourceResponseDTO;
+import com.campushub.smartcampus.repository.EquipmentRepository;
 import com.campushub.smartcampus.entity.Resource;
 import com.campushub.smartcampus.enums.ResourceStatus;
 import com.campushub.smartcampus.enums.ResourceType;
@@ -15,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,6 +27,9 @@ class ResourceServiceTest {
 
     @Mock
     private ResourceRepository resourceRepository;
+
+    @Mock
+    private EquipmentRepository equipmentRepository;
 
     @InjectMocks
     private ResourceService resourceService;
@@ -38,15 +43,17 @@ class ResourceServiceTest {
         resource.setId(1L);
         resource.setName("Test Hall");
         resource.setType(ResourceType.LECTURE_HALL);
-        resource.setStatus(ResourceStatus.AVAILABLE);
+        resource.setStatus(ResourceStatus.ACTIVE);
         resource.setCapacity(50);
         resource.setDeleted(false);
 
         requestDTO = new ResourceRequestDTO();
         requestDTO.setName("New Lab");
-        requestDTO.setType(ResourceType.LAB);
-        requestDTO.setStatus(ResourceStatus.AVAILABLE);
+        requestDTO.setType(ResourceType.LAB.name());
+        requestDTO.setStatus(ResourceStatus.ACTIVE.name());
         requestDTO.setCapacity(30);
+
+        when(equipmentRepository.findByRoomId(any())).thenReturn(List.of());
     }
 
     @Test
@@ -57,7 +64,7 @@ class ResourceServiceTest {
 
         assertNotNull(response);
         assertEquals("Test Hall", response.getName());
-        assertEquals(ResourceType.LECTURE_HALL, response.getType());
+        assertEquals(ResourceType.LECTURE_HALL.name(), response.getType());
         verify(resourceRepository, times(1)).findById(1L);
     }
 
@@ -109,7 +116,7 @@ class ResourceServiceTest {
 
         assertNotNull(response);
         assertEquals("New Lab", response.getName()); // It should have updated the entity
-        assertEquals(ResourceType.LAB, response.getType());
+        assertEquals(ResourceType.LAB.name(), response.getType());
         verify(resourceRepository, times(1)).save(resource);
     }
 

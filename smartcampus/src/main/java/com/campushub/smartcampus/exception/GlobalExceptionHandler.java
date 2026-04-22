@@ -64,16 +64,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
-<<<<<<< HEAD
     @ExceptionHandler(java.nio.file.AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDenied(java.nio.file.AccessDeniedException ex) {
+        log.warn("AccessDeniedException: {}", ex.getMessage());
         Map<String, Object> error = new HashMap<>();
         error.put("timestamp", LocalDateTime.now());
         error.put("status", HttpStatus.FORBIDDEN.value());
         error.put("error", "Forbidden");
         error.put("message", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-=======
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
         log.error("Unhandled Exception: {} - {}", ex.getClass().getName(), ex.getMessage(), ex);
@@ -83,6 +84,5 @@ public class GlobalExceptionHandler {
         error.put("error", "Internal Server Error");
         error.put("message", ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
->>>>>>> 32e6f4f0ad1181346ff89798c7adcc7f44ed9511
     }
 }

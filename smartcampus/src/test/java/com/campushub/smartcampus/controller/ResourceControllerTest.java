@@ -48,8 +48,8 @@ class ResourceControllerTest {
         responseDTO = new ResourceResponseDTO();
         responseDTO.setId(1L);
         responseDTO.setName("Main Hall");
-        responseDTO.setType(ResourceType.LECTURE_HALL);
-        responseDTO.setStatus(ResourceStatus.AVAILABLE);
+        responseDTO.setType(ResourceType.LECTURE_HALL.name());
+        responseDTO.setStatus(ResourceStatus.ACTIVE.name());
     }
 
     @Test

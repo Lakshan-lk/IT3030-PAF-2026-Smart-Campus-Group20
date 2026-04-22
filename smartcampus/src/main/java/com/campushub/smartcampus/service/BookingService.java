@@ -103,10 +103,6 @@ public class BookingService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
         log.info("User found: id={}, name={}", user.getId(), user.getName());
 
-        if (dto.getRecurring() != null && dto.getRecurring() && dto.getRecurrenceEndDate() != null) {
-            return createRecurringBooking(dto, resource, user);
-        }
-
         if (!dto.getEndTime().isAfter(dto.getStartTime())) {
             throw new IllegalArgumentException("End time must be after start time");
         }

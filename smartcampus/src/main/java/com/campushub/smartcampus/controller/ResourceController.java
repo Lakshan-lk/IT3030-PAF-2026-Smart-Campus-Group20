@@ -4,6 +4,9 @@ import com.campushub.smartcampus.dto.ResourceRequestDTO;
 import com.campushub.smartcampus.dto.ResourceResponseDTO;
 import com.campushub.smartcampus.service.ResourceService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +26,7 @@ public class ResourceController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ResourceResponseDTO>> getAllResources(
+    public ResponseEntity<Page<ResourceResponseDTO>> getAllResources(
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String status,

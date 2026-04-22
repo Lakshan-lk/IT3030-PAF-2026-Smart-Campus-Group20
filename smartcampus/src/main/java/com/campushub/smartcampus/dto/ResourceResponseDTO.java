@@ -96,11 +96,11 @@ public class ResourceResponseDTO {
     }
 
     public List<EquipmentDTO> getEquipments() {
-        return equipments;
+        return equipment;
     }
 
     public void setEquipments(List<EquipmentDTO> equipments) {
-        this.equipments = equipments;
+        this.equipment = equipments;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -124,7 +124,7 @@ public class ResourceResponseDTO {
         dto.setId(resource.getId());
         dto.setName(resource.getName());
         dto.setDescription(resource.getDescription());
-        dto.setType(resource.getType());
+        dto.setType(resource.getType() != null ? resource.getType().name() : null);
         dto.setLocation(resource.getLocation());
         dto.setStatus(resource.getStatus() != null ? resource.getStatus().name() : ResourceStatus.ACTIVE.name());
         dto.setCapacity(resource.getCapacity());
@@ -139,5 +139,9 @@ public class ResourceResponseDTO {
         }
 
         return dto;
+    }
+
+    public static ResourceResponseDTO fromEntity(Resource resource) {
+        return fromEntity(resource, null);
     }
 }

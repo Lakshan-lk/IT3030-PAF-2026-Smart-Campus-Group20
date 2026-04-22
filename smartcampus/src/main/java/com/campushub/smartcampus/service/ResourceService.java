@@ -42,25 +42,25 @@ public class ResourceService {
         if (startTime != null && endTime != null) {
             resources = resourceRepository.findAvailableResources(startTime, endTime, pageable);
         } else if (search != null && !search.isBlank()) {
-            resources = resourceRepository.findByNameContainingIgnoreCaseAndIsDeletedFalse(search, pageable);
+            resources = resourceRepository.findByNameContainingIgnoreCaseAndDeletedFalse(search, pageable);
         } else if (type != null && !type.isBlank()) {
             try {
                 ResourceType rt = ResourceType.valueOf(type.toUpperCase());
-                resources = resourceRepository.findByTypeAndIsDeletedFalse(rt, pageable);
+                resources = resourceRepository.findByTypeAndDeletedFalse(rt, pageable);
             } catch (IllegalArgumentException e) {
                 return Page.empty(pageable);
             }
         } else if (location != null && !location.isBlank()) {
-            resources = resourceRepository.findByLocationContainingIgnoreCaseAndIsDeletedFalse(location, pageable);
+            resources = resourceRepository.findByLocationContainingIgnoreCaseAndDeletedFalse(location, pageable);
         } else if (status != null && !status.isBlank()) {
             try {
                 ResourceStatus rs = ResourceStatus.valueOf(status.toUpperCase());
-                resources = resourceRepository.findByStatusAndIsDeletedFalse(rs, pageable);
+                resources = resourceRepository.findByStatusAndDeletedFalse(rs, pageable);
             } catch (IllegalArgumentException e) {
                 return Page.empty(pageable);
             }
         } else {
-            resources = resourceRepository.findByIsDeletedFalse(pageable);
+            resources = resourceRepository.findByDeletedFalse(pageable);
         }
 
         if ((equipmentTypes != null && !equipmentTypes.isEmpty()) || minCapacity != null) {
@@ -131,7 +131,7 @@ public class ResourceService {
         Resource resource = new Resource();
         resource.setName(dto.getName());
         resource.setDescription(dto.getDescription());
-        resource.setType(dto.getType());
+        resource.setType(ResourceType.valueOf(dto.getType().toUpperCase()));
         resource.setLocation(dto.getLocation());
         resource.setCapacity(dto.getCapacity());
         resource.setImageUrl(dto.getImageUrl());
@@ -152,7 +152,7 @@ public class ResourceService {
 
         resource.setName(dto.getName());
         resource.setDescription(dto.getDescription());
-        resource.setType(dto.getType());
+        resource.setType(ResourceType.valueOf(dto.getType().toUpperCase()));
         resource.setLocation(dto.getLocation());
         resource.setCapacity(dto.getCapacity());
         resource.setImageUrl(dto.getImageUrl());
