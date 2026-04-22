@@ -13,6 +13,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 	boolean existsByPhone(String phone);
 
+	Optional<User> findByEmailIgnoreCase(String email);
+
+	Optional<User> findByProviderAndProviderId(String provider, String providerId);
+
 	Optional<User> findTopByUniversityIdStartingWithOrderByUniversityIdDesc(String prefix);
 
 	List<User> findAllByOrderByCreatedAtDesc();

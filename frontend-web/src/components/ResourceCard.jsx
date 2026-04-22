@@ -23,8 +23,8 @@ const ResourceCard = ({ resource, onBook }) => (
         {resource.type?.replace(/_/g, ' ').toLowerCase()}
       </div>
       <div className={`absolute top-3 right-3 text-xs font-bold px-2 py-1 rounded-md backdrop-blur-sm
-        ${resource.status === 'AVAILABLE' ? 'bg-emerald-100/90 text-emerald-700' : 'bg-amber-100/90 text-amber-700'}`}>
-        {resource.status}
+        ${resource.status === 'ACTIVE' ? 'bg-emerald-100/90 text-emerald-700' : 'bg-slate-200/90 text-slate-700'}`}>
+        {resource.status === 'ACTIVE' ? 'Active' : 'Out of Service'}
       </div>
     </div>
 

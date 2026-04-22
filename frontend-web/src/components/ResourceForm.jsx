@@ -15,7 +15,7 @@ const ResourceForm = ({ resource, onClose }) => {
     type: 'LECTURE_HALL',
     location: '',
     capacity: 10,
-    status: 'AVAILABLE',
+    status: 'ACTIVE',
   });
 
   useEffect(() => {
@@ -26,7 +26,7 @@ const ResourceForm = ({ resource, onClose }) => {
         type: resource.type || 'LECTURE_HALL',
         location: resource.location || '',
         capacity: resource.capacity || 10,
-        status: resource.status || 'AVAILABLE',
+        status: resource.status || 'ACTIVE',
       });
     }
   }, [resource]);
@@ -135,9 +135,7 @@ const ResourceForm = ({ resource, onClose }) => {
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all"
               >
-                <option value="AVAILABLE">Available</option>
-                <option value="MAINTENANCE">Maintenance</option>
-                <option value="UNAVAILABLE">Unavailable</option>
+                <option value="ACTIVE">Active</option>
                 <option value="OUT_OF_SERVICE">Out of Service</option>
               </select>
             </div>

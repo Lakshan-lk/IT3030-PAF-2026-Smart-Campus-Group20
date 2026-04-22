@@ -46,7 +46,7 @@ public class Booking {
     private String rejectionReason;
 
     @Column(name = "is_recurring")
-    private boolean isRecurring = false;
+    private Boolean isRecurring = false;
 
     @Size(max = 36)
     @Column(name = "recurrence_group_id")
@@ -148,10 +148,10 @@ public class Booking {
     }
 
     public boolean isRecurring() {
-        return isRecurring;
+        return Boolean.TRUE.equals(isRecurring);
     }
 
-    public void setRecurring(boolean recurring) {
+    public void setRecurring(Boolean recurring) {
         isRecurring = recurring;
     }
 

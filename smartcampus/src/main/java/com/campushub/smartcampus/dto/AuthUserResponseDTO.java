@@ -1,59 +1,30 @@
-package com.campushub.smartcampus.entity;
+package com.campushub.smartcampus.dto;
 
+import com.campushub.smartcampus.entity.User;
 import com.campushub.smartcampus.enums.UserType;
-import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
+import java.util.Locale;
 
-@Entity
-@Table(name = "users")
-public class User {
+public class AuthUserResponseDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "users_generator")
-    @SequenceGenerator(name = "users_generator", sequenceName = "users_seq", allocationSize = 1)
     private Long id;
-
-    @Column(unique = true)
-    private String universityId;
-
+    private String username;
     private String name;
-
-    @Column(unique = true)
     private String email;
-
-    private String role = "USER";
-
-    private String provider = "LOCAL";
-
-    @Column(unique = true)
+    private String role;
+    private String provider;
     private String providerId;
-
     private String profileImageUrl;
-
-    private Integer age;
-
-    private String address;
-
-    @Column(unique = true)
-    private String phone;
-
-    @Enumerated(EnumType.STRING)
+    private String universityId;
     private UserType userType;
-
     private Integer registrationYear;
-
     private String course;
-
     private Integer yearOfStudy;
-
     private String department;
-
     private String designation;
-
-    @Column(updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    public User() {}
+    private LocalDateTime createdAt;
+    private boolean newUser;
 
     public Long getId() {
         return id;
@@ -63,12 +34,12 @@ public class User {
         this.id = id;
     }
 
-    public String getUniversityId() {
-        return universityId;
+    public String getUsername() {
+        return username;
     }
 
-    public void setUniversityId(String universityId) {
-        this.universityId = universityId;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getName() {
@@ -119,28 +90,12 @@ public class User {
         this.profileImageUrl = profileImageUrl;
     }
 
-    public Integer getAge() {
-        return age;
+    public String getUniversityId() {
+        return universityId;
     }
 
-    public void setAge(Integer age) {
-        this.age = age;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
+    public void setUniversityId(String universityId) {
+        this.universityId = universityId;
     }
 
     public UserType getUserType() {
@@ -197,5 +152,37 @@ public class User {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isNewUser() {
+        return newUser;
+    }
+
+    public void setNewUser(boolean newUser) {
+        this.newUser = newUser;
+    }
+
+    public static AuthUserResponseDTO fromEntity(User user, boolean newUser) {
+        AuthUserResponseDTO dto = new AuthUserResponseDTO();
+        dto.setId(user.getId());
+        dto.setUsername(user.getName() != null && !user.getName().isBlank()
+                ? user.getName()
+                : user.getEmail());
+        dto.setName(user.getName());
+        dto.setEmail(user.getEmail());
+        dto.setRole(user.getRole() != null ? user.getRole().toLowerCase(Locale.ROOT) : "user");
+        dto.setProvider(user.getProvider());
+        dto.setProviderId(user.getProviderId());
+        dto.setProfileImageUrl(user.getProfileImageUrl());
+        dto.setUniversityId(user.getUniversityId());
+        dto.setUserType(user.getUserType());
+        dto.setRegistrationYear(user.getRegistrationYear());
+        dto.setCourse(user.getCourse());
+        dto.setYearOfStudy(user.getYearOfStudy());
+        dto.setDepartment(user.getDepartment());
+        dto.setDesignation(user.getDesignation());
+        dto.setCreatedAt(user.getCreatedAt());
+        dto.setNewUser(newUser);
+        return dto;
     }
 }

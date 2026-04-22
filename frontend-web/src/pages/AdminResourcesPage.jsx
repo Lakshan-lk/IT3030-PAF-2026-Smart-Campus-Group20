@@ -7,28 +7,24 @@ import ResourceForm from '../components/ResourceForm';
 const AdminResourcesPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
+  const [activeTab, setActiveTab] = useState('all');
   const size = 10;
   
   const { data, isLoading } = useResources({ 
-    keyword: searchQuery || undefined,
+    search: searchQuery || undefined,
+    status: activeTab === 'all' ? undefined : activeTab.toUpperCase(),
     page,
     size 
   });
   
   const deleteResource = useDeleteResource();
-  
-  const resources = data?.content || [];
-  const totalElements = data?.totalElements || 0;
-  const totalPages = data?.totalPages || 0;
 
-  const [activeTab, setActiveTab] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
 
-  const filteredResources = resources.filter(r => {
-    if (activeTab === 'all') return true;
-    return r.status === activeTab.toUpperCase();
-  });
+  const resources = data?.content || [];
+  const totalElements = data?.totalElements || 0;
+  const totalPages = data?.totalPages || 0;
 
   const stats = {
     total: totalElements,
@@ -36,9 +32,7 @@ const AdminResourcesPage = () => {
 
   const tabs = [
     { key: 'all', label: 'All' },
-    { key: 'available', label: 'Available' },
-    { key: 'maintenance', label: 'Maintenance' },
-    { key: 'unavailable', label: 'Unavailable' },
+    { key: 'active', label: 'Active' },
     { key: 'out_of_service', label: 'Out of Service' },
   ];
 
@@ -53,7 +47,7 @@ const AdminResourcesPage = () => {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this resource? It will be soft-deleted.')) {
+    if (window.confirm('Are you sure you want to delete this resource? This action will remove it from the list.')) {
       deleteResource.mutate(id);
     }
   };
@@ -64,9 +58,7 @@ const AdminResourcesPage = () => {
   };
 
   const statusColors = {
-    AVAILABLE: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800/40', dot: 'bg-emerald-400' },
-    MAINTENANCE: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800/40', dot: 'bg-amber-400' },
-    UNAVAILABLE: { bg: 'bg-rose-50 dark:bg-rose-900/20', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800/40', dot: 'bg-rose-400' },
+    ACTIVE: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800/40', dot: 'bg-emerald-400' },
     OUT_OF_SERVICE: { bg: 'bg-slate-50 dark:bg-slate-800/50', text: 'text-slate-500 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-600/50', dot: 'bg-slate-400' },
   };
 
@@ -105,7 +97,10 @@ const AdminResourcesPage = () => {
               {tabs.map(tab => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => {
+                    setActiveTab(tab.key);
+                    setPage(0);
+                  }}
                   className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
                     activeTab === tab.key
                       ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 shadow-md'
@@ -140,14 +135,14 @@ const AdminResourcesPage = () => {
                 <div key={i} className="h-16 bg-slate-100 dark:bg-slate-700/50 rounded-xl animate-pulse" />
               ))}
             </div>
-          ) : filteredResources.length === 0 ? (
+          ) : resources.length === 0 ? (
             <div className="p-12 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center">
                 <MdApartment className="text-3xl text-slate-400" />
               </div>
               <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-1">No resources found</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {searchQuery ? 'Try adjusting your search query' : `No ${activeTab} resources to display`}
+                {searchQuery ? 'Try adjusting your search query' : 'No resources to display'}
               </p>
             </div>
           ) : (
@@ -164,8 +159,8 @@ const AdminResourcesPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredResources.map((resource) => {
-                    const colors = statusColors[resource.status] || statusColors.AVAILABLE;
+                  {resources.map((resource) => {
+                    const colors = statusColors[resource.status] || statusColors.ACTIVE;
 
                     return (
                       <motion.tr
@@ -189,7 +184,7 @@ const AdminResourcesPage = () => {
                         <td className="p-4">
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${colors.bg} ${colors.text} border ${colors.border} rounded-full text-xs font-bold`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
-                            {resource.status}
+                            {resource.status === 'ACTIVE' ? 'Active' : 'Out of Service'}
                           </span>
                         </td>
                         <td className="p-4">

@@ -10,9 +10,6 @@ import TicketsPage from './pages/TicketsPage';
 import AdminOverviewPage from './pages/AdminOverviewPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
 import AdminResourcesPage from './pages/AdminResourcesPage';
-import AdminCreateUserPage from './pages/AdminCreateUserPage';
-import AdminStudentsPage from './pages/AdminStudentsPage';
-import AdminStaffPage from './pages/AdminStaffPage';
 import { useAuth } from './context/AuthContext';
 
 const RequireAuth = ({ allowedRoles }) => {
@@ -61,10 +58,6 @@ function App() {
             <Route path="/admin/overview" element={<AdminOverviewPage />} />
             <Route path="/admin/bookings" element={<AdminBookingsPage />} />
             <Route path="/admin/resources" element={<AdminResourcesPage />} />
-            <Route path="/admin/users/create" element={<AdminCreateUserPage />} />
-            <Route path="/admin/users/students" element={<AdminStudentsPage />} />
-            <Route path="/admin/users/staff" element={<AdminStaffPage />} />
-            <Route path="/admin/users" element={<Navigate to="/admin/users/create" replace />} />
             <Route path="/admin" element={<AdminOverviewPage />} />
           </Route>
         </Route>

@@ -10,9 +10,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface ResourceRepository extends JpaRepository<Resource, Long> {
+
+    List<Resource> findAllByDeletedFalse();
 
     Page<Resource> findByDeletedFalse(Pageable pageable);
 

@@ -3,11 +3,14 @@ package com.campushub.smartcampus.service;
 import com.campushub.smartcampus.dto.ResourceRequestDTO;
 import com.campushub.smartcampus.dto.ResourceResponseDTO;
 import com.campushub.smartcampus.entity.Equipment;
+import com.campushub.smartcampus.entity.Booking;
 import com.campushub.smartcampus.entity.Resource;
 import com.campushub.smartcampus.enums.EquipmentType;
+import com.campushub.smartcampus.enums.BookingStatus;
 import com.campushub.smartcampus.enums.ResourceStatus;
 import com.campushub.smartcampus.enums.ResourceType;
 import com.campushub.smartcampus.repository.EquipmentRepository;
+import com.campushub.smartcampus.repository.BookingRepository;
 import com.campushub.smartcampus.repository.ResourceRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
@@ -17,7 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -27,96 +33,45 @@ public class ResourceService {
 
     private final ResourceRepository resourceRepository;
     private final EquipmentRepository equipmentRepository;
+    private final BookingRepository bookingRepository;
 
-    public ResourceService(ResourceRepository resourceRepository, EquipmentRepository equipmentRepository) {
+    public ResourceService(ResourceRepository resourceRepository, EquipmentRepository equipmentRepository,
+                           BookingRepository bookingRepository) {
         this.resourceRepository = resourceRepository;
         this.equipmentRepository = equipmentRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     @Transactional(readOnly = true)
     public Page<ResourceResponseDTO> getResources(String type, String location, String status, String search,
                                           List<String> equipmentTypes, Integer minCapacity, Pageable pageable,
                                           LocalDateTime startTime, LocalDateTime endTime) {
-        Page<Resource> resources;
+        String normalizedSearch = search != null ? search.trim().toLowerCase() : null;
+        String normalizedLocation = location != null ? location.trim().toLowerCase() : null;
+        Set<EquipmentType> requestedEquipmentTypes = parseEquipmentTypes(equipmentTypes);
+        ResourceType requestedType = parseResourceType(type);
+        ResourceStatus requestedStatus = parseResourceStatus(status);
+        Map<Long, List<Equipment>> equipmentByResourceId = equipmentRepository.findAll().stream()
+                .filter(eq -> eq.getRoom() != null && eq.getRoom().getId() != null)
+                .collect(Collectors.groupingBy(eq -> eq.getRoom().getId()));
 
-        if (startTime != null && endTime != null) {
-            resources = resourceRepository.findAvailableResources(startTime, endTime, pageable);
-        } else if (search != null && !search.isBlank()) {
-            resources = resourceRepository.findByNameContainingIgnoreCaseAndDeletedFalse(search, pageable);
-        } else if (type != null && !type.isBlank()) {
-            try {
-                ResourceType rt = ResourceType.valueOf(type.toUpperCase());
-                resources = resourceRepository.findByTypeAndDeletedFalse(rt, pageable);
-            } catch (IllegalArgumentException e) {
-                return Page.empty(pageable);
-            }
-        } else if (location != null && !location.isBlank()) {
-            resources = resourceRepository.findByLocationContainingIgnoreCaseAndDeletedFalse(location, pageable);
-        } else if (status != null && !status.isBlank()) {
-            try {
-                ResourceStatus rs = ResourceStatus.valueOf(status.toUpperCase());
-                resources = resourceRepository.findByStatusAndDeletedFalse(rs, pageable);
-            } catch (IllegalArgumentException e) {
-                return Page.empty(pageable);
-            }
-        } else {
-            resources = resourceRepository.findByDeletedFalse(pageable);
-        }
+        List<ResourceResponseDTO> filtered = resourceRepository.findAllByDeletedFalse().stream()
+                .filter(resource -> matchesSearch(resource, normalizedSearch))
+                .filter(resource -> matchesType(resource, requestedType))
+                .filter(resource -> matchesLocation(resource, normalizedLocation))
+                .filter(resource -> matchesStatus(resource, requestedStatus))
+                .filter(resource -> matchesAvailability(resource, startTime, endTime))
+                .filter(resource -> matchesEquipment(resource, requestedEquipmentTypes, equipmentByResourceId))
+                .filter(resource -> matchesCapacity(resource, minCapacity))
+                .sorted(Comparator.comparing(Resource::getId, Comparator.nullsLast(Long::compareTo)))
+                .map(resource -> ResourceResponseDTO.fromEntity(resource, equipmentByResourceId.get(resource.getId())))
+                .toList();
 
-        if ((equipmentTypes != null && !equipmentTypes.isEmpty()) || minCapacity != null) {
-            Set<Long> finalRoomsWithEquipment;
-            Set<Long> roomsWithEquipment = null;
-            if (equipmentTypes != null && !equipmentTypes.isEmpty()) {
-                List<EquipmentType> eqTypes = equipmentTypes.stream()
-                        .map(et -> {
-                            try {
-                                return EquipmentType.valueOf(et.toUpperCase());
-                            } catch (IllegalArgumentException e) {
-                                return null;
-                            }
-                        })
-                        .filter(et -> et != null)
-                        .collect(Collectors.toList());
+        int start = (int) Math.min(pageable.getOffset(), filtered.size());
+        int end = Math.min(start + pageable.getPageSize(), filtered.size());
+        List<ResourceResponseDTO> pageContent = start < end ? filtered.subList(start, end) : List.of();
 
-                if (!eqTypes.isEmpty()) {
-                    List<Equipment> equipmentList = equipmentRepository.findAll();
-                    roomsWithEquipment = equipmentList.stream()
-                            .filter(eq -> eqTypes.contains(eq.getType()))
-                            .map(eq -> eq.getRoom().getId())
-                            .collect(Collectors.toSet());
-                }
-            }
-            finalRoomsWithEquipment = roomsWithEquipment;
-
-            List<Resource> filtered = resources.getContent().stream()
-                    .filter(r -> {
-                        boolean matchesEquipment = true;
-                        boolean matchesCapacity = true;
-
-                        if (finalRoomsWithEquipment != null) {
-                            matchesEquipment = finalRoomsWithEquipment.contains(r.getId());
-                        }
-
-                        if (minCapacity != null) {
-                            matchesCapacity = r.getCapacity() != null && r.getCapacity() >= minCapacity;
-                        }
-
-                        return matchesEquipment && matchesCapacity;
-                    })
-                    .toList();
-
-            List<ResourceResponseDTO> filteredDto = filtered.stream()
-                    .map(ResourceResponseDTO::fromEntity)
-                    .toList();
-
-            int start = (int) pageable.getOffset();
-            int end = Math.min(start + pageable.getPageSize(), filteredDto.size());
-            List<ResourceResponseDTO> pageContent = start < filteredDto.size() ? filteredDto.subList(start, end) : List.of();
-
-            return new PageImpl<>(pageContent, pageable, filteredDto.size());
-        }
-
-        return resources.map(ResourceResponseDTO::fromEntity);
+        return new PageImpl<>(pageContent, pageable, filtered.size());
     }
 
     @Transactional(readOnly = true)
@@ -137,7 +92,7 @@ public class ResourceService {
         resource.setImageUrl(dto.getImageUrl());
 
         if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
-            resource.setStatus(ResourceStatus.valueOf(dto.getStatus()));
+            resource.setStatus(ResourceStatus.valueOf(dto.getStatus().trim().toUpperCase()));
         } else {
             resource.setStatus(ResourceStatus.ACTIVE);
         }
@@ -158,7 +113,7 @@ public class ResourceService {
         resource.setImageUrl(dto.getImageUrl());
 
         if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
-            resource.setStatus(ResourceStatus.valueOf(dto.getStatus()));
+            resource.setStatus(ResourceStatus.valueOf(dto.getStatus().trim().toUpperCase()));
         }
 
         Resource saved = resourceRepository.save(resource);
@@ -171,5 +126,108 @@ public class ResourceService {
             throw new EntityNotFoundException("Resource not found with id: " + id);
         }
         resourceRepository.deleteById(id);
+    }
+
+    private boolean matchesSearch(Resource resource, String search) {
+        if (search == null || search.isBlank()) {
+            return true;
+        }
+        return contains(resource.getName(), search)
+                || contains(resource.getDescription(), search)
+                || contains(resource.getLocation(), search)
+                || contains(resource.getType() != null ? resource.getType().name() : null, search)
+                || contains(resource.getStatus() != null ? resource.getStatus().name() : null, search);
+    }
+
+    private boolean matchesType(Resource resource, ResourceType type) {
+        return type == null || resource.getType() == type;
+    }
+
+    private boolean matchesLocation(Resource resource, String location) {
+        return location == null || location.isBlank() || contains(resource.getLocation(), location);
+    }
+
+    private boolean matchesStatus(Resource resource, ResourceStatus status) {
+        return status == null || resource.getStatus() == status;
+    }
+
+    private boolean matchesCapacity(Resource resource, Integer minCapacity) {
+        return minCapacity == null || (resource.getCapacity() != null && resource.getCapacity() >= minCapacity);
+    }
+
+    private boolean matchesEquipment(Resource resource, Set<EquipmentType> requestedEquipmentTypes,
+                                     Map<Long, List<Equipment>> equipmentByResourceId) {
+        if (requestedEquipmentTypes == null || requestedEquipmentTypes.isEmpty()) {
+            return true;
+        }
+
+        List<Equipment> equipment = equipmentByResourceId.get(resource.getId());
+        if (equipment == null || equipment.isEmpty()) {
+            return false;
+        }
+
+        return equipment.stream().map(Equipment::getType).anyMatch(requestedEquipmentTypes::contains);
+    }
+
+    private boolean matchesAvailability(Resource resource, LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null) {
+            return true;
+        }
+
+        if (resource.getStatus() != ResourceStatus.ACTIVE) {
+            return false;
+        }
+
+        List<Booking> overlappingBookings = bookingRepository.findByResourceIdAndStartTimeBeforeAndEndTimeAfter(
+                resource.getId(), endTime, startTime);
+
+        return overlappingBookings.stream()
+                .noneMatch(booking -> booking.getStatus() == BookingStatus.PENDING
+                        || booking.getStatus() == BookingStatus.APPROVED);
+    }
+
+    private boolean contains(String value, String search) {
+        return value != null && value.toLowerCase().contains(search);
+    }
+
+    private ResourceType parseResourceType(String type) {
+        if (type == null || type.isBlank()) {
+            return null;
+        }
+        try {
+            return ResourceType.valueOf(type.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private ResourceStatus parseResourceStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        try {
+            return ResourceStatus.valueOf(status.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private Set<EquipmentType> parseEquipmentTypes(List<String> equipmentTypes) {
+        if (equipmentTypes == null || equipmentTypes.isEmpty()) {
+            return Set.of();
+        }
+
+        Set<EquipmentType> parsed = new HashSet<>();
+        for (String equipmentType : equipmentTypes) {
+            if (equipmentType == null || equipmentType.isBlank()) {
+                continue;
+            }
+            try {
+                parsed.add(EquipmentType.valueOf(equipmentType.trim().toUpperCase()));
+            } catch (IllegalArgumentException ignored) {
+                // Ignore unsupported equipment types from the client.
+            }
+        }
+        return parsed;
     }
 }

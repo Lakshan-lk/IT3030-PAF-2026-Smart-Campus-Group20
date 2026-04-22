@@ -82,7 +82,7 @@ public class BookingService {
 
     @Transactional(readOnly = true)
     public long countByStatus(BookingStatus status) {
-        return bookingRepository.findByStatus(status).size();
+        return bookingRepository.countByStatus(status);
     }
 
     @Transactional(readOnly = true)
