@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MdDashboard, MdEventSeat, MdEvent, MdBuild, MdAdminPanelSettings } from 'react-icons/md';
+import { MdDashboard, MdEventSeat, MdEvent, MdBuild } from 'react-icons/md';
 
 const Sidebar = () => {
   const links = [
@@ -9,7 +9,6 @@ const Sidebar = () => {
     { name: 'Facilities & Assets', path: '/facilities', icon: <MdEventSeat /> },
     { name: 'My Bookings', path: '/bookings', icon: <MdEvent /> },
     { name: 'Maintenance Tickets', path: '/tickets', icon: <MdBuild /> },
-    { name: 'Admin', path: '/admin/overview', icon: <MdAdminPanelSettings /> },
   ];
 
   return (

@@ -1,13 +1,16 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MdDashboard, MdEvent, MdApartment, MdAdminPanelSettings } from 'react-icons/md';
+import { MdDashboard, MdEvent, MdApartment, MdAdminPanelSettings, MdPersonAdd, MdSchool, MdWork } from 'react-icons/md';
 
 const AdminSidebar = () => {
   const links = [
     { name: 'Overview', path: '/admin/overview', icon: <MdDashboard /> },
     { name: 'Resources', path: '/admin/resources', icon: <MdApartment /> },
     { name: 'Bookings', path: '/admin/bookings', icon: <MdEvent /> },
+    { name: 'Create User', path: '/admin/users/create', icon: <MdPersonAdd /> },
+    { name: 'Students', path: '/admin/users/students', icon: <MdSchool /> },
+    { name: 'Staff', path: '/admin/users/staff', icon: <MdWork /> },
   ];
 
   return (

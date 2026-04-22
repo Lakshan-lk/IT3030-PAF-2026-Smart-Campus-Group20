@@ -20,6 +20,4 @@ export const bookingApi = {
   delete: (id) => api.delete(`/api/v1/bookings/${id}`),
 
   getActiveCount: () => api.get('/api/v1/bookings/stats/active'),
-
-  cancelSeries: (groupId) => api.post(`/api/v1/bookings/series/${groupId}/cancel`),
 };

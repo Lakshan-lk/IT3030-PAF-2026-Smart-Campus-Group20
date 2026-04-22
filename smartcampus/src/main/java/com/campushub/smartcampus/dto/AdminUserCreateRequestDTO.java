@@ -1,74 +1,54 @@
-package com.campushub.smartcampus.entity;
+package com.campushub.smartcampus.dto;
 
 import com.campushub.smartcampus.enums.UserType;
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
-@Entity
-@Table(name = "users")
-public class User {
+public class AdminUserCreateRequestDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "users_generator")
-    @SequenceGenerator(name = "users_generator", sequenceName = "users_seq", allocationSize = 1)
-    private Long id;
-
-    @Column(unique = true)
-    private String universityId;
-
+    @NotBlank(message = "Name is required")
+    @Size(max = 120)
     private String name;
 
-    @Column(unique = true)
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email must be valid")
+    @Size(max = 150)
     private String email;
 
-    private String role = "USER";
-
-    private String provider = "LOCAL";
-
-    private String providerId;
-
-    private String profileImageUrl;
-
+    @NotNull(message = "Age is required")
+    @Min(value = 16, message = "Age must be at least 16")
+    @Max(value = 100, message = "Age must be less than or equal to 100")
     private Integer age;
 
+    @NotBlank(message = "Address is required")
+    @Size(max = 255)
     private String address;
 
-    @Column(unique = true)
+    @NotBlank(message = "Phone is required")
+    @Size(max = 30)
     private String phone;
 
-    @Enumerated(EnumType.STRING)
+    @NotNull(message = "User type is required")
     private UserType userType;
 
     private Integer registrationYear;
 
+    @Size(max = 120)
     private String course;
 
+    @Min(value = 1, message = "Year of study must be at least 1")
+    @Max(value = 10, message = "Year of study must be less than or equal to 10")
     private Integer yearOfStudy;
 
+    @Size(max = 120)
     private String department;
 
+    @Size(max = 120)
     private String designation;
-
-    @Column(updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    public User() {}
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getUniversityId() {
-        return universityId;
-    }
-
-    public void setUniversityId(String universityId) {
-        this.universityId = universityId;
-    }
 
     public String getName() {
         return name;
@@ -84,38 +64,6 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public String getProvider() {
-        return provider;
-    }
-
-    public void setProvider(String provider) {
-        this.provider = provider;
-    }
-
-    public String getProviderId() {
-        return providerId;
-    }
-
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
-
-    public String getProfileImageUrl() {
-        return profileImageUrl;
-    }
-
-    public void setProfileImageUrl(String profileImageUrl) {
-        this.profileImageUrl = profileImageUrl;
     }
 
     public Integer getAge() {
@@ -188,13 +136,5 @@ public class User {
 
     public void setDesignation(String designation) {
         this.designation = designation;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 }

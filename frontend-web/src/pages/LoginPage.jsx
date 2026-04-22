@@ -1,13 +1,31 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FcGoogle } from 'react-icons/fc';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { authUser, login } = useAuth();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-  const handleLogin = () => {
-    navigate('/');
+  useEffect(() => {
+    if (!authUser) return;
+    navigate(authUser.role === 'admin' ? '/admin/overview' : '/', { replace: true });
+  }, [authUser, navigate]);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setError('');
+
+    const result = login(username, password);
+    if (!result.success) {
+      setError(result.message);
+      return;
+    }
+
+    navigate(result.role === 'admin' ? '/admin/overview' : '/', { replace: true });
   };
 
   return (
@@ -26,16 +44,43 @@ const LoginPage = () => {
           <p className="text-slate-500 font-medium">Operations Hub</p>
         </div>
 
-        <button 
-          onClick={handleLogin}
-          className="w-full relative flex items-center justify-center gap-3 bg-white text-slate-700 font-bold py-3.5 px-6 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm transition-all active:scale-[0.98]"
-        >
-          <FcGoogle className="text-2xl" />
-          <span>Sign in with Google</span>
-        </button>
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter username"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-indigo-100 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-indigo-100 outline-none"
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            className="w-full bg-indigo-600 text-white font-bold py-3.5 px-6 rounded-xl hover:bg-indigo-700 transition-all active:scale-[0.98]"
+          >
+            Sign In
+          </button>
+        </form>
 
         <p className="text-center text-sm text-slate-400 mt-8 font-medium">
-          By continuing, you agree to our Terms of Service & Privacy Policy.
+          Admin: admin / admin. Users: user / user or test123 / test123.
         </p>
       </motion.div>
     </div>

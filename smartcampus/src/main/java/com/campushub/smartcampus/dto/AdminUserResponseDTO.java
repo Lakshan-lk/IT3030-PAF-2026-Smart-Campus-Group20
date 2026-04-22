@@ -1,58 +1,26 @@
-package com.campushub.smartcampus.entity;
+package com.campushub.smartcampus.dto;
 
+import com.campushub.smartcampus.entity.User;
 import com.campushub.smartcampus.enums.UserType;
-import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "users")
-public class User {
+public class AdminUserResponseDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "users_generator")
-    @SequenceGenerator(name = "users_generator", sequenceName = "users_seq", allocationSize = 1)
     private Long id;
-
-    @Column(unique = true)
     private String universityId;
-
     private String name;
-
-    @Column(unique = true)
     private String email;
-
-    private String role = "USER";
-
-    private String provider = "LOCAL";
-
-    private String providerId;
-
-    private String profileImageUrl;
-
     private Integer age;
-
     private String address;
-
-    @Column(unique = true)
     private String phone;
-
-    @Enumerated(EnumType.STRING)
     private UserType userType;
-
     private Integer registrationYear;
-
     private String course;
-
     private Integer yearOfStudy;
-
     private String department;
-
     private String designation;
-
-    @Column(updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    public User() {}
+    private LocalDateTime createdAt;
 
     public Long getId() {
         return id;
@@ -84,38 +52,6 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public String getProvider() {
-        return provider;
-    }
-
-    public void setProvider(String provider) {
-        this.provider = provider;
-    }
-
-    public String getProviderId() {
-        return providerId;
-    }
-
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
-
-    public String getProfileImageUrl() {
-        return profileImageUrl;
-    }
-
-    public void setProfileImageUrl(String profileImageUrl) {
-        this.profileImageUrl = profileImageUrl;
     }
 
     public Integer getAge() {
@@ -196,5 +132,24 @@ public class User {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public static AdminUserResponseDTO fromEntity(User user) {
+        AdminUserResponseDTO dto = new AdminUserResponseDTO();
+        dto.setId(user.getId());
+        dto.setUniversityId(user.getUniversityId());
+        dto.setName(user.getName());
+        dto.setEmail(user.getEmail());
+        dto.setAge(user.getAge());
+        dto.setAddress(user.getAddress());
+        dto.setPhone(user.getPhone());
+        dto.setUserType(user.getUserType());
+        dto.setRegistrationYear(user.getRegistrationYear());
+        dto.setCourse(user.getCourse());
+        dto.setYearOfStudy(user.getYearOfStudy());
+        dto.setDepartment(user.getDepartment());
+        dto.setDesignation(user.getDesignation());
+        dto.setCreatedAt(user.getCreatedAt());
+        return dto;
     }
 }
