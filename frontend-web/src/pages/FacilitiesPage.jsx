@@ -20,11 +20,40 @@ const FacilitiesPage = () => {
   const [filterEndTime, setFilterEndTime] = useState('');
   const [selectedResource, setSelectedResource] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [imageFlash, setImageFlash] = useState(() => {
+    if (typeof window === 'undefined') return null;
+
+    const raw = window.sessionStorage.getItem('resource-image-flash');
+    if (!raw) return null;
+
+    try {
+      const parsed = JSON.parse(raw);
+      const ttl = 2000;
+      const age = Date.now() - (parsed.timestamp || 0);
+
+      if (age <= ttl) {
+        window.sessionStorage.removeItem('resource-image-flash');
+        return parsed;
+      }
+    } catch {
+      // Ignore malformed flash payloads.
+    }
+
+    window.sessionStorage.removeItem('resource-image-flash');
+    return null;
+  });
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchTerm), 500);
     return () => clearTimeout(t);
   }, [searchTerm]);
+
+  useEffect(() => {
+    if (!imageFlash) return undefined;
+
+    const timer = window.setTimeout(() => setImageFlash(null), 2000);
+    return () => window.clearTimeout(timer);
+  }, [imageFlash]);
 
   const { data: resources, isLoading, isError } = useResources({
     search: debouncedSearch,
@@ -115,6 +144,7 @@ const FacilitiesPage = () => {
               key={resource.id}
               resource={resource}
               onBook={r => setSelectedResource(r)}
+              flashLabel={imageFlash?.resourceId === resource.id ? imageFlash.message : ''}
             />
           ))}
         </div>

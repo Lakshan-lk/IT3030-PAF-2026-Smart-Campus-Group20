@@ -85,6 +85,7 @@ const ResourceForm = ({ resource, onClose, onSaved }) => {
 
     try {
       let imageUrl = resource?.imageUrl || formData.imageUrl || '';
+      let savedResourceId = resource?.id || null;
 
       if (imageFile) {
         const uploadResponse = await resourceApi.uploadImage(imageFile);
@@ -97,16 +98,21 @@ const ResourceForm = ({ resource, onClose, onSaved }) => {
       };
 
       if (isEditing) {
-        await updateResource.mutateAsync({ id: resource.id, data: payload });
+        const updateResponse = await updateResource.mutateAsync({ id: resource.id, data: payload });
+        savedResourceId = updateResponse?.data?.id ?? resource.id;
       } else {
-        await createResource.mutateAsync(payload);
+        const createResponse = await createResource.mutateAsync(payload);
+        savedResourceId = createResponse?.data?.id ?? null;
       }
 
       if (onSaved) {
         const successMessage = imageFile
           ? (isEditing ? 'Image replaced successfully.' : 'Image uploaded successfully.')
           : 'Resource saved successfully.';
-        onSaved(successMessage);
+        onSaved({
+          message: successMessage,
+          resourceId: savedResourceId,
+        });
       }
 
       onClose();

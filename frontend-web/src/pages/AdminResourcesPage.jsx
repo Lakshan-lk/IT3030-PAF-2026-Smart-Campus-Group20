@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MdSearch, MdAdd, MdEdit, MdDelete, MdApartment, MdCheckCircle } from 'react-icons/md';
+import { MdSearch, MdAdd, MdEdit, MdDelete, MdApartment, MdCheckCircle, MdClose } from 'react-icons/md';
 import { useResources, useDeleteResource } from '../hooks/useResources';
 import ResourceForm from '../components/ResourceForm';
+import ResourceCard from '../components/ResourceCard';
 
 const AdminResourcesPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,6 +25,7 @@ const AdminResourcesPage = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
   const [toast, setToast] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const filteredResources = resources.filter(r => {
     if (activeTab === 'all') return true;
@@ -48,10 +50,14 @@ const AdminResourcesPage = () => {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this resource? It will be soft-deleted.')) {
-      deleteResource.mutate(id);
-    }
+  const handleDelete = (resource) => {
+    setDeleteTarget(resource);
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    deleteResource.mutate(deleteTarget.id);
+    setDeleteTarget(null);
   };
 
   const handleCloseForm = () => {
@@ -59,7 +65,21 @@ const AdminResourcesPage = () => {
     setEditingResource(null);
   };
 
-  const handleSaved = (message) => {
+  const handleSaved = (payload) => {
+    const message = typeof payload === 'string' ? payload : payload?.message || 'Resource saved successfully.';
+    const resourceId = typeof payload === 'object' ? payload?.resourceId : null;
+
+    if (resourceId && message.toLowerCase().includes('image')) {
+      window.sessionStorage.setItem(
+        'resource-image-flash',
+        JSON.stringify({
+          resourceId,
+          message,
+          timestamp: Date.now(),
+        }),
+      );
+    }
+
     const id = window.setTimeout(() => {
       setToast(null);
     }, 2800);
@@ -110,16 +130,15 @@ const AdminResourcesPage = () => {
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
             className="fixed bottom-6 right-6 z-[120] max-w-sm w-[calc(100vw-2rem)] sm:w-[22rem]"
           >
-            <div className="relative overflow-hidden rounded-2xl bg-slate-950 text-white shadow-2xl shadow-emerald-950/25 ring-1 ring-white/10">
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/90 via-teal-500/90 to-cyan-500/90" />
-              <div className="absolute inset-0 bg-black/15" />
+            <div className="relative overflow-hidden rounded-2xl bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-slate-100 shadow-2xl shadow-slate-950/20 ring-1 ring-slate-200 dark:ring-white/10 backdrop-blur-md">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-teal-500/10 to-cyan-500/20 dark:from-emerald-500/18 dark:via-teal-500/8 dark:to-cyan-500/18" />
               <div className="relative flex items-start gap-3 px-4 py-3">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0 backdrop-blur-md border border-white/15">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/15 flex items-center justify-center flex-shrink-0 backdrop-blur-md border border-emerald-500/15 dark:border-emerald-400/15 text-emerald-600 dark:text-emerald-300">
                   <MdCheckCircle className="text-xl" />
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-sm leading-5">{toast.message}</p>
-                  <p className="text-xs text-white/80 mt-0.5">Changes are now live in Facilities.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Changes are now live in Facilities.</p>
                 </div>
                 <button
                   type="button"
@@ -127,14 +146,14 @@ const AdminResourcesPage = () => {
                     window.clearTimeout(toast.id);
                     setToast(null);
                   }}
-                  className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center text-sm font-bold"
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors flex items-center justify-center text-sm font-bold text-slate-500 dark:text-slate-300"
                   aria-label="Dismiss notification"
                 >
-                  ×
+                  <MdClose className="text-base" />
                 </button>
               </div>
               <motion.div
-                className="h-1 bg-white/35 origin-left"
+                className="h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 origin-left"
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{ duration: 2.8, ease: 'linear' }}
@@ -197,8 +216,11 @@ const AdminResourcesPage = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto pb-2">
+              <div className="md:hidden mb-2 text-xs text-slate-500 dark:text-slate-400">
+                Swipe horizontally to view all columns
+              </div>
+              <table className="w-full min-w-[920px] text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-100 dark:border-slate-700/40">
                     <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Name & ID</th>
@@ -248,7 +270,7 @@ const AdminResourcesPage = () => {
                               <MdEdit className="text-lg" />
                             </button>
                             <button
-                              onClick={() => handleDelete(resource.id)}
+                              onClick={() => handleDelete(resource)}
                               className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
                               title="Delete"
                             >
@@ -297,6 +319,53 @@ const AdminResourcesPage = () => {
             onClose={handleCloseForm}
             onSaved={handleSaved}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[130] flex items-center justify-center p-4"
+          >
+            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              className="relative w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-6"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-rose-50 dark:bg-rose-900/25 flex items-center justify-center flex-shrink-0 text-rose-600 dark:text-rose-300">
+                  <MdDelete className="text-2xl" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Delete resource?</h3>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                    {deleteTarget?.name} will be soft-deleted. Its uploaded image, if any, will also be removed from storage.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="flex-1 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

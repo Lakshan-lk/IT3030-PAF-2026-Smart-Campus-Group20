@@ -5,7 +5,7 @@ import { EQUIPMENT_CONFIG } from '../constants/facilities';
 import { resolveMediaUrl } from '../utils/media';
 import { getResourceVisual } from '../utils/resourceVisuals';
 
-const ResourceCard = ({ resource, onBook }) => {
+const ResourceCard = ({ resource, onBook, flashLabel }) => {
   const visual = getResourceVisual(resource.type);
   const VisualIcon = visual.icon;
 
@@ -57,6 +57,16 @@ const ResourceCard = ({ resource, onBook }) => {
           ${resource.status === 'AVAILABLE' ? 'bg-emerald-100/90 text-emerald-700' : 'bg-amber-100/90 text-amber-700'}`}>
           {resource.status}
         </div>
+        {flashLabel && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.96 }}
+            className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-slate-950/80 text-white text-[11px] font-semibold backdrop-blur-sm ring-1 ring-white/10"
+          >
+            {flashLabel}
+          </motion.div>
+        )}
       </div>
 
       <div className="p-5 flex-1 flex flex-col">
