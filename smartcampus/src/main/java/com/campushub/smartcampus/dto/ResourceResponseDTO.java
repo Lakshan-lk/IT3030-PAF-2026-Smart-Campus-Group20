@@ -95,6 +95,14 @@ public class ResourceResponseDTO {
         this.equipment = equipment;
     }
 
+    public List<EquipmentDTO> getEquipments() {
+        return equipments;
+    }
+
+    public void setEquipments(List<EquipmentDTO> equipments) {
+        this.equipments = equipments;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }

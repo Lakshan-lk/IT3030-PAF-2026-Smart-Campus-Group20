@@ -98,7 +98,7 @@ INSERT INTO equipment (id, name, type, status, room_id) VALUES (24, 'Wireless Mi
 -- ============================================================
 -- RESET SEQUENCES above seed data max IDs
 -- ============================================================
-SELECT setval('resources_seq', 100, false);
-SELECT setval('users_seq', 100, false);
-SELECT setval('equipment_seq', 100, false);
-SELECT setval('bookings_seq', 100, false);
+SELECT setval('resources_seq', GREATEST((SELECT COALESCE(MAX(id), 0) FROM resources), 100));
+SELECT setval('users_seq',     GREATEST((SELECT COALESCE(MAX(id), 0) FROM users),     100));
+SELECT setval('equipment_seq', GREATEST((SELECT COALESCE(MAX(id), 0) FROM equipment), 100));
+SELECT setval('bookings_seq',  GREATEST((SELECT COALESCE(MAX(id), 0) FROM bookings),  100));

@@ -130,6 +130,14 @@ public class BookingRequestDTO {
         booking.setEndTime(dto.getEndTime());
         booking.setRecurring(dto.isRecurring());
         booking.setStatus(BookingStatus.PENDING);
+        booking.setAttendees(dto.getAttendees());
+        booking.setIsRecurring(dto.getRecurring() != null ? dto.getRecurring() : false);
+        booking.setRecurrencePattern(dto.getRecurrencePattern());
+        booking.setRecurrenceEndDate(dto.getRecurrenceEndDate());
+        if (dto.getRequestedEquipmentIds() != null && !dto.getRequestedEquipmentIds().isEmpty()) {
+            booking.setRequestedEquipmentIds(dto.getRequestedEquipmentIds().stream()
+                    .map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(null));
+        }
         return booking;
     }
 }

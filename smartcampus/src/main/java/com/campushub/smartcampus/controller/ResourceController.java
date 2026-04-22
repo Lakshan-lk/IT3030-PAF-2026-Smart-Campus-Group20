@@ -30,9 +30,24 @@ public class ResourceController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) List<String> equipmentTypes,
             @RequestParam(required = false) Integer minCapacity,
+            @RequestParam(required = false) String date,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime,
             @PageableDefault(size = 20) Pageable pageable) {
         
-        Page<ResourceResponseDTO> page = resourceService.getResources(type, location, status, search, equipmentTypes, minCapacity, pageable);
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+        
+        if (date != null && startTime != null && endTime != null) {
+            try {
+                startDateTime = LocalDateTime.parse(date + "T" + startTime + ":00");
+                endDateTime = LocalDateTime.parse(date + "T" + endTime + ":00");
+            } catch (Exception e) {
+                // Invalid date/time format, ignore
+            }
+        }
+        
+        Page<ResourceResponseDTO> page = resourceService.getResources(type, location, status, search, equipmentTypes, minCapacity, pageable, startDateTime, endDateTime);
         return ResponseEntity.ok(page);
     }
 
