@@ -11,6 +11,8 @@ import com.campushub.smartcampus.repository.BookingRepository;
 import com.campushub.smartcampus.repository.ResourceRepository;
 import com.campushub.smartcampus.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,8 @@ import java.util.UUID;
 @Service
 @Transactional
 public class BookingService {
+
+    private static final Logger log = LoggerFactory.getLogger(BookingService.class);
 
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
@@ -93,9 +97,19 @@ public class BookingService {
 
         Resource resource = resourceRepository.findById(dto.getResourceId())
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + dto.getResourceId()));
+        log.info("Resource found: id={}, name={}", resource.getId(), resource.getName());
 
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
+        log.info("User found: id={}, name={}", user.getId(), user.getName());
+
+        if (dto.getRecurring() != null && dto.getRecurring() && dto.getRecurrenceEndDate() != null) {
+            return createRecurringBooking(dto, resource, user);
+        }
+
+        if (!dto.getEndTime().isAfter(dto.getStartTime())) {
+            throw new IllegalArgumentException("End time must be after start time");
+        }
 
         if (dto.isRecurring()) {
             return createRecurringBookings(dto, resource, user);
@@ -103,7 +117,11 @@ public class BookingService {
 
         checkForConflict(dto.getResourceId(), dto.getStartTime(), dto.getEndTime(), null);
 
+        log.info("No conflicts found, creating booking...");
         Booking booking = BookingRequestDTO.toEntity(dto, resource, user);
+        if (dto.getAttendees() != null) {
+            booking.setAttendees(dto.getAttendees());
+        }
         Booking saved = bookingRepository.save(booking);
         return List.of(BookingResponseDTO.fromEntity(saved));
     }
@@ -272,9 +290,11 @@ public class BookingService {
                 .orElse(null);
 
         if (conflict != null) {
+            log.warn("Conflict found: {}", conflict.getStartTime() + " to " + conflict.getEndTime());
             throw new BookingConflictException(
                     "Resource '" + conflict.getResource().getName() + "' is already booked from "
                     + conflict.getStartTime() + " to " + conflict.getEndTime());
         }
+        log.info("No conflicts found in checkForConflict");
     }
 }

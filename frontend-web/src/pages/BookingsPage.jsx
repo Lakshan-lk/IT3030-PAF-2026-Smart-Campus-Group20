@@ -106,13 +106,13 @@ const BookingsPage = () => {
             <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-50 tracking-tight">My Bookings</h1>
             <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">View and manage your reservations</p>
           </div>
-          <button
-            onClick={() => setShowForm(true)}
+          <Link
+            to="/facilities"
             className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:from-amber-600 hover:to-orange-600 transition-all active:scale-95"
           >
             <MdAdd className="text-xl" />
             <span className="text-sm">New Booking</span>
-          </button>
+          </Link>
         </div>
 
         <div className="flex gap-2 mb-6">
