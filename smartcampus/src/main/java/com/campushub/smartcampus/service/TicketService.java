@@ -134,8 +134,12 @@ public class TicketService {
         if (!"TECHNICIAN".equalsIgnoreCase(assignee.getRole())) {
             throw new IllegalArgumentException("Assignee must have TECHNICIAN role");
         }
+        if (ticket.getStatus() == TicketStatus.CLOSED || ticket.getStatus() == TicketStatus.REJECTED) {
+            throw new IllegalArgumentException("Closed or rejected tickets cannot be assigned");
+        }
 
         ticket.setAssignedTo(assignee);
+        ticket.setStatus(TicketStatus.IN_PROGRESS);
         Ticket saved = ticketRepository.save(ticket);
         return toResponse(saved);
     }
@@ -146,6 +150,8 @@ public class TicketService {
 
         TicketStatus nextStatus = TicketStatus.valueOf(dto.getStatus().toUpperCase(Locale.ROOT));
         validateTransition(ticket.getStatus(), nextStatus);
+        validateStatusPayload(nextStatus, dto);
+        validateAssignmentRequirement(ticket, nextStatus);
 
         ticket.setStatus(nextStatus);
         if (nextStatus == TicketStatus.REJECTED) {
@@ -253,12 +259,12 @@ public class TicketService {
         }
         switch (current) {
             case OPEN -> {
-                if (next != TicketStatus.IN_PROGRESS && next != TicketStatus.RESOLVED && next != TicketStatus.REJECTED && next != TicketStatus.CLOSED) {
+                if (next != TicketStatus.IN_PROGRESS && next != TicketStatus.REJECTED) {
                     throw new IllegalArgumentException("Invalid status transition from OPEN to " + next);
                 }
             }
             case IN_PROGRESS -> {
-                if (next != TicketStatus.RESOLVED && next != TicketStatus.CLOSED && next != TicketStatus.REJECTED) {
+                if (next != TicketStatus.RESOLVED && next != TicketStatus.REJECTED) {
                     throw new IllegalArgumentException("Invalid status transition from IN_PROGRESS to " + next);
                 }
             }
@@ -268,6 +274,23 @@ public class TicketService {
                 }
             }
             case CLOSED, REJECTED -> throw new IllegalArgumentException("Closed or rejected tickets cannot change status");
+        }
+    }
+
+    private void validateStatusPayload(TicketStatus nextStatus, StatusUpdateDTO dto) {
+        if (nextStatus == TicketStatus.REJECTED && (dto.getReason() == null || dto.getReason().isBlank())) {
+            throw new IllegalArgumentException("A rejection reason is required when rejecting a ticket");
+        }
+        if ((nextStatus == TicketStatus.RESOLVED || nextStatus == TicketStatus.CLOSED)
+                && (dto.getResolutionNotes() == null || dto.getResolutionNotes().isBlank())) {
+            throw new IllegalArgumentException("Resolution notes are required before resolving or closing a ticket");
+        }
+    }
+
+    private void validateAssignmentRequirement(Ticket ticket, TicketStatus nextStatus) {
+        if ((nextStatus == TicketStatus.IN_PROGRESS || nextStatus == TicketStatus.RESOLVED || nextStatus == TicketStatus.CLOSED)
+                && ticket.getAssignedTo() == null) {
+            throw new IllegalArgumentException("Assign a technician before moving the ticket to " + nextStatus);
         }
     }
 

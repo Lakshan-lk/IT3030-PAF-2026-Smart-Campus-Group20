@@ -1,15 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MdClose, MdUploadFile, MdPersonAdd, MdTune, MdImage, MdWarning } from 'react-icons/md';
+import { useQuery } from '@tanstack/react-query';
 import { useTicketById, useUploadTicketAttachments, useUpdateTicketStatus, useAssignTicket } from '../hooks/useTickets';
+import { useAuth } from '../context/AuthContext';
+import { userApi } from '../api/userApi';
 import CommentThread from './CommentThread';
-
-const technicianOptions = [
-  { id: 4, name: 'Tech Mike' },
-  { id: 6, name: 'Tom Technician' },
-];
-
-const statusOptions = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED'];
 
 const statusStyles = {
   OPEN: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300',
@@ -43,6 +39,15 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
   const uploadAttachments = useUploadTicketAttachments();
   const updateStatus = useUpdateTicketStatus();
   const assignTicket = useAssignTicket();
+  const { authUser } = useAuth();
+  const canManageTickets = authUser?.role === 'admin' || authUser?.role === 'technician';
+  const canAssignTechnician = authUser?.role === 'admin';
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: () => userApi.getAll().then((res) => res.data),
+    enabled: canAssignTechnician,
+  });
 
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [statusForm, setStatusForm] = useState({ status: 'IN_PROGRESS', reason: '', resolutionNotes: '' });
@@ -50,6 +55,24 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
   const [error, setError] = useState('');
 
   const attachments = useMemo(() => ticket?.attachments ?? [], [ticket]);
+  const technicianOptions = useMemo(
+    () => users.filter((user) => (user.role || '').toUpperCase() === 'TECHNICIAN'),
+    [users]
+  );
+  const availableStatusOptions = useMemo(() => {
+    switch (ticket?.status) {
+      case 'OPEN':
+        return ['IN_PROGRESS', 'REJECTED'];
+      case 'IN_PROGRESS':
+        return ['RESOLVED', 'REJECTED'];
+      case 'RESOLVED':
+        return ['CLOSED'];
+      case 'REJECTED':
+      case 'CLOSED':
+      default:
+        return [];
+    }
+  }, [ticket?.status]);
 
   if (!isOpen) {
     return null;
@@ -248,83 +271,98 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
                   </div>
                 </div>
 
-                <form onSubmit={handleStatusUpdate} className="space-y-4">
-                  <label className="block space-y-2">
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">New status</span>
-                    <select
-                      value={statusForm.status}
-                      onChange={(event) => setStatusForm((current) => ({ ...current, status: event.target.value }))}
-                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
-                    >
-                      {statusOptions.map((status) => (
-                        <option key={status} value={status}>{status.replace('_', ' ')}</option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="block space-y-2">
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Reason / rejection note</span>
-                    <textarea
-                      value={statusForm.reason}
-                      onChange={(event) => setStatusForm((current) => ({ ...current, reason: event.target.value }))}
-                      rows={3}
-                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
-                    />
-                  </label>
-
-                  <label className="block space-y-2">
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Resolution notes</span>
-                    <textarea
-                      value={statusForm.resolutionNotes}
-                      onChange={(event) => setStatusForm((current) => ({ ...current, resolutionNotes: event.target.value }))}
-                      rows={3}
-                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
-                    />
-                  </label>
-
-                  <button
-                    type="submit"
-                    disabled={updateStatus.isPending}
-                    className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Update status
-                  </button>
-                </form>
-              </section>
-
-              <section className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/85 dark:bg-slate-800/60 p-5">
-                <div className="mb-4 flex items-center gap-3">
-                  <MdPersonAdd className="text-2xl text-slate-500 dark:text-slate-400" />
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Assignment</p>
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Assign technician</h3>
+                {isLoading ? (
+                  <div className="space-y-3">
+                    <div className="h-4 w-40 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700/50" />
+                    <div className="h-24 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700/50" />
                   </div>
-                </div>
+                ) : canManageTickets && availableStatusOptions.length > 0 ? (
+                  <form onSubmit={handleStatusUpdate} className="space-y-4">
+                    <label className="block space-y-2">
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">New status</span>
+                      <select
+                        value={statusForm.status}
+                        onChange={(event) => setStatusForm((current) => ({ ...current, status: event.target.value }))}
+                        className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                      >
+                        {availableStatusOptions.map((status) => (
+                          <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                        ))}
+                      </select>
+                    </label>
 
-                <form onSubmit={handleAssign} className="space-y-4">
-                  <label className="block space-y-2">
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Technician</span>
-                    <select
-                      value={assigneeId}
-                      onChange={(event) => setAssigneeId(event.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                    <label className="block space-y-2">
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Reason / rejection note</span>
+                      <textarea
+                        value={statusForm.reason}
+                        onChange={(event) => setStatusForm((current) => ({ ...current, reason: event.target.value }))}
+                        rows={3}
+                        className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                      />
+                    </label>
+
+                    <label className="block space-y-2">
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Resolution notes</span>
+                      <textarea
+                        value={statusForm.resolutionNotes}
+                        onChange={(event) => setStatusForm((current) => ({ ...current, resolutionNotes: event.target.value }))}
+                        rows={3}
+                        className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                      />
+                    </label>
+
+                    <button
+                      type="submit"
+                      disabled={updateStatus.isPending}
+                      className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <option value="">Choose a technician</option>
-                      {technicianOptions.map((option) => (
-                        <option key={option.id} value={option.id}>{option.name}</option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <button
-                    type="submit"
-                    disabled={assignTicket.isPending}
-                    className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Assign ticket
-                  </button>
-                </form>
+                      Update status
+                    </button>
+                  </form>
+                ) : (
+                  <p className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-700/50 px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
+                    {canManageTickets
+                      ? 'This ticket is already closed or rejected, so its status can no longer be changed.'
+                      : 'Status management is available to admins and technicians only.'}
+                  </p>
+                )}
               </section>
+
+              {canAssignTechnician && (
+                <section className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/85 dark:bg-slate-800/60 p-5">
+                  <div className="mb-4 flex items-center gap-3">
+                    <MdPersonAdd className="text-2xl text-slate-500 dark:text-slate-400" />
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Assignment</p>
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Assign technician</h3>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleAssign} className="space-y-4">
+                    <label className="block space-y-2">
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Technician</span>
+                      <select
+                        value={assigneeId}
+                        onChange={(event) => setAssigneeId(event.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                      >
+                        <option value="">Choose a technician</option>
+                        {technicianOptions.map((option) => (
+                          <option key={option.id} value={option.id}>{option.name}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <button
+                      type="submit"
+                      disabled={assignTicket.isPending}
+                      className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Assign ticket
+                    </button>
+                  </form>
+                </section>
+              )}
             </div>
           </div>
         </motion.div>

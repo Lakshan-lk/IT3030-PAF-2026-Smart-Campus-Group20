@@ -2,9 +2,11 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { MdCheck, MdClose, MdEvent, MdPending, MdVerified, MdOutlineCancel, MdArrowUpward, MdArrowDownward } from 'react-icons/md';
 import { useBookings, useApproveBooking, useRejectBooking } from '../hooks/useBookings';
+import { useTickets } from '../hooks/useTickets';
 
 const AdminOverviewPage = () => {
   const { data: bookings = [], isLoading } = useBookings();
+  const { data: tickets = [], isLoading: ticketsLoading } = useTickets();
   const approveBooking = useApproveBooking();
   const rejectBooking = useRejectBooking();
 
@@ -17,6 +19,17 @@ const AdminOverviewPage = () => {
   };
 
   const pendingBookings = bookings.filter(b => b.status === 'PENDING');
+  const ticketStats = {
+    total: tickets.length,
+    open: tickets.filter((ticket) => ticket.status === 'OPEN').length,
+    inProgress: tickets.filter((ticket) => ticket.status === 'IN_PROGRESS').length,
+    resolved: tickets.filter((ticket) => ticket.status === 'RESOLVED').length,
+    closed: tickets.filter((ticket) => ticket.status === 'CLOSED').length,
+    rejected: tickets.filter((ticket) => ticket.status === 'REJECTED').length,
+  };
+  const recentTickets = [...tickets]
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    .slice(0, 5);
 
   const approvalRate = stats.approved + stats.rejected > 0
     ? Math.round((stats.approved / (stats.approved + stats.rejected)) * 100)
@@ -47,6 +60,38 @@ const AdminOverviewPage = () => {
             </div>
             <p className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
               {isLoading ? (
+                <span className="inline-block w-10 h-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+              ) : (
+                stat.value
+              )}
+            </p>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        {[
+          { label: 'Tickets', value: ticketStats.total, icon: <MdEvent />, accent: 'border-l-slate-400', bg: 'bg-slate-50/80 dark:bg-slate-800/40' },
+          { label: 'Open', value: ticketStats.open, icon: <MdPending />, accent: 'border-l-amber-400', bg: 'bg-amber-50/60 dark:bg-amber-900/10' },
+          { label: 'In Progress', value: ticketStats.inProgress, icon: <MdEvent />, accent: 'border-l-sky-400', bg: 'bg-sky-50/60 dark:bg-sky-900/10' },
+          { label: 'Resolved', value: ticketStats.resolved, icon: <MdVerified />, accent: 'border-l-emerald-400', bg: 'bg-emerald-50/60 dark:bg-emerald-900/10' },
+          { label: 'Closed', value: ticketStats.closed, icon: <MdCheck />, accent: 'border-l-slate-300 dark:border-l-slate-600', bg: 'bg-slate-50/60 dark:bg-slate-800/40' },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 + i * 0.06, duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+            className={`${stat.bg} border border-slate-200/60 dark:border-slate-700/40 border-l-4 ${stat.accent} rounded-xl p-4`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{stat.label}</span>
+              <div className="w-7 h-7 rounded-lg bg-white/60 dark:bg-slate-700/40 flex items-center justify-center text-slate-500 dark:text-slate-400">
+                {stat.icon}
+              </div>
+            </div>
+            <p className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">
+              {ticketsLoading ? (
                 <span className="inline-block w-10 h-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
               ) : (
                 stat.value
@@ -164,6 +209,37 @@ const AdminOverviewPage = () => {
               <span className="text-rose-500 dark:text-rose-400 font-semibold flex items-center gap-1">
                 <MdArrowDownward className="text-sm" /> {stats.rejected} rejected
               </span>
+            </div>
+          </div>
+
+          <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl border border-slate-200/60 dark:border-slate-700/40 p-5">
+            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">Recent Tickets</h3>
+            <div className="space-y-3">
+              {ticketsLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-14 rounded-xl bg-slate-100 dark:bg-slate-700/50 animate-pulse" />
+                  ))}
+                </div>
+              ) : recentTickets.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">No tickets in the database yet.</p>
+              ) : (
+                recentTickets.map((ticket) => (
+                  <div key={ticket.id} className="rounded-xl border border-slate-200/60 dark:border-slate-700/40 bg-slate-50/70 dark:bg-slate-800/50 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{ticket.description}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {ticket.userName || 'Unknown user'} · {ticket.status}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                        #{ticket.id}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

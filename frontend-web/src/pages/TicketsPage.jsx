@@ -4,6 +4,7 @@ import TicketCard from '../components/TicketCard';
 import TicketFormModal from '../components/TicketFormModal';
 import TicketDetailModal from '../components/TicketDetailModal';
 import { useTickets } from '../hooks/useTickets';
+import { useAuth } from '../context/AuthContext';
 
 const statusGroups = [
   { key: 'OPEN', label: 'Open', accent: 'from-amber-400 to-orange-400' },
@@ -13,21 +14,32 @@ const statusGroups = [
   { key: 'REJECTED', label: 'Rejected', accent: 'from-rose-400 to-pink-400' },
 ];
 
-const TicketsPage = () => {
+const TicketsPage = ({ mode = 'user', showCreateButton = true, pageTitle, pageSubtitle }) => {
+  const { authUser } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const isStandardUser = authUser?.role === 'user';
+  const isAdminView = mode === 'admin';
+  const canCreateTicket = showCreateButton && authUser?.role === 'user';
+  const title = pageTitle || (isAdminView ? 'Ticket Administration' : 'Ticket board');
+  const subtitle =
+    pageSubtitle ||
+    (isAdminView
+      ? 'Review, assign, resolve, and close tickets in a controlled workflow.'
+      : 'Track incidents, upload evidence, and move each ticket through its lifecycle.');
 
   const queryParams = useMemo(() => {
     const params = {};
     if (statusFilter !== 'ALL') params.status = statusFilter;
     if (priorityFilter !== 'ALL') params.priority = priorityFilter;
     if (categoryFilter !== 'ALL') params.category = categoryFilter;
+    if (isStandardUser && authUser?.id) params.userId = authUser.id;
     return params;
-  }, [statusFilter, priorityFilter, categoryFilter]);
+  }, [statusFilter, priorityFilter, categoryFilter, authUser, isStandardUser]);
 
   const { data: tickets = [], isLoading, error } = useTickets(queryParams);
 
@@ -50,6 +62,10 @@ const TicketsPage = () => {
     }, {});
   }, [filteredTickets]);
 
+  const visibleStatusGroups = useMemo(() => {
+    return statusGroups.filter((group) => (groupedTickets[group.key]?.length || 0) > 0);
+  }, [groupedTickets]);
+
   return (
     <div className="relative space-y-6">
       <div className="absolute -top-24 right-0 h-72 w-72 rounded-full bg-amber-300/15 blur-3xl pointer-events-none dark:bg-amber-500/10" />
@@ -58,20 +74,21 @@ const TicketsPage = () => {
       <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.25em] text-amber-500">Maintenance tickets</p>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-800 dark:text-slate-50">Ticket board</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-            Track incidents, upload evidence, and move each ticket through its lifecycle.
-          </p>
+          <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-800 dark:text-slate-50">{title}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsFormOpen(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:from-amber-600 hover:to-orange-600"
-        >
-          <MdAdd className="text-lg" />
-          Report issue
-        </button>
+        {canCreateTicket && (
+          <button
+            type="button"
+            onClick={() => setIsFormOpen(true)}
+            disabled={!authUser?.id}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:from-amber-600 hover:to-orange-600"
+          >
+            <MdAdd className="text-lg" />
+            Report issue
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/60 p-4 backdrop-blur-sm lg:flex-row lg:items-center">
@@ -144,32 +161,32 @@ const TicketsPage = () => {
           Unable to load tickets right now.
         </div>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-5">
-          {statusGroups.map((group) => (
-            <section key={group.key} className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/60 p-4 backdrop-blur-sm">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-700 dark:text-slate-100">{group.label}</h2>
-                  <div className={`mt-2 h-1.5 w-14 rounded-full bg-gradient-to-r ${group.accent}`} />
-                </div>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500 dark:bg-slate-700/50 dark:text-slate-300">
-                  {groupedTickets[group.key]?.length || 0}
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {groupedTickets[group.key]?.length ? (
-                  groupedTickets[group.key].map((ticket) => (
-                    <TicketCard key={ticket.id} ticket={ticket} onClick={() => setSelectedTicketId(ticket.id)} />
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-700/50 px-4 py-8 text-center text-xs text-slate-500 dark:text-slate-400">
-                    No tickets in this stage.
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          {visibleStatusGroups.length > 0 ? (
+            visibleStatusGroups.map((group) => (
+              <section key={group.key} className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/60 p-4 backdrop-blur-sm">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-700 dark:text-slate-100">{group.label}</h2>
+                    <div className={`mt-2 h-1.5 w-14 rounded-full bg-gradient-to-r ${group.accent}`} />
                   </div>
-                )}
-              </div>
-            </section>
-          ))}
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500 dark:bg-slate-700/50 dark:text-slate-300">
+                    {groupedTickets[group.key]?.length || 0}
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {groupedTickets[group.key]?.map((ticket) => (
+                    <TicketCard key={ticket.id} ticket={ticket} onClick={() => setSelectedTicketId(ticket.id)} />
+                  ))}
+                </div>
+              </section>
+            ))
+          ) : (
+            <div className="col-span-full rounded-3xl border border-dashed border-slate-200 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/60 px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
+              No tickets match the current filters.
+            </div>
+          )}
         </div>
       )}
 

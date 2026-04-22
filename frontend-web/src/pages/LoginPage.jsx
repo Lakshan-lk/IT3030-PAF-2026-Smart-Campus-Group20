@@ -96,11 +96,10 @@ const LoginPage = () => {
             <p className="text-xs uppercase tracking-[0.24em] text-sky-300 font-bold mb-6">Smart Campus</p>
             <h2 className="text-4xl font-black leading-tight">One Portal for Campus Operations</h2>
             <p className="mt-4 text-slate-300 text-sm leading-relaxed">
-              Google sign-in creates and syncs campus user accounts automatically. Admins still use the dashboard tools and the simple password login stays available as a fallback.
+              Google sign-in creates and syncs campus user accounts automatically, so every login is tied to a real user record.
             </p>
           </div>
           <div className="space-y-2 text-sm text-slate-300">
-            <p>Admin login: admin / admin</p>
             <p>Google sign-in creates user accounts automatically</p>
           </div>
         </div>
@@ -167,11 +166,11 @@ const LoginPage = () => {
           )}
 
           <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-            Use Google to create or reopen a campus account. The username/password form is kept only for fallback admin or local testing.
+            Use Google to create or reopen a campus account.
           </p>
 
           <p className="text-center text-xs text-slate-400 mt-6 font-medium md:hidden">
-            Google sign-in is the supported login path. Admin access still uses the admin account.
+            Google sign-in is the supported login path.
           </p>
         </div>
 

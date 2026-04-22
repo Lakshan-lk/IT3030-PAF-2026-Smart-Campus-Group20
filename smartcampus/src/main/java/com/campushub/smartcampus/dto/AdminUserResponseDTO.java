@@ -11,6 +11,7 @@ public class AdminUserResponseDTO {
     private String universityId;
     private String name;
     private String email;
+    private String role;
     private Integer age;
     private String address;
     private String phone;
@@ -52,6 +53,14 @@ public class AdminUserResponseDTO {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public Integer getAge() {
@@ -140,6 +149,7 @@ public class AdminUserResponseDTO {
         dto.setUniversityId(user.getUniversityId());
         dto.setName(user.getName());
         dto.setEmail(user.getEmail());
+        dto.setRole(user.getRole());
         dto.setAge(user.getAge());
         dto.setAddress(user.getAddress());
         dto.setPhone(user.getPhone());

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { MdClose, MdReportProblem, MdSubject, MdContactMail } from 'react-icons/md';
 import { useResources } from '../hooks/useResources';
 import { useCreateTicket } from '../hooks/useTickets';
+import { useAuth } from '../context/AuthContext';
 
 const initialState = {
   resourceId: '',
@@ -15,8 +16,10 @@ const initialState = {
 const TicketFormModal = ({ isOpen, onClose }) => {
   const [form, setForm] = useState(initialState);
   const [error, setError] = useState('');
-  const { data: resources = [] } = useResources();
+  const { data: resourcePage } = useResources();
   const createTicket = useCreateTicket();
+  const { authUser } = useAuth();
+  const resources = resourcePage?.content || [];
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -27,6 +30,11 @@ const TicketFormModal = ({ isOpen, onClose }) => {
     event.preventDefault();
     setError('');
 
+    if (!authUser?.id) {
+      setError('Please sign in before creating a ticket.');
+      return;
+    }
+
     if (!form.description.trim()) {
       setError('Please describe the issue before submitting.');
       return;
@@ -34,7 +42,7 @@ const TicketFormModal = ({ isOpen, onClose }) => {
 
     try {
       await createTicket.mutateAsync({
-        userId: 1,
+        userId: authUser.id,
         resourceId: form.resourceId ? Number(form.resourceId) : null,
         category: form.category,
         description: form.description,

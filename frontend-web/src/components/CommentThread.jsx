@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { MdEdit, MdDelete, MdSend, MdPerson } from 'react-icons/md';
 import { useAddComment, useComments, useDeleteComment, useUpdateComment } from '../hooks/useTickets';
-
-const CURRENT_USER_ID = 1;
+import { useAuth } from '../context/AuthContext';
 
 function formatTimestamp(value) {
   if (!value) {
@@ -21,6 +20,7 @@ const CommentThread = ({ ticketId }) => {
   const addComment = useAddComment(ticketId);
   const updateComment = useUpdateComment(ticketId);
   const deleteComment = useDeleteComment(ticketId);
+  const { authUser } = useAuth();
   const [content, setContent] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingContent, setEditingContent] = useState('');
@@ -32,7 +32,10 @@ const CommentThread = ({ ticketId }) => {
     if (!content.trim()) {
       return;
     }
-    await addComment.mutateAsync({ userId: CURRENT_USER_ID, content });
+    if (!authUser?.id) {
+      return;
+    }
+    await addComment.mutateAsync({ userId: authUser.id, content });
     setContent('');
   };
 
@@ -45,9 +48,12 @@ const CommentThread = ({ ticketId }) => {
     if (!editingContent.trim()) {
       return;
     }
+    if (!authUser?.id) {
+      return;
+    }
     await updateComment.mutateAsync({
       commentId,
-      data: { userId: CURRENT_USER_ID, content: editingContent },
+      data: { userId: authUser.id, content: editingContent },
     });
     setEditingId(null);
     setEditingContent('');
@@ -81,7 +87,7 @@ const CommentThread = ({ ticketId }) => {
           </div>
         ) : (
           sortedComments.map((comment) => {
-            const isOwner = comment.userId === CURRENT_USER_ID;
+            const isOwner = authUser?.id && comment.userId === authUser.id;
             const isEditing = editingId === comment.id;
             return (
               <article
@@ -147,7 +153,7 @@ const CommentThread = ({ ticketId }) => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => removeComment(comment.id, comment.userId)}
+                        onClick={() => removeComment(comment.id, authUser.id)}
                         className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-rose-500"
                         title="Delete"
                       >
@@ -174,7 +180,7 @@ const CommentThread = ({ ticketId }) => {
           />
           <button
             type="submit"
-            disabled={addComment.isPending}
+            disabled={addComment.isPending || !authUser?.id}
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:from-amber-600 hover:to-orange-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-36"
           >
             <MdSend className="text-lg" />
