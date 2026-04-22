@@ -36,6 +36,21 @@ public class EquipmentController {
         return ResponseEntity.ok(dtos);
     }
 
+    @GetMapping("/equipment")
+    public ResponseEntity<List<EquipmentDTO>> getEquipmentExcludingRoom(
+            @RequestParam(required = false) Long excludeRoomId) {
+        List<Equipment> equipment;
+        if (excludeRoomId != null) {
+            equipment = equipmentRepository.findByRoomIdNot(excludeRoomId);
+        } else {
+            equipment = equipmentRepository.findAll();
+        }
+        List<EquipmentDTO> dtos = equipment.stream()
+                .map(EquipmentDTO::fromEntity)
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
     @PostMapping("/resources/{roomId}/equipment")
     public ResponseEntity<EquipmentDTO> createEquipment(
             @PathVariable Long roomId,

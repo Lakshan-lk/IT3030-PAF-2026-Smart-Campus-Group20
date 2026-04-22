@@ -7,6 +7,7 @@ import com.campushub.smartcampus.entity.Resource;
 import com.campushub.smartcampus.enums.EquipmentType;
 import com.campushub.smartcampus.enums.ResourceStatus;
 import com.campushub.smartcampus.enums.ResourceType;
+import com.campushub.smartcampus.repository.BookingRepository;
 import com.campushub.smartcampus.repository.EquipmentRepository;
 import com.campushub.smartcampus.repository.ResourceRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -17,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,10 +30,12 @@ public class ResourceService {
 
     private final ResourceRepository resourceRepository;
     private final EquipmentRepository equipmentRepository;
+    private final BookingRepository bookingRepository;
 
-    public ResourceService(ResourceRepository resourceRepository, EquipmentRepository equipmentRepository) {
+    public ResourceService(ResourceRepository resourceRepository, EquipmentRepository equipmentRepository, BookingRepository bookingRepository) {
         this.resourceRepository = resourceRepository;
         this.equipmentRepository = equipmentRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     @Transactional(readOnly = true)
@@ -40,7 +45,15 @@ public class ResourceService {
         Page<Resource> resources;
 
         if (startTime != null && endTime != null) {
-            resources = resourceRepository.findAvailableResources(startTime, endTime, pageable);
+            Page<Resource> allAvailable = resourceRepository.findByStatusAndIsDeletedFalse(ResourceStatus.AVAILABLE, pageable);
+            Set<Long> bookedIds = new HashSet<>(bookingRepository.findBookedResourceIds(startTime, endTime));
+            List<Resource> candidates = allAvailable.getContent();
+            candidates = applyEquipmentAndCapacityFilter(candidates, equipmentTypes, minCapacity);
+            List<ResourceResponseDTO> dtos = candidates.stream()
+                    .map(r -> ResourceResponseDTO.fromEntity(r, bookedIds.contains(r.getId())))
+                    .sorted(Comparator.comparing(ResourceResponseDTO::isBookedForSlot))
+                    .toList();
+            return new PageImpl<>(dtos, pageable, dtos.size());
         } else if (search != null && !search.isBlank()) {
             resources = resourceRepository.findByNameContainingIgnoreCaseAndIsDeletedFalse(search, pageable);
         } else if (type != null && !type.isBlank()) {
@@ -63,113 +76,96 @@ public class ResourceService {
             resources = resourceRepository.findByIsDeletedFalse(pageable);
         }
 
-        if ((equipmentTypes != null && !equipmentTypes.isEmpty()) || minCapacity != null) {
-            Set<Long> finalRoomsWithEquipment;
-            Set<Long> roomsWithEquipment = null;
-            if (equipmentTypes != null && !equipmentTypes.isEmpty()) {
-                List<EquipmentType> eqTypes = equipmentTypes.stream()
-                        .map(et -> {
-                            try {
-                                return EquipmentType.valueOf(et.toUpperCase());
-                            } catch (IllegalArgumentException e) {
-                                return null;
-                            }
-                        })
-                        .filter(et -> et != null)
-                        .collect(Collectors.toList());
-
-                if (!eqTypes.isEmpty()) {
-                    List<Equipment> equipmentList = equipmentRepository.findAll();
-                    roomsWithEquipment = equipmentList.stream()
-                            .filter(eq -> eqTypes.contains(eq.getType()))
-                            .map(eq -> eq.getRoom().getId())
-                            .collect(Collectors.toSet());
-                }
-            }
-            finalRoomsWithEquipment = roomsWithEquipment;
-
-            List<Resource> filtered = resources.getContent().stream()
-                    .filter(r -> {
-                        boolean matchesEquipment = true;
-                        boolean matchesCapacity = true;
-
-                        if (finalRoomsWithEquipment != null) {
-                            matchesEquipment = finalRoomsWithEquipment.contains(r.getId());
-                        }
-
-                        if (minCapacity != null) {
-                            matchesCapacity = r.getCapacity() != null && r.getCapacity() >= minCapacity;
-                        }
-
-                        return matchesEquipment && matchesCapacity;
-                    })
-                    .toList();
-
-            List<ResourceResponseDTO> filteredDto = filtered.stream()
-                    .map(ResourceResponseDTO::fromEntity)
-                    .toList();
-
+        List<Resource> filtered = applyEquipmentAndCapacityFilter(resources.getContent(), equipmentTypes, minCapacity);
+        if (filtered.size() != resources.getContent().size()) {
+            List<ResourceResponseDTO> filteredDto = filtered.stream().map(ResourceResponseDTO::fromEntity).toList();
             int start = (int) pageable.getOffset();
             int end = Math.min(start + pageable.getPageSize(), filteredDto.size());
             List<ResourceResponseDTO> pageContent = start < filteredDto.size() ? filteredDto.subList(start, end) : List.of();
-
             return new PageImpl<>(pageContent, pageable, filteredDto.size());
         }
 
         return resources.map(ResourceResponseDTO::fromEntity);
     }
 
+    private List<Resource> applyEquipmentAndCapacityFilter(List<Resource> resources, List<String> equipmentTypes, Integer minCapacity) {
+        if ((equipmentTypes == null || equipmentTypes.isEmpty()) && minCapacity == null) {
+            return resources;
+        }
+        Set<Long> roomsWithEquipment = null;
+        if (equipmentTypes != null && !equipmentTypes.isEmpty()) {
+            List<EquipmentType> eqTypes = equipmentTypes.stream()
+                    .map(et -> { try { return EquipmentType.valueOf(et.toUpperCase()); } catch (IllegalArgumentException e) { return null; } })
+                    .filter(et -> et != null)
+                    .collect(Collectors.toList());
+            if (!eqTypes.isEmpty()) {
+                roomsWithEquipment = equipmentRepository.findAll().stream()
+                        .filter(eq -> eqTypes.contains(eq.getType()))
+                        .map(eq -> eq.getRoom().getId())
+                        .collect(Collectors.toSet());
+            }
+        }
+        final Set<Long> finalRooms = roomsWithEquipment;
+        return resources.stream()
+                .filter(r -> {
+                    boolean matchesEq = finalRooms == null || finalRooms.contains(r.getId());
+                    boolean matchesCap = minCapacity == null || (r.getCapacity() != null && r.getCapacity() >= minCapacity);
+                    return matchesEq && matchesCap;
+                })
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public ResourceResponseDTO getResourceById(Long id) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
-        List<Equipment> equipment = equipmentRepository.findByRoomId(id);
-        return ResourceResponseDTO.fromEntity(resource, equipment);
+        if (resource.isDeleted()) {
+            throw new EntityNotFoundException("Resource not found with id: " + id);
+        }
+        return ResourceResponseDTO.fromEntity(resource);
     }
 
     public ResourceResponseDTO createResource(ResourceRequestDTO dto) {
-        Resource resource = new Resource();
-        resource.setName(dto.getName());
-        resource.setDescription(dto.getDescription());
-        resource.setType(dto.getType());
-        resource.setLocation(dto.getLocation());
-        resource.setCapacity(dto.getCapacity());
-        resource.setImageUrl(dto.getImageUrl());
-
-        if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
-            resource.setStatus(ResourceStatus.valueOf(dto.getStatus()));
-        } else {
-            resource.setStatus(ResourceStatus.ACTIVE);
+        if (dto.getCapacity() != null && dto.getCapacity() <= 0) {
+            throw new IllegalArgumentException("Capacity must be greater than 0");
         }
 
+        Resource resource = ResourceRequestDTO.toEntity(dto);
         Resource saved = resourceRepository.save(resource);
-        return ResourceResponseDTO.fromEntity(saved, List.of());
+        return ResourceResponseDTO.fromEntity(saved);
     }
 
     public ResourceResponseDTO updateResource(Long id, ResourceRequestDTO dto) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
+        
+        if (resource.isDeleted()) {
+             throw new EntityNotFoundException("Resource not found with id: " + id);
+        }
+
+        if (dto.getCapacity() != null && dto.getCapacity() <= 0) {
+            throw new IllegalArgumentException("Capacity must be greater than 0");
+        }
 
         resource.setName(dto.getName());
         resource.setDescription(dto.getDescription());
         resource.setType(dto.getType());
         resource.setLocation(dto.getLocation());
+        if (dto.getStatus() != null) {
+            resource.setStatus(dto.getStatus());
+        }
         resource.setCapacity(dto.getCapacity());
         resource.setImageUrl(dto.getImageUrl());
-
-        if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
-            resource.setStatus(ResourceStatus.valueOf(dto.getStatus()));
-        }
+        resource.setAmenities(dto.getAmenities());
 
         Resource saved = resourceRepository.save(resource);
-        List<Equipment> equipment = equipmentRepository.findByRoomId(id);
-        return ResourceResponseDTO.fromEntity(saved, equipment);
+        return ResourceResponseDTO.fromEntity(saved);
     }
 
     public void deleteResource(Long id) {
-        if (!resourceRepository.existsById(id)) {
-            throw new EntityNotFoundException("Resource not found with id: " + id);
-        }
-        resourceRepository.deleteById(id);
+        Resource resource = resourceRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
+        resource.setDeleted(true);
+        resourceRepository.save(resource);
     }
 }

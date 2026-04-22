@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { MdAdd, MdEvent, MdHistory, MdCancel as MdCancelIcon, MdClose } from 'react-icons/md';
-import { useBookings, useCancelBooking, useCancelSeries } from '../hooks/useBookings';
-import NewBookingForm from '../components/NewBookingForm';
-import BookingCard from '../components/BookingCard';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MdAdd, MdFilterList, MdEvent, MdHistory, MdCancel, MdSearch } from 'react-icons/md';
+import { MdAdd, MdFilterList, MdEvent, MdHistory, MdCancel as MdCancelIcon, MdSearch, MdClose } from 'react-icons/md';
 import { useBookings, useCancelBooking, useCancelSeries } from '../hooks/useBookings';
 import NewBookingForm from '../components/NewBookingForm';
 import BookingCard from '../components/BookingCard';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const BookingsPage = () => {
   const location = useLocation();
@@ -121,9 +116,9 @@ const BookingsPage = () => {
             return (
               <button
                 key={tab.key}
-                onClick={() => setShowTab(tab.key)}
+                onClick={() => setActiveTab(tab.key)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                  showTab === tab.key
+                  activeTab === tab.key
                     ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 shadow-md'
                     : 'bg-white/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50'
                 }`}
@@ -131,9 +126,9 @@ const BookingsPage = () => {
                 <Icon className="text-lg" />
                 {tab.label}
                 <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  showTab === tab.key 
-                    ? 'bg-white/20 dark:bg-slate-800/30' 
-                    : 'bg-slate-100 dark:bg-slate-700/50'
+activeTab === tab.key 
+                     ? 'bg-white/20 dark:bg-slate-800/30' 
+                     : 'bg-slate-100 dark:bg-slate-700/50'
                 }`}>
                   {tab.count}
                 </span>

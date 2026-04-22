@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -31,8 +30,6 @@ public class Booking {
     @Size(max = 500)
     private String purpose;
 
-    private Integer attendees;
-
     @NotNull(message = "Start time is required")
     private LocalDateTime startTime;
 
@@ -42,25 +39,19 @@ public class Booking {
     @Enumerated(EnumType.STRING)
     private BookingStatus status = BookingStatus.PENDING;
 
-    @Size(max = 500)
-    private String rejectionReason;
+    private Integer attendees;
 
-    @Column(name = "is_recurring")
-    private boolean isRecurring = false;
+    private Boolean isRecurring = false;
 
-    @Size(max = 36)
-    @Column(name = "recurrence_group_id")
-    private String recurrenceGroupId;
-
-    @Size(max = 20)
-    @Column(name = "recurrence_pattern")
     private String recurrencePattern;
 
-    @Column(name = "recurrence_end_date")
-    private LocalDate recurrenceEndDate;
+    private LocalDateTime recurrenceEndDate;
 
-    @Column(columnDefinition = "TEXT")
     private String skipDates;
+
+    private String groupId;
+
+    private String requestedEquipmentIds;
 
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -139,28 +130,12 @@ public class Booking {
         this.attendees = attendees;
     }
 
-    public String getRejectionReason() {
-        return rejectionReason;
-    }
-
-    public void setRejectionReason(String rejectionReason) {
-        this.rejectionReason = rejectionReason;
-    }
-
-    public boolean isRecurring() {
+    public Boolean getIsRecurring() {
         return isRecurring;
     }
 
-    public void setRecurring(boolean recurring) {
-        isRecurring = recurring;
-    }
-
-    public String getRecurrenceGroupId() {
-        return recurrenceGroupId;
-    }
-
-    public void setRecurrenceGroupId(String recurrenceGroupId) {
-        this.recurrenceGroupId = recurrenceGroupId;
+    public void setIsRecurring(Boolean isRecurring) {
+        this.isRecurring = isRecurring;
     }
 
     public String getRecurrencePattern() {
@@ -171,11 +146,11 @@ public class Booking {
         this.recurrencePattern = recurrencePattern;
     }
 
-    public LocalDate getRecurrenceEndDate() {
+    public LocalDateTime getRecurrenceEndDate() {
         return recurrenceEndDate;
     }
 
-    public void setRecurrenceEndDate(LocalDate recurrenceEndDate) {
+    public void setRecurrenceEndDate(LocalDateTime recurrenceEndDate) {
         this.recurrenceEndDate = recurrenceEndDate;
     }
 
@@ -185,5 +160,21 @@ public class Booking {
 
     public void setSkipDates(String skipDates) {
         this.skipDates = skipDates;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getRequestedEquipmentIds() {
+        return requestedEquipmentIds;
+    }
+
+    public void setRequestedEquipmentIds(String requestedEquipmentIds) {
+        this.requestedEquipmentIds = requestedEquipmentIds;
     }
 }

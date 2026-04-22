@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCreateBooking } from './useBookings';
+import { bookingApi } from '../api/bookingApi';
 
 const DEFAULT_FORM = {
   userId: 2,
@@ -15,7 +16,7 @@ const DEFAULT_FORM = {
   requestedEquipmentIds: [],
 };
 
-export const useBookingForm = ({ onSuccess, initialDate = '', initialStartTime = '', initialEndTime = '' } = {}) => {
+export const useBookingForm = ({ onSuccess, resourceId, initialDate = '', initialStartTime = '', initialEndTime = '' } = {}) => {
   const [bookingData, setBookingData] = useState({
     ...DEFAULT_FORM,
     date: initialDate,
@@ -24,7 +25,41 @@ export const useBookingForm = ({ onSuccess, initialDate = '', initialStartTime =
   });
   const [skipDateInput, setSkipDateInput] = useState('');
   const [conflictError, setConflictError] = useState('');
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const debounceRef = useRef(null);
   const createBooking = useCreateBooking();
+
+  const availDate = bookingData.date;
+  const availStart = bookingData.startTime;
+  const availEnd = bookingData.endTime;
+
+  useEffect(() => {
+    if (!resourceId || !availDate || !availStart || !availEnd || availStart >= availEnd) return;
+
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      const fmt = t => t.split(':').length === 2 ? `${t}:00` : t;
+      setIsCheckingAvailability(true);
+      try {
+        const res = await bookingApi.checkAvailability(
+          resourceId,
+          `${availDate}T${fmt(availStart)}`,
+          `${availDate}T${fmt(availEnd)}`
+        );
+        if (!res.data.available) {
+          setConflictError('This facility is already booked for the selected time slot.');
+        } else {
+          setConflictError('');
+        }
+      } catch {
+        // silent — submit will catch real errors
+      } finally {
+        setIsCheckingAvailability(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(debounceRef.current);
+  }, [resourceId, availDate, availStart, availEnd]);
 
   const reset = () => {
     setBookingData({ ...DEFAULT_FORM });
@@ -53,10 +88,11 @@ export const useBookingForm = ({ onSuccess, initialDate = '', initialStartTime =
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setBookingData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
-    setConflictError('');
+    if (['date', 'startTime', 'endTime'].includes(name)) setConflictError('');
   };
 
   const isValid = () =>
+    !conflictError &&
     bookingData.date &&
     bookingData.startTime &&
     bookingData.endTime &&
@@ -102,6 +138,7 @@ export const useBookingForm = ({ onSuccess, initialDate = '', initialStartTime =
     skipDateInput,
     setSkipDateInput,
     conflictError,
+    isCheckingAvailability,
     addSkipDate,
     removeSkipDate,
     toggleEquipment,

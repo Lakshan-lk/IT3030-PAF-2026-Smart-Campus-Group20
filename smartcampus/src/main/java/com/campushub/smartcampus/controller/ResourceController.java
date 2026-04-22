@@ -4,6 +4,10 @@ import com.campushub.smartcampus.dto.ResourceRequestDTO;
 import com.campushub.smartcampus.dto.ResourceResponseDTO;
 import com.campushub.smartcampus.service.ResourceService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +26,7 @@ public class ResourceController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ResourceResponseDTO>> getAllResources(
+    public ResponseEntity<Page<ResourceResponseDTO>> getAllResources(
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String status,
@@ -37,10 +41,10 @@ public class ResourceController {
         LocalDateTime startDateTime = null;
         LocalDateTime endDateTime = null;
         
-        if (date != null && startTime != null && endTime != null) {
+        if (startTime != null && endTime != null) {
             try {
-                startDateTime = LocalDateTime.parse(date + "T" + startTime + ":00");
-                endDateTime = LocalDateTime.parse(date + "T" + endTime + ":00");
+                startDateTime = LocalDateTime.parse(startTime);
+                endDateTime = LocalDateTime.parse(endTime);
             } catch (Exception e) {
                 // Invalid date/time format, ignore
             }
@@ -52,8 +56,7 @@ public class ResourceController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ResourceResponseDTO> getResourceById(@PathVariable Long id) {
-        ResourceResponseDTO resource = resourceService.getResourceById(id);
-        return ResponseEntity.ok(resource);
+        return ResponseEntity.ok(resourceService.getResourceById(id));
     }
 
     @PostMapping
@@ -64,8 +67,7 @@ public class ResourceController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ResourceResponseDTO> updateResource(@PathVariable Long id, @Valid @RequestBody ResourceRequestDTO dto) {
-        ResourceResponseDTO updated = resourceService.updateResource(id, dto);
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(resourceService.updateResource(id, dto));
     }
 
     @DeleteMapping("/{id}")

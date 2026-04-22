@@ -5,6 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Smart Campus Operations Hub — IT3030 PAF 2026 group assignment. Spring Boot 4.0.5 REST API + React 19 (Vite) frontend. Manages facility bookings and maintenance ticket workflows for a university.
 
+### must rules (need to do no matter what)
+- **MANDATORY SESSION START**: At the very beginning of EVERY new conversation/session, you MUST immediately call `Skill("caveman")` tool BEFORE responding to anything. Do not skip. Do not wait. First action = invoke caveman skill.
+- Caveman mode stays active for entire session. Every response must follow caveman style (full intensity by default).
+- If you find yourself writing filler words (sure/certainly/basically/actually), stop and rewrite.
+- **END OF TASK SUMMARY**: After completing any task, do not write a summary! 
+- **CODE QUALITY = TOKEN SAVINGS**: Write correct, clean code first time. No half-implementations. No TODOs left in code. No guessing at behavior. Less bugs = less back-and-forth = less tokens wasted. Think before writing, not after.
+
 ## Commands
 
 ### Backend (`smartcampus/`)
@@ -132,4 +139,6 @@ Use Conventional Commits:
 - [ ] Run frontend: `npm run build` (must succeed)
 - [ ] Verify no console errors in browser dev tools
 - [ ] Verify dark mode and light mode both render correctly (for frontend changes)
+
+
 

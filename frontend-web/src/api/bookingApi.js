@@ -21,5 +21,6 @@ export const bookingApi = {
 
   getActiveCount: () => api.get('/api/v1/bookings/stats/active'),
 
-  cancelSeries: (groupId) => api.post(`/api/v1/bookings/series/${groupId}/cancel`),
+  checkAvailability: (resourceId, startTime, endTime) =>
+    api.get('/api/v1/bookings/check-availability', { params: { resourceId, startTime, endTime } }),
 };

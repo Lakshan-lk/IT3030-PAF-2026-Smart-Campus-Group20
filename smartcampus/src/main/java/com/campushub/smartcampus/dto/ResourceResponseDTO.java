@@ -1,27 +1,32 @@
 package com.campushub.smartcampus.dto;
 
-import com.campushub.smartcampus.entity.Equipment;
 import com.campushub.smartcampus.entity.Resource;
-import com.campushub.smartcampus.enums.ResourceStatus;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import com.campushub.smartcampus.enums.ResourceType;
+import com.campushub.smartcampus.enums.ResourceStatus;
 
 public class ResourceResponseDTO {
 
     private Long id;
     private String name;
     private String description;
-    private String type;
+    private ResourceType type;
     private String location;
-    private String status;
+    private ResourceStatus status;
     private Integer capacity;
     private String imageUrl;
-    private List<EquipmentDTO> equipment;
+    private String amenities;
+    private List<EquipmentDTO> equipments;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-    public ResourceResponseDTO() {}
+    private String formattedCreatedAt;
+    private String formattedUpdatedAt;
+    private boolean bookedForSlot = false;
 
     public Long getId() {
         return id;
@@ -47,11 +52,11 @@ public class ResourceResponseDTO {
         this.description = description;
     }
 
-    public String getType() {
+    public ResourceType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(ResourceType type) {
         this.type = type;
     }
 
@@ -63,11 +68,11 @@ public class ResourceResponseDTO {
         this.location = location;
     }
 
-    public String getStatus() {
+    public ResourceStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ResourceStatus status) {
         this.status = status;
     }
 
@@ -87,12 +92,12 @@ public class ResourceResponseDTO {
         this.imageUrl = imageUrl;
     }
 
-    public List<EquipmentDTO> getEquipment() {
-        return equipment;
+    public String getAmenities() {
+        return amenities;
     }
 
-    public void setEquipment(List<EquipmentDTO> equipment) {
-        this.equipment = equipment;
+    public void setAmenities(String amenities) {
+        this.amenities = amenities;
     }
 
     public List<EquipmentDTO> getEquipments() {
@@ -119,25 +124,61 @@ public class ResourceResponseDTO {
         this.updatedAt = updatedAt;
     }
 
-    public static ResourceResponseDTO fromEntity(Resource resource, List<Equipment> equipmentList) {
+    public String getFormattedCreatedAt() {
+        return formattedCreatedAt;
+    }
+
+    public void setFormattedCreatedAt(String formattedCreatedAt) {
+        this.formattedCreatedAt = formattedCreatedAt;
+    }
+
+    public String getFormattedUpdatedAt() {
+        return formattedUpdatedAt;
+    }
+
+    public void setFormattedUpdatedAt(String formattedUpdatedAt) {
+        this.formattedUpdatedAt = formattedUpdatedAt;
+    }
+
+    public boolean isBookedForSlot() {
+        return bookedForSlot;
+    }
+
+    public void setBookedForSlot(boolean bookedForSlot) {
+        this.bookedForSlot = bookedForSlot;
+    }
+
+    public static ResourceResponseDTO fromEntity(Resource resource) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm");
         ResourceResponseDTO dto = new ResourceResponseDTO();
         dto.setId(resource.getId());
         dto.setName(resource.getName());
         dto.setDescription(resource.getDescription());
         dto.setType(resource.getType());
         dto.setLocation(resource.getLocation());
-        dto.setStatus(resource.getStatus() != null ? resource.getStatus().name() : ResourceStatus.ACTIVE.name());
+        dto.setStatus(resource.getStatus());
         dto.setCapacity(resource.getCapacity());
         dto.setImageUrl(resource.getImageUrl());
+        dto.setAmenities(resource.getAmenities());
+        if (resource.getEquipments() != null) {
+            dto.setEquipments(resource.getEquipments().stream()
+                    .map(EquipmentDTO::fromEntity)
+                    .collect(Collectors.toList()));
+        }
         dto.setCreatedAt(resource.getCreatedAt());
         dto.setUpdatedAt(resource.getUpdatedAt());
-
-        if (equipmentList != null) {
-            dto.setEquipment(equipmentList.stream()
-                    .map(EquipmentDTO::fromEntity)
-                    .toList());
+        if (resource.getCreatedAt() != null) {
+            dto.setFormattedCreatedAt(resource.getCreatedAt().format(formatter));
         }
+        if (resource.getUpdatedAt() != null) {
+            dto.setFormattedUpdatedAt(resource.getUpdatedAt().format(formatter));
+        }
+        return dto;
+    }
 
+    public static ResourceResponseDTO fromEntity(Resource resource, boolean bookedForSlot) {
+        ResourceResponseDTO dto = fromEntity(resource);
+        dto.setBookedForSlot(bookedForSlot);
         return dto;
     }
 }

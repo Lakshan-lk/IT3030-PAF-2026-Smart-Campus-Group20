@@ -17,21 +17,18 @@ public class ResourceRequestDTO {
     @Size(max = 500)
     private String description;
 
-    @Size(max = 30)
-    private String type;
+    @NotNull(message = "Resource type is required")
+    private ResourceType type;
 
-    @Size(max = 200)
     private String location;
 
-    @Size(max = 20)
-    private String status;
+    private ResourceStatus status;
 
     private Integer capacity;
 
-    @Size(max = 500)
     private String imageUrl;
 
-    public ResourceRequestDTO() {}
+    private String amenities;
 
     public String getName() {
         return name;
@@ -49,11 +46,11 @@ public class ResourceRequestDTO {
         this.description = description;
     }
 
-    public String getType() {
+    public ResourceType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(ResourceType type) {
         this.type = type;
     }
 
@@ -65,11 +62,11 @@ public class ResourceRequestDTO {
         this.location = location;
     }
 
-    public String getStatus() {
+    public ResourceStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ResourceStatus status) {
         this.status = status;
     }
 
@@ -87,5 +84,26 @@ public class ResourceRequestDTO {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(String amenities) {
+        this.amenities = amenities;
+    }
+
+    public static Resource toEntity(ResourceRequestDTO dto) {
+        Resource resource = new Resource();
+        resource.setName(dto.getName());
+        resource.setDescription(dto.getDescription());
+        resource.setType(dto.getType());
+        resource.setLocation(dto.getLocation());
+        resource.setStatus(dto.getStatus() != null ? dto.getStatus() : ResourceStatus.AVAILABLE);
+        resource.setCapacity(dto.getCapacity());
+        resource.setImageUrl(dto.getImageUrl());
+        resource.setAmenities(dto.getAmenities());
+        return resource;
     }
 }

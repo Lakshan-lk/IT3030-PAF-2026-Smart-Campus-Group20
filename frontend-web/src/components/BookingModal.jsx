@@ -1,6 +1,6 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { MdClose, MdEventAvailable, MdVideocam, MdMic, MdComputer, MdAcUnit, MdBorderColor, MdCast, MdDevicesOther } from 'react-icons/md';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MdClose, MdEventAvailable, MdVideocam, MdMic, MdComputer, MdAcUnit, MdBorderColor, MdCast, MdDevicesOther, MdExpandMore } from 'react-icons/md';
 import { TIME_SLOTS } from '../constants/facilities';
 import { useBookingForm } from '../hooks/useBookingForm';
 import { useAvailableEquipment } from '../hooks/useEquipment';
@@ -19,13 +19,29 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
     bookingData, setBookingData,
     skipDateInput, setSkipDateInput,
     conflictError,
+    isCheckingAvailability,
     addSkipDate, removeSkipDate,
     toggleEquipment,
     handleChange,
     isValid,
     submit,
     isPending,
-  } = useBookingForm({ onSuccess, initialDate, initialStartTime, initialEndTime });
+  } = useBookingForm({ onSuccess, resourceId: resource?.id, initialDate, initialStartTime, initialEndTime });
+
+  const [equipmentOpen, setEquipmentOpen] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
+  const [shake, setShake] = useState(false);
+
+  const triggerShake = () => {
+    setShake(true);
+    setTimeout(() => setShake(false), 400);
+  };
+
+  const fe = (invalid) => invalid && showErrors
+    ? 'ring-2 ring-rose-400/70 border-rose-300 dark:border-rose-500'
+    : 'focus:ring-2 focus:ring-indigo-400/50';
+
+  const lfe = (invalid) => invalid && showErrors ? 'text-rose-500' : 'text-slate-500';
 
   const { data: availableEquipment = [], isLoading: equipmentLoading } = useAvailableEquipment(resource?.id);
 
@@ -82,28 +98,32 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
             </div>
           </div>
 
-          <form onSubmit={e => { e.preventDefault(); submit(resource.id); }} className="space-y-3">
+          <form onSubmit={e => {
+            e.preventDefault();
+            if (!isValid()) { setShowErrors(true); triggerShake(); return; }
+            submit(resource.id);
+          }} className="space-y-3">
             {/* date + time */}
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Date</label>
+                <label className={`text-xs block mb-1 transition-colors ${lfe(!bookingData.date)}`}>Date</label>
                 <input type="date" name="date" value={bookingData.date} onChange={handleChange}
-                  className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50" />
+                  className={`w-full px-2 py-2 rounded-lg border bg-slate-50 dark:bg-slate-900 text-sm outline-none transition-all ${fe(!bookingData.date)} border-slate-200 dark:border-slate-600`} />
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Start</label>
+                <label className={`text-xs block mb-1 transition-colors ${lfe(!bookingData.startTime)}`}>Start</label>
                 <select name="startTime" value={bookingData.startTime}
                   onChange={e => setBookingData(prev => ({ ...prev, startTime: e.target.value, endTime: prev.endTime && prev.endTime <= e.target.value ? '' : prev.endTime }))}
-                  className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm outline-none">
+                  className={`w-full px-2 py-2 rounded-lg border bg-slate-50 dark:bg-slate-900 text-sm outline-none transition-all ${fe(!bookingData.startTime)} border-slate-200 dark:border-slate-600`}>
                   <option value="">Select</option>
                   {TIME_SLOTS.slice(0, -1).map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">End</label>
+                <label className={`text-xs block mb-1 transition-colors ${lfe(!bookingData.endTime)}`}>End</label>
                 <select name="endTime" value={bookingData.endTime} onChange={handleChange}
                   disabled={!bookingData.startTime}
-                  className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm outline-none disabled:opacity-50">
+                  className={`w-full px-2 py-2 rounded-lg border bg-slate-50 dark:bg-slate-900 text-sm outline-none disabled:opacity-50 transition-all ${fe(!bookingData.endTime)} border-slate-200 dark:border-slate-600`}>
                   <option value="">Select</option>
                   {TIME_SLOTS.filter(t => !bookingData.startTime || t.value > bookingData.startTime).map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
@@ -111,17 +131,17 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
             </div>
 
             <div>
-              <label className="text-xs text-slate-500 block mb-1">Purpose</label>
+              <label className={`text-xs block mb-1 transition-colors ${lfe(!bookingData.purpose.trim())}`}>Purpose</label>
               <textarea name="purpose" value={bookingData.purpose} onChange={handleChange}
                 placeholder="Meeting, Lecture…" rows={2}
-                className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm resize-none outline-none focus:ring-2 focus:ring-indigo-400/50" />
+                className={`w-full px-2 py-2 rounded-lg border bg-slate-50 dark:bg-slate-900 text-sm resize-none outline-none transition-all ${fe(!bookingData.purpose.trim())} border-slate-200 dark:border-slate-600`} />
             </div>
 
             <div>
-              <label className="text-xs text-slate-500 block mb-1">Attendees</label>
+              <label className={`text-xs block mb-1 transition-colors ${lfe(!(bookingData.attendees >= 1))}`}>Attendees</label>
               <input type="number" name="attendees" value={bookingData.attendees} onChange={handleChange}
                 placeholder="1" min="1"
-                className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50" />
+                className={`w-full px-2 py-2 rounded-lg border bg-slate-50 dark:bg-slate-900 text-sm outline-none transition-all ${fe(!(bookingData.attendees >= 1))} border-slate-200 dark:border-slate-600`} />
             </div>
 
             {/* recurring */}
@@ -153,10 +173,10 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Until</label>
+                      <label className={`block text-xs font-semibold mb-1.5 transition-colors ${showErrors && bookingData.isRecurring && !bookingData.recurrenceEndDate ? 'text-rose-500' : 'text-slate-600 dark:text-slate-300'}`}>Until</label>
                       <input type="date" name="recurrenceEndDate" value={bookingData.recurrenceEndDate} onChange={handleChange}
                         min={bookingData.date}
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm outline-none" />
+                        className={`w-full px-3 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-sm outline-none transition-all ${fe(bookingData.isRecurring && !bookingData.recurrenceEndDate)} border-slate-200 dark:border-slate-600`} />
                     </div>
                   </div>
                   <div>
@@ -195,76 +215,106 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
             </div>
 
             {/* additional equipment */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  Request Additional Equipment
-                </label>
-                {bookingData.requestedEquipmentIds.length > 0 && (
-                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full">
-                    {bookingData.requestedEquipmentIds.length} selected
+            <div className={`rounded-xl border-2 overflow-hidden transition-colors duration-200 ${equipmentOpen ? 'border-indigo-300 dark:border-indigo-700' : 'border-slate-200 dark:border-slate-600'}`}>
+              <button
+                type="button"
+                onClick={() => setEquipmentOpen(v => !v)}
+                className={`w-full flex items-center justify-between px-4 py-3 transition-colors duration-200 ${equipmentOpen ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'bg-slate-50 dark:bg-slate-700/40 hover:bg-indigo-50/60 dark:hover:bg-indigo-900/10'}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${equipmentOpen ? 'bg-indigo-500 text-white' : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400'}`}>
+                    <MdDevicesOther className="text-base" />
+                  </div>
+                  <span className={`text-xs font-semibold uppercase tracking-wider transition-colors duration-200 ${equipmentOpen ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                    Request Additional Equipment
                   </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                Select equipment not available in this room — admin will review your request.
-              </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {bookingData.requestedEquipmentIds.length > 0 && (
+                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">
+                      {bookingData.requestedEquipmentIds.length} selected
+                    </span>
+                  )}
+                  <motion.div animate={{ rotate: equipmentOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                    <MdExpandMore className={`text-lg transition-colors duration-200 ${equipmentOpen ? 'text-indigo-500 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                  </motion.div>
+                </div>
+              </button>
 
-              {equipmentLoading ? (
-                <div className="grid grid-cols-3 gap-2">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="h-16 rounded-xl bg-slate-100 dark:bg-slate-700/50 animate-pulse" />
-                  ))}
-                </div>
-              ) : availableEquipment.length === 0 ? (
-                <p className="text-xs text-slate-400 italic text-center py-3">
-                  No additional equipment available to request.
-                </p>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {availableEquipment.map(item => {
-                    const Icon = EQUIPMENT_ICONS[item.type] || MdDevicesOther;
-                    const selected = bookingData.requestedEquipmentIds.includes(item.id);
-                    return (
-                      <motion.button
-                        key={item.id}
-                        type="button"
-                        onClick={() => toggleEquipment(item.id)}
-                        whileTap={{ scale: 0.95 }}
-                        className={`relative flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border-2 text-center transition-all duration-200 cursor-pointer select-none
-                          ${selected
-                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-sm shadow-indigo-200 dark:shadow-indigo-900/50'
-                            : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10'
-                          }`}
-                      >
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors
-                          ${selected ? 'bg-indigo-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
-                          <Icon className="text-base" />
+              <AnimatePresence initial={false}>
+                {equipmentOpen && (
+                  <motion.div
+                    key="equipment-panel"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-4 pt-3 border-t border-indigo-100 dark:border-indigo-900/40 bg-white dark:bg-slate-800 space-y-3">
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        Select equipment not available in this room — admin will review your request.
+                      </p>
+
+                      {equipmentLoading ? (
+                        <div className="grid grid-cols-3 gap-2">
+                          {[...Array(6)].map((_, i) => (
+                            <div key={i} className="h-16 rounded-xl bg-slate-100 dark:bg-slate-700/50 animate-pulse" />
+                          ))}
                         </div>
-                        <span className={`text-[10px] font-semibold leading-tight transition-colors
-                          ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400'}`}>
-                          {item.name}
-                        </span>
-                        <span className={`text-[9px] leading-none transition-colors
-                          ${selected ? 'text-indigo-400 dark:text-indigo-500' : 'text-slate-400 dark:text-slate-500'}`}>
-                          {item.type.replace(/_/g, ' ')}
-                        </span>
-                        {selected && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-indigo-500 rounded-full flex items-center justify-center"
-                          >
-                            <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </motion.div>
-                        )}
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              )}
+                      ) : availableEquipment.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic text-center py-3">
+                          No additional equipment available to request.
+                        </p>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2">
+                          {availableEquipment.map(item => {
+                            const Icon = EQUIPMENT_ICONS[item.type] || MdDevicesOther;
+                            const selected = bookingData.requestedEquipmentIds.includes(item.id);
+                            return (
+                              <motion.button
+                                key={item.id}
+                                type="button"
+                                onClick={() => toggleEquipment(item.id)}
+                                whileTap={{ scale: 0.95 }}
+                                className={`relative flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border-2 text-center transition-all duration-200 cursor-pointer select-none
+                                  ${selected
+                                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-sm shadow-indigo-200 dark:shadow-indigo-900/50'
+                                    : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10'
+                                  }`}
+                              >
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors
+                                  ${selected ? 'bg-indigo-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
+                                  <Icon className="text-base" />
+                                </div>
+                                <span className={`text-[10px] font-semibold leading-tight transition-colors
+                                  ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                                  {item.name}
+                                </span>
+                                <span className={`text-[9px] leading-none transition-colors
+                                  ${selected ? 'text-indigo-400 dark:text-indigo-500' : 'text-slate-400 dark:text-slate-500'}`}>
+                                  {item.type.replace(/_/g, ' ')}
+                                </span>
+                                {selected && (
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-indigo-500 rounded-full flex items-center justify-center"
+                                  >
+                                    <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </motion.div>
+                                )}
+                              </motion.button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {conflictError && (
@@ -273,13 +323,21 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
               </div>
             )}
 
-            <button
+            <motion.button
               type="submit"
-              disabled={resource.status !== 'AVAILABLE' || isPending || !isValid()}
-              className="w-full py-2.5 bg-gradient-to-r from-indigo-700 to-indigo-500 hover:from-indigo-800 hover:to-indigo-600 disabled:from-slate-300 disabled:to-slate-300 dark:disabled:from-slate-700 dark:disabled:to-slate-700 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-500/20 transition-all"
+              disabled={resource.status !== 'AVAILABLE' || isPending || isCheckingAvailability}
+              animate={shake ? { x: [0, -10, 10, -8, 8, -4, 4, 0] } : { x: 0 }}
+              transition={{ duration: 0.4, ease: 'easeInOut' }}
+              className={`w-full py-2.5 font-semibold rounded-xl text-sm shadow-lg transition-all text-white
+                ${resource.status !== 'AVAILABLE' || isPending || isCheckingAvailability
+                  ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed shadow-none'
+                  : isValid()
+                    ? 'bg-gradient-to-r from-indigo-700 to-indigo-500 hover:from-indigo-800 hover:to-indigo-600 shadow-indigo-500/20 cursor-pointer'
+                    : 'bg-gradient-to-r from-slate-400 to-slate-300 dark:from-slate-600 dark:to-slate-700 shadow-none cursor-pointer'
+                }`}
             >
-              {isPending ? 'Booking…' : resource.status === 'AVAILABLE' ? 'Book this Facility' : 'Currently Unavailable'}
-            </button>
+              {isPending ? 'Booking…' : isCheckingAvailability ? 'Checking availability…' : resource.status === 'AVAILABLE' ? 'Book this Facility' : 'Currently Unavailable'}
+            </motion.button>
           </form>
         </div>
       </motion.div>

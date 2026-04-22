@@ -2,8 +2,6 @@ package com.campushub.smartcampus.controller;
 
 import com.campushub.smartcampus.dto.BookingRequestDTO;
 import com.campushub.smartcampus.dto.BookingResponseDTO;
-import com.campushub.smartcampus.dto.CancelSeriesResponse;
-import com.campushub.smartcampus.dto.RejectBookingRequestDTO;
 import com.campushub.smartcampus.enums.BookingStatus;
 import com.campushub.smartcampus.service.BookingService;
 import jakarta.validation.Valid;
@@ -14,7 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/bookings")
@@ -51,8 +51,8 @@ public class BookingController {
     }
 
     @PostMapping
-    public ResponseEntity<List<BookingResponseDTO>> createBooking(@Valid @RequestBody BookingRequestDTO dto) {
-        List<BookingResponseDTO> created = bookingService.createBooking(dto);
+    public ResponseEntity<BookingResponseDTO> createBooking(@Valid @RequestBody BookingRequestDTO dto) {
+        BookingResponseDTO created = bookingService.createBooking(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -67,16 +67,8 @@ public class BookingController {
     }
 
     @PutMapping("/{id}/reject")
-    public ResponseEntity<BookingResponseDTO> rejectBooking(
-            @PathVariable Long id,
-            @Valid @RequestBody RejectBookingRequestDTO dto) {
-        return ResponseEntity.ok(bookingService.rejectBooking(id, dto.getReason()));
-    }
-
-    @PostMapping("/series/{groupId}/cancel")
-    public ResponseEntity<CancelSeriesResponse> cancelSeries(@PathVariable String groupId) {
-        int cancelled = bookingService.cancelSeries(groupId);
-        return ResponseEntity.ok(new CancelSeriesResponse(cancelled));
+    public ResponseEntity<BookingResponseDTO> rejectBooking(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.rejectBooking(id));
     }
 
     @PostMapping("/{id}/cancel")
@@ -88,6 +80,18 @@ public class BookingController {
     public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
         bookingService.deleteBooking(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/check-availability")
+    public ResponseEntity<Map<String, Boolean>> checkAvailability(
+            @RequestParam Long resourceId,
+            @RequestParam String startTime,
+            @RequestParam String endTime) {
+        boolean available = bookingService.isAvailable(
+                resourceId,
+                LocalDateTime.parse(startTime),
+                LocalDateTime.parse(endTime));
+        return ResponseEntity.ok(Map.of("available", available));
     }
 
     @GetMapping("/stats/active")

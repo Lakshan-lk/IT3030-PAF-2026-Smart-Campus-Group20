@@ -3,7 +3,6 @@ package com.campushub.smartcampus.dto;
 import com.campushub.smartcampus.entity.Booking;
 import com.campushub.smartcampus.enums.BookingStatus;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -15,16 +14,18 @@ public class BookingResponseDTO {
     private Long userId;
     private String userName;
     private String purpose;
-    private Integer attendees;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String formattedStartTime;
     private String formattedEndTime;
     private BookingStatus status;
-    private String rejectionReason;
-    private boolean isRecurring;
-    private String recurrenceGroupId;
-    private LocalDate recurrenceEndDate;
+    private Integer attendees;
+    private Boolean isRecurring;
+    private String recurrencePattern;
+    private LocalDateTime recurrenceEndDate;
+    private String skipDates;
+    private String groupId;
+    private String requestedEquipmentIds;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -131,36 +132,52 @@ public class BookingResponseDTO {
         this.attendees = attendees;
     }
 
-    public String getRejectionReason() {
-        return rejectionReason;
-    }
-
-    public void setRejectionReason(String rejectionReason) {
-        this.rejectionReason = rejectionReason;
-    }
-
-    public boolean isRecurring() {
+    public Boolean getIsRecurring() {
         return isRecurring;
     }
 
-    public void setRecurring(boolean recurring) {
-        isRecurring = recurring;
+    public void setIsRecurring(Boolean isRecurring) {
+        this.isRecurring = isRecurring;
     }
 
-    public String getRecurrenceGroupId() {
-        return recurrenceGroupId;
+    public String getRecurrencePattern() {
+        return recurrencePattern;
     }
 
-    public void setRecurrenceGroupId(String recurrenceGroupId) {
-        this.recurrenceGroupId = recurrenceGroupId;
+    public void setRecurrencePattern(String recurrencePattern) {
+        this.recurrencePattern = recurrencePattern;
     }
 
-    public LocalDate getRecurrenceEndDate() {
+    public LocalDateTime getRecurrenceEndDate() {
         return recurrenceEndDate;
     }
 
-    public void setRecurrenceEndDate(LocalDate recurrenceEndDate) {
+    public void setRecurrenceEndDate(LocalDateTime recurrenceEndDate) {
         this.recurrenceEndDate = recurrenceEndDate;
+    }
+
+    public String getSkipDates() {
+        return skipDates;
+    }
+
+    public void setSkipDates(String skipDates) {
+        this.skipDates = skipDates;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getRequestedEquipmentIds() {
+        return requestedEquipmentIds;
+    }
+
+    public void setRequestedEquipmentIds(String requestedEquipmentIds) {
+        this.requestedEquipmentIds = requestedEquipmentIds;
     }
 
     public static BookingResponseDTO fromEntity(Booking booking) {
@@ -172,16 +189,18 @@ public class BookingResponseDTO {
         dto.setUserId(booking.getUser().getId());
         dto.setUserName(booking.getUser().getName());
         dto.setPurpose(booking.getPurpose());
-        dto.setAttendees(booking.getAttendees());
         dto.setStartTime(booking.getStartTime());
         dto.setEndTime(booking.getEndTime());
         dto.setFormattedStartTime(booking.getStartTime().format(formatter));
         dto.setFormattedEndTime(booking.getEndTime().format(formatter));
         dto.setStatus(booking.getStatus());
-        dto.setRejectionReason(booking.getRejectionReason());
-        dto.setRecurring(booking.isRecurring());
-        dto.setRecurrenceGroupId(booking.getRecurrenceGroupId());
+        dto.setAttendees(booking.getAttendees());
+        dto.setIsRecurring(booking.getIsRecurring());
+        dto.setRecurrencePattern(booking.getRecurrencePattern());
         dto.setRecurrenceEndDate(booking.getRecurrenceEndDate());
+        dto.setSkipDates(booking.getSkipDates());
+        dto.setGroupId(booking.getGroupId());
+        dto.setRequestedEquipmentIds(booking.getRequestedEquipmentIds());
         dto.setCreatedAt(booking.getCreatedAt());
         return dto;
     }
