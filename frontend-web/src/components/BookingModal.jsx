@@ -4,6 +4,8 @@ import { MdClose, MdEventAvailable, MdVideocam, MdMic, MdComputer, MdAcUnit, MdB
 import { TIME_SLOTS } from '../constants/facilities';
 import { useBookingForm } from '../hooks/useBookingForm';
 import { useAvailableEquipment } from '../hooks/useEquipment';
+import { resolveMediaUrl } from '../utils/media';
+import { getResourceVisual } from '../utils/resourceVisuals';
 
 const EQUIPMENT_ICONS = {
   PROJECTOR: MdCast,
@@ -28,6 +30,8 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
   } = useBookingForm({ onSuccess, initialDate, initialStartTime, initialEndTime });
 
   const { data: availableEquipment = [], isLoading: equipmentLoading } = useAvailableEquipment(resource?.id);
+  const visual = getResourceVisual(resource?.type);
+  const VisualIcon = visual.icon;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -48,10 +52,35 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
         {/* header image */}
         <div className="h-40 relative">
           {resource.imageUrl ? (
-            <img src={resource.imageUrl} alt={resource.name} className="w-full h-full object-cover" />
+            <img src={resolveMediaUrl(resource.imageUrl)} alt={resource.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-indigo-700 to-violet-500 flex items-center justify-center">
-              <MdEventAvailable className="text-white/40 text-6xl" />
+            <div className={`w-full h-full bg-gradient-to-br ${visual.gradient} flex items-center justify-center relative`}>
+              <motion.div
+                className="absolute inset-0 bg-black/10"
+                animate={{ opacity: [0.08, 0.18, 0.08] }}
+                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <motion.div
+                className="absolute top-4 left-4 w-12 h-12 rounded-full bg-white/10"
+                animate={{ y: [0, 8, 0], x: [0, 4, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <div className="relative z-10 text-center text-white">
+                <motion.div
+                  className="w-16 h-16 mx-auto rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20"
+                  animate={{ y: [0, -5, 0], rotate: [0, 2, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <VisualIcon className="text-4xl" />
+                </motion.div>
+                <motion.p
+                  className="mt-3 text-sm uppercase tracking-[0.3em] text-white/75"
+                  animate={{ letterSpacing: ['0.22em', '0.34em', '0.22em'] }}
+                  transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  {visual.title}
+                </motion.p>
+              </div>
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

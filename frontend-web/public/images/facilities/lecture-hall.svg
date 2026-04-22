@@ -1,0 +1,25 @@
+<svg width="1200" height="800" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1200" y2="800" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="0.55" stop-color="#1E3A8A"/>
+      <stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="280" y1="220" x2="920" y2="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#CBD5E1"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" rx="48" fill="url(#g1)"/>
+  <circle cx="950" cy="150" r="180" fill="#FFFFFF" fill-opacity="0.08"/>
+  <circle cx="180" cy="650" r="220" fill="#0EA5E9" fill-opacity="0.12"/>
+  <rect x="210" y="170" width="780" height="410" rx="32" fill="#0F172A" fill-opacity="0.35" stroke="#FFFFFF" stroke-opacity="0.15"/>
+  <rect x="280" y="240" width="640" height="40" rx="20" fill="#E2E8F0" fill-opacity="0.9"/>
+  <rect x="320" y="330" width="540" height="140" rx="24" fill="url(#g2)" opacity="0.95"/>
+  <rect x="340" y="360" width="120" height="20" rx="10" fill="#1E3A8A"/>
+  <rect x="340" y="394" width="260" height="18" rx="9" fill="#94A3B8"/>
+  <rect x="340" y="424" width="220" height="18" rx="9" fill="#94A3B8"/>
+  <rect x="620" y="360" width="190" height="92" rx="20" fill="#2563EB"/>
+  <text x="600" y="690" text-anchor="middle" fill="#F8FAFC" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="700">Lecture Hall</text>
+  <text x="600" y="744" text-anchor="middle" fill="#DBEAFE" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="500">Smart Campus Facilities</text>
+</svg>

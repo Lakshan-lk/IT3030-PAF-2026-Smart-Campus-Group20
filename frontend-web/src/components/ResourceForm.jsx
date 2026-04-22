@@ -1,59 +1,124 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MdClose } from 'react-icons/md';
+import { MdClose, MdCloudUpload, MdImage } from 'react-icons/md';
 import { useCreateResource, useUpdateResource } from '../hooks/useResources';
+import { resourceApi } from '../api/resourceApi';
+import { resolveMediaUrl } from '../utils/media';
 
-const ResourceForm = ({ resource, onClose }) => {
+const ResourceForm = ({ resource, onClose, onSaved }) => {
   const isEditing = !!resource;
-  
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    type: 'LECTURE_HALL',
-    location: '',
-    capacity: 10,
-    status: 'AVAILABLE',
-  });
+  const [imageFile, setImageFile] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
-  useEffect(() => {
-    if (resource) {
-      setFormData({
-        name: resource.name || '',
-        description: resource.description || '',
-        type: resource.type || 'LECTURE_HALL',
-        location: resource.location || '',
-        capacity: resource.capacity || 10,
-        status: resource.status || 'AVAILABLE',
-      });
-    }
-  }, [resource]);
+  const [formData, setFormData] = useState({
+    name: resource?.name || '',
+    description: resource?.description || '',
+    type: resource?.type || 'LECTURE_HALL',
+    location: resource?.location || '',
+    capacity: resource?.capacity || 10,
+    status: resource?.status || 'AVAILABLE',
+    imageUrl: resource?.imageUrl || '',
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    setSubmitError('');
     setFormData(prev => ({
       ...prev,
       [name]: name === 'capacity' ? parseInt(value, 10) || 0 : value
     }));
   };
 
-  const handleSubmit = (e) => {
+  const previewFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData(prev => ({
+        ...prev,
+        imageUrl: reader.result?.toString() || '',
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setImageFile(file);
+    setSubmitError('');
+
+    if (!file) {
+      setFormData(prev => ({
+        ...prev,
+        imageUrl: resource?.imageUrl || '',
+      }));
+      return;
+    }
+
+    previewFile(file);
+  };
+
+  const handleDrop = (e) => {
     e.preventDefault();
-    
-    if (isEditing) {
-      updateResource.mutate({ id: resource.id, data: formData }, {
-        onSuccess: () => onClose()
-      });
-    } else {
-      createResource.mutate(formData, {
-        onSuccess: () => onClose()
-      });
+    const file = e.dataTransfer.files?.[0] || null;
+    if (!file) return;
+    setImageFile(file);
+    setSubmitError('');
+    previewFile(file);
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setSubmitError('');
+    setFormData(prev => ({
+      ...prev,
+      imageUrl: resource?.imageUrl || '',
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitError('');
+    setIsSubmitting(true);
+
+    try {
+      let imageUrl = resource?.imageUrl || formData.imageUrl || '';
+
+      if (imageFile) {
+        const uploadResponse = await resourceApi.uploadImage(imageFile);
+        imageUrl = uploadResponse.data.imageUrl;
+      }
+
+      const payload = {
+        ...formData,
+        imageUrl,
+      };
+
+      if (isEditing) {
+        await updateResource.mutateAsync({ id: resource.id, data: payload });
+      } else {
+        await createResource.mutateAsync(payload);
+      }
+
+      if (onSaved) {
+        const successMessage = imageFile
+          ? (isEditing ? 'Image replaced successfully.' : 'Image uploaded successfully.')
+          : 'Resource saved successfully.';
+        onSaved(successMessage);
+      }
+
+      onClose();
+    } catch (error) {
+      console.error('Failed to save resource image', error);
+      setSubmitError(error?.response?.data?.message || error?.message || 'Failed to save resource');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const isLoading = createResource.isPending || updateResource.isPending;
+  const isLoading = createResource.isPending || updateResource.isPending || isSubmitting;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -170,6 +235,69 @@ const ResourceForm = ({ resource, onClose }) => {
               />
             </div>
           </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Image</label>
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+              className="w-full flex items-center gap-3 px-4 py-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-300 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                <MdCloudUpload className="text-xl text-indigo-500 dark:text-indigo-300" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">
+                  {imageFile ? imageFile.name : 'Drag & drop an image here or choose a file'}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  JPG, PNG, WebP or GIF files only.
+                </p>
+              </div>
+              <label className="px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                Choose
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </label>
+              {imageFile && (
+                <button
+                  type="button"
+                  onClick={clearImage}
+                  className="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-sm font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+              Uploaded files are stored on the server and linked to the facility automatically.
+            </p>
+          </div>
+
+          {formData.imageUrl && (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+              <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Image Preview
+              </div>
+              <div className="h-40 bg-slate-200 dark:bg-slate-800">
+                <img
+                  src={resolveMediaUrl(formData.imageUrl)}
+                  alt={formData.name || 'Resource preview'}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+          )}
+
+          {submitError && (
+            <div className="p-3 rounded-xl border border-rose-200 dark:border-rose-800/40 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 text-sm">
+              {submitError}
+            </div>
+          )}
 
           <div className="pt-4 flex gap-3">
             <button

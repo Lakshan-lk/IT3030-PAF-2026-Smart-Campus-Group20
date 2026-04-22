@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MdSearch, MdAdd, MdEdit, MdDelete, MdCancel, MdApartment } from 'react-icons/md';
+import { MdSearch, MdAdd, MdEdit, MdDelete, MdApartment, MdCheckCircle } from 'react-icons/md';
 import { useResources, useDeleteResource } from '../hooks/useResources';
 import ResourceForm from '../components/ResourceForm';
 
@@ -18,21 +18,17 @@ const AdminResourcesPage = () => {
   const deleteResource = useDeleteResource();
   
   const resources = data?.content || [];
-  const totalElements = data?.totalElements || 0;
   const totalPages = data?.totalPages || 0;
 
   const [activeTab, setActiveTab] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
+  const [toastMessage, setToastMessage] = useState('');
 
   const filteredResources = resources.filter(r => {
     if (activeTab === 'all') return true;
     return r.status === activeTab.toUpperCase();
   });
-
-  const stats = {
-    total: totalElements,
-  };
 
   const tabs = [
     { key: 'all', label: 'All' },
@@ -61,6 +57,11 @@ const AdminResourcesPage = () => {
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setEditingResource(null);
+  };
+
+  const handleSaved = (message) => {
+    setToastMessage(message);
+    window.setTimeout(() => setToastMessage(''), 2500);
   };
 
   const statusColors = {
@@ -97,6 +98,27 @@ const AdminResourcesPage = () => {
           Add Resource
         </button>
       </div>
+
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            className="fixed bottom-6 right-6 z-[120] max-w-sm"
+          >
+            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-600 text-white shadow-2xl shadow-emerald-950/20">
+              <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+                <MdCheckCircle className="text-xl" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">{toastMessage}</p>
+                <p className="text-xs text-white/80">Changes are now live in Facilities.</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl shadow-sm shadow-slate-900/5 dark:shadow-black/20 border border-slate-200/60 dark:border-slate-700/40 overflow-hidden">
         <div className="p-5 border-b border-slate-100 dark:border-slate-700/40">
@@ -246,8 +268,10 @@ const AdminResourcesPage = () => {
       <AnimatePresence>
         {isFormOpen && (
           <ResourceForm 
+            key={editingResource?.id ?? 'new'}
             resource={editingResource} 
-            onClose={handleCloseForm} 
+            onClose={handleCloseForm}
+            onSaved={handleSaved}
           />
         )}
       </AnimatePresence>

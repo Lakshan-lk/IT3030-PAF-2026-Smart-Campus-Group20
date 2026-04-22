@@ -27,10 +27,12 @@ public class ResourceService {
 
     private final ResourceRepository resourceRepository;
     private final EquipmentRepository equipmentRepository;
+    private final ResourceImageService resourceImageService;
 
-    public ResourceService(ResourceRepository resourceRepository, EquipmentRepository equipmentRepository) {
+    public ResourceService(ResourceRepository resourceRepository, EquipmentRepository equipmentRepository, ResourceImageService resourceImageService) {
         this.resourceRepository = resourceRepository;
         this.equipmentRepository = equipmentRepository;
+        this.resourceImageService = resourceImageService;
     }
 
     @Transactional(readOnly = true)
@@ -142,6 +144,8 @@ public class ResourceService {
     public ResourceResponseDTO updateResource(Long id, ResourceRequestDTO dto) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
+
+        String previousImageUrl = resource.getImageUrl();
         
         if (resource.isDeleted()) {
              throw new EntityNotFoundException("Resource not found with id: " + id);
@@ -163,12 +167,16 @@ public class ResourceService {
         resource.setAmenities(dto.getAmenities());
 
         Resource saved = resourceRepository.save(resource);
+        if (previousImageUrl != null && !previousImageUrl.equals(saved.getImageUrl())) {
+            resourceImageService.deleteResourceImage(previousImageUrl);
+        }
         return ResourceResponseDTO.fromEntity(saved);
     }
 
     public void deleteResource(Long id) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
+        resourceImageService.deleteResourceImage(resource.getImageUrl());
         resource.setDeleted(true);
         resourceRepository.save(resource);
     }
