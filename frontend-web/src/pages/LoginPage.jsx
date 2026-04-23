@@ -15,7 +15,14 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (!authUser) return;
-    navigate(authUser.role === 'admin' ? '/admin/overview' : '/', { replace: true });
+    navigate(
+      authUser.role === 'admin'
+        ? '/admin/overview'
+        : authUser.role === 'technician'
+          ? '/technician/tickets'
+          : '/',
+      { replace: true }
+    );
   }, [authUser, navigate]);
 
   useEffect(() => {
@@ -35,7 +42,14 @@ const LoginPage = () => {
             return;
           }
 
-          navigate(result.role === 'admin' ? '/admin/overview' : '/', { replace: true });
+          navigate(
+            result.role === 'admin'
+              ? '/admin/overview'
+              : result.role === 'technician'
+                ? '/technician/tickets'
+                : '/',
+            { replace: true }
+          );
         },
       });
 
@@ -70,17 +84,24 @@ const LoginPage = () => {
     document.body.appendChild(script);
   }, [googleClientId, loginWithGoogle, navigate]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    const result = login(username, password);
+    const result = await login(username, password);
 
     if (!result.success) {
       setError(result.message);
       return;
     }
 
-    navigate(result.role === 'admin' ? '/admin/overview' : '/', { replace: true });
+    navigate(
+      result.role === 'admin'
+        ? '/admin/overview'
+        : result.role === 'technician'
+          ? '/technician/tickets'
+          : '/',
+      { replace: true }
+    );
   };
 
   return (
@@ -108,7 +129,7 @@ const LoginPage = () => {
           <div className="mb-7">
             <h1 className="text-2xl font-black text-slate-900">Sign In</h1>
             <p className="text-sm text-slate-500 mt-1">
-              Welcome back to Smart Campus. Google sign-in is the recommended path.
+              Admin-created technicians can sign in here with their username and password. Students and staff should use Google sign-in.
             </p>
           </div>
 
@@ -166,7 +187,7 @@ const LoginPage = () => {
           )}
 
           <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-            Use Google to create or reopen a campus account.
+            Technician accounts are created by admins and stored in the shared campus database.
           </p>
 
           <p className="text-center text-xs text-slate-400 mt-6 font-medium md:hidden">

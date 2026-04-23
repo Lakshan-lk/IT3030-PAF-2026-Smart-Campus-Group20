@@ -50,6 +50,17 @@ public class AdminUserCreateRequestDTO {
     @Size(max = 120)
     private String designation;
 
+    @Size(max = 255)
+    private String username;
+
+    @Size(min = 4, max = 255)
+    private String password;
+
+    @Size(max = 120)
+    private String profession;
+
+    private String role;
+
     public String getName() {
         return name;
     }
@@ -136,5 +147,37 @@ public class AdminUserCreateRequestDTO {
 
     public void setDesignation(String designation) {
         this.designation = designation;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getProfession() {
+        return profession;
+    }
+
+    public void setProfession(String profession) {
+        this.profession = profession;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

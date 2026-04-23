@@ -13,6 +13,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 	boolean existsByPhone(String phone);
 
+	boolean existsByUsernameIgnoreCase(String username);
+
 	Optional<User> findByEmailIgnoreCase(String email);
 
 	Optional<User> findByProviderAndProviderId(String provider, String providerId);
@@ -20,4 +22,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 	Optional<User> findTopByUniversityIdStartingWithOrderByUniversityIdDesc(String prefix);
 
 	List<User> findAllByOrderByCreatedAtDesc();
+
+	Optional<User> findByUsernameIgnoreCase(String username);
 }

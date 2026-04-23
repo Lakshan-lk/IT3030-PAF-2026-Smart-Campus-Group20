@@ -62,7 +62,7 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
   const availableStatusOptions = useMemo(() => {
     switch (ticket?.status) {
       case 'OPEN':
-        return ['IN_PROGRESS', 'REJECTED'];
+        return ['REJECTED']; // IN_PROGRESS happens automatically upon assignment
       case 'IN_PROGRESS':
         return ['RESOLVED', 'REJECTED'];
       case 'RESOLVED':

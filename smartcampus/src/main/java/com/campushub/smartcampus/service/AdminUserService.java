@@ -31,6 +31,7 @@ public class AdminUserService {
     }
 
     public AdminUserResponseDTO createUser(AdminUserCreateRequestDTO dto) {
+        normalizeTechnicianFields(dto);
         validateUniqueness(dto);
         validateTypeSpecificFields(dto);
 
@@ -54,7 +55,10 @@ public class AdminUserService {
         user.setYearOfStudy(dto.getYearOfStudy());
         user.setDepartment(cleanOptional(dto.getDepartment()));
         user.setDesignation(cleanOptional(dto.getDesignation()));
-        user.setRole("USER");
+        user.setUsername(cleanOptional(dto.getUsername()));
+        user.setPassword(cleanOptional(dto.getPassword()));
+        user.setProfession(cleanOptional(dto.getProfession()));
+        user.setRole(dto.getRole() != null && !dto.getRole().trim().isEmpty() ? dto.getRole().trim() : "USER");
 
         User saved = userRepository.save(user);
         return AdminUserResponseDTO.fromEntity(saved);
@@ -70,9 +74,35 @@ public class AdminUserService {
         if (userRepository.existsByPhone(phone)) {
             throw new IllegalArgumentException("Phone number is already in use");
         }
+
+        String role = dto.getRole() != null ? dto.getRole().trim().toUpperCase(Locale.ROOT) : "USER";
+        if ("TECHNICIAN".equals(role)) {
+            if (dto.getUsername() == null || dto.getUsername().isBlank()) {
+                throw new IllegalArgumentException("Username is required for technicians");
+            }
+            String username = dto.getUsername().trim().toLowerCase(Locale.ROOT);
+            if (userRepository.existsByUsernameIgnoreCase(username)) {
+                throw new IllegalArgumentException("Username is already in use");
+            }
+        }
     }
 
     private void validateTypeSpecificFields(AdminUserCreateRequestDTO dto) {
+        String role = dto.getRole() != null ? dto.getRole().trim().toUpperCase(Locale.ROOT) : "USER";
+
+        if ("TECHNICIAN".equals(role)) {
+            if (dto.getUsername() == null || dto.getUsername().isBlank()) {
+                throw new IllegalArgumentException("Username is required for technicians");
+            }
+            if (dto.getPassword() == null || dto.getPassword().isBlank()) {
+                throw new IllegalArgumentException("Password is required for technicians");
+            }
+            if (dto.getProfession() == null || dto.getProfession().isBlank()) {
+                throw new IllegalArgumentException("Profession is required for technicians");
+            }
+            return;
+        }
+
         if (dto.getUserType() == UserType.STUDENT) {
             if (dto.getCourse() == null || dto.getCourse().isBlank()) {
                 throw new IllegalArgumentException("Course is required for students");
@@ -89,6 +119,29 @@ public class AdminUserService {
             if (dto.getDesignation() == null || dto.getDesignation().isBlank()) {
                 throw new IllegalArgumentException("Designation is required for staff");
             }
+        }
+    }
+
+    private void normalizeTechnicianFields(AdminUserCreateRequestDTO dto) {
+        if (dto.getRole() == null) {
+            return;
+        }
+
+        String normalizedRole = dto.getRole().trim().toUpperCase(Locale.ROOT);
+        dto.setRole(normalizedRole);
+
+        if (!"TECHNICIAN".equals(normalizedRole)) {
+            return;
+        }
+
+        dto.setUserType(UserType.STAFF);
+        dto.setCourse(null);
+        dto.setYearOfStudy(null);
+        dto.setDepartment(null);
+        dto.setDesignation(null);
+
+        if (dto.getUsername() != null) {
+            dto.setUsername(dto.getUsername().trim().toLowerCase(Locale.ROOT));
         }
     }
 

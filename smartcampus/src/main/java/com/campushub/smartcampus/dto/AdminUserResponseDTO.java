@@ -21,6 +21,8 @@ public class AdminUserResponseDTO {
     private Integer yearOfStudy;
     private String department;
     private String designation;
+    private String username;
+    private String profession;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -135,6 +137,22 @@ public class AdminUserResponseDTO {
         this.designation = designation;
     }
 
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getProfession() {
+        return profession;
+    }
+
+    public void setProfession(String profession) {
+        this.profession = profession;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -159,6 +177,8 @@ public class AdminUserResponseDTO {
         dto.setYearOfStudy(user.getYearOfStudy());
         dto.setDepartment(user.getDepartment());
         dto.setDesignation(user.getDesignation());
+        dto.setUsername(user.getUsername());
+        dto.setProfession(user.getProfession());
         dto.setCreatedAt(user.getCreatedAt());
         return dto;
     }

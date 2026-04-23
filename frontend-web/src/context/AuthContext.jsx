@@ -2,8 +2,6 @@ import React, { createContext, useContext, useMemo, useState } from 'react';
 import { authApi } from '../api/authApi';
 
 const STORAGE_KEY = 'smartcampus-auth-user';
-const USERS_STORAGE_KEY = 'smartcampus-auth-users';
-const DEFAULT_USERS = [{ username: 'user', password: 'user', provider: 'local' }];
 
 const AuthContext = createContext();
 
@@ -23,111 +21,38 @@ function readStoredUser() {
   }
 }
 
-function readStoredUsers() {
-  try {
-    const raw = localStorage.getItem(USERS_STORAGE_KEY);
-    if (!raw) return DEFAULT_USERS;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return DEFAULT_USERS;
-
-    const validUsers = parsed.filter((user) => user?.username && typeof user.username === 'string');
-    return withDefaultUser(validUsers);
-  } catch {
-    return DEFAULT_USERS;
-  }
-}
-
-function withDefaultUser(users) {
-  const hasDefault = users.some((user) => normalizeUsername(user.username) === 'user');
-  if (hasDefault) return users;
-  return [...users, ...DEFAULT_USERS];
-}
-
-function persistUsers(users) {
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(withDefaultUser(users)));
-}
-
-function buildSessionUser(username) {
-  return { username, role: 'user' };
-}
-
-function ensureUniqueUsername(baseUsername, existingUsers) {
-  let candidate = baseUsername;
-  let suffix = 1;
-  const existing = new Set(existingUsers.map((u) => normalizeUsername(u.username)));
-
-  while (existing.has(candidate)) {
-    candidate = `${baseUsername}${suffix}`;
-    suffix += 1;
-  }
-
-  return candidate;
-}
-
 export function AuthProvider({ children }) {
   const [authUser, setAuthUser] = useState(() => readStoredUser());
-  const [registeredUsers, setRegisteredUsers] = useState(() => readStoredUsers());
 
-  const login = (username, password) => {
+  const login = async (username, password) => {
     const normalizedUser = normalizeUsername(username);
 
+    // Keep admin/admin hardcoded fallback if needed, but return same structure
     if (normalizedUser === 'admin' && password === 'admin') {
-      const user = { username: 'admin', role: 'admin' };
+      const user = { id: 1, username: 'admin', role: 'admin', name: 'System Administrator' };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
       setAuthUser(user);
       return { success: true, role: 'admin' };
     }
 
-    const matchedUser = registeredUsers.find((user) =>
-      normalizeUsername(user.username) === normalizedUser && user.password === password
-    );
-
-    if (matchedUser) {
-      const user = buildSessionUser(matchedUser.username);
+    try {
+      const res = await authApi.localLogin(username, password);
+      const user = res.data;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
       setAuthUser(user);
-      return { success: true, role: 'user' };
+      return { success: true, role: user.role };
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.response?.status === 401
+          ? 'Invalid username or password'
+          : (error?.response?.data?.message || 'Unable to sign in right now'),
+      };
     }
-
-    return { success: false, message: 'Invalid username or password' };
   };
 
   const register = (username, password) => {
-    const normalizedUser = normalizeUsername(username);
-
-    if (!normalizedUser || normalizedUser.length < 3) {
-      return { success: false, message: 'Username must be at least 3 characters' };
-    }
-
-    if (!password || password.length < 4) {
-      return { success: false, message: 'Password must be at least 4 characters' };
-    }
-
-    if (normalizedUser === 'admin') {
-      return { success: false, message: 'This username is reserved' };
-    }
-
-    const alreadyExists = registeredUsers.some(
-      (user) => normalizeUsername(user.username) === normalizedUser
-    );
-
-    if (alreadyExists) {
-      return { success: false, message: 'Username already exists' };
-    }
-
-    const nextUsers = withDefaultUser([
-      ...registeredUsers,
-      { username: normalizedUser, password, provider: 'local' },
-    ]);
-
-    setRegisteredUsers(nextUsers);
-    persistUsers(nextUsers);
-
-    const sessionUser = buildSessionUser(normalizedUser);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser));
-    setAuthUser(sessionUser);
-
-    return { success: true, role: 'user' };
+    return { success: false, message: 'Direct registration is disabled. Ask an admin or use Google sign-in.' };
   };
 
   const loginWithGoogle = async (credential) => {
@@ -166,7 +91,7 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(
     () => ({ authUser, login, register, loginWithGoogle, logout }),
-    [authUser, registeredUsers]
+    [authUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
