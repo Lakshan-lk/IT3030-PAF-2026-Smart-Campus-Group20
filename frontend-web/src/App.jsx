@@ -12,6 +12,7 @@ import AdminBookingsPage from './pages/AdminBookingsPage';
 import AdminResourcesPage from './pages/AdminResourcesPage';
 import AdminEquipmentPage from './pages/AdminEquipmentPage';
 import AdminTicketsPage from './pages/AdminTicketsPage';
+import DebugNotificationsPage from './pages/DebugNotificationsPage';
 import { useAuth } from './context/AuthContext';
 
 const RequireAuth = ({ allowedRoles }) => {
@@ -52,6 +53,7 @@ function App() {
             <Route path="/facilities" element={<FacilitiesPage />} />
             <Route path="/bookings" element={<BookingsPage />} />
             <Route path="/tickets" element={<TicketsPage />} />
+            <Route path="/debug/notifications" element={<DebugNotificationsPage />} />
           </Route>
         </Route>
 
@@ -63,6 +65,7 @@ function App() {
             <Route path="/admin/equipment" element={<AdminEquipmentPage />} />
             <Route path="/admin/tickets" element={<AdminTicketsPage />} />
             <Route path="/admin" element={<AdminOverviewPage />} />
+            <Route path="/debug/notifications" element={<DebugNotificationsPage />} />
           </Route>
         </Route>
 

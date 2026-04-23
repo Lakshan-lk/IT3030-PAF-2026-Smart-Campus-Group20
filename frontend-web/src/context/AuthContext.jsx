@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
 import { authApi } from '../api/authApi';
+import { userApi } from '../api/userApi';
 
 const STORAGE_KEY = 'smartcampus-auth-user';
 const USERS_STORAGE_KEY = 'smartcampus-auth-users';
@@ -47,8 +48,8 @@ function persistUsers(users) {
   localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(withDefaultUser(users)));
 }
 
-function buildSessionUser(username) {
-  return { username, role: 'user' };
+function buildSessionUser(username, id = null) {
+  return { username, role: 'user', id };
 }
 
 function ensureUniqueUsername(baseUsername, existingUsers) {
@@ -72,9 +73,27 @@ export function AuthProvider({ children }) {
     const normalizedUser = normalizeUsername(username);
 
     if (normalizedUser === 'admin' && password === 'admin') {
-      const user = { username: 'admin', role: 'admin' };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      setAuthUser(user);
+      // Fetch admin user from backend to get correct ID
+      fetch('http://localhost:8080/api/v1/users/debug/all')
+        .then(r => r.json())
+        .then(users => {
+          const adminUser = users.find(u => u.email === 'admin@campus.lk' || u.role === 'ADMIN');
+          const user = { 
+            username: 'admin', 
+            role: 'admin', 
+            id: adminUser?.id || 1, 
+            name: adminUser?.name || 'Admin' 
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+          setAuthUser(user);
+          console.log('Admin login - stored user:', user);
+        })
+        .catch(err => {
+          // Fallback if fetch fails
+          const user = { username: 'admin', role: 'admin', id: 1, name: 'Admin' };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+          setAuthUser(user);
+        });
       return { success: true, role: 'admin' };
     }
 
@@ -83,7 +102,7 @@ export function AuthProvider({ children }) {
     );
 
     if (matchedUser) {
-      const user = buildSessionUser(matchedUser.username);
+      const user = buildSessionUser(matchedUser.username, matchedUser.id);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
       setAuthUser(user);
       return { success: true, role: 'user' };
@@ -115,15 +134,16 @@ export function AuthProvider({ children }) {
       return { success: false, message: 'Username already exists' };
     }
 
+    const newId = Date.now();
     const nextUsers = withDefaultUser([
       ...registeredUsers,
-      { username: normalizedUser, password, provider: 'local' },
+      { username: normalizedUser, password, provider: 'local', id: newId },
     ]);
 
     setRegisteredUsers(nextUsers);
     persistUsers(nextUsers);
 
-    const sessionUser = buildSessionUser(normalizedUser);
+    const sessionUser = buildSessionUser(normalizedUser, newId);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser));
     setAuthUser(sessionUser);
 
@@ -139,7 +159,7 @@ export function AuthProvider({ children }) {
       const response = await authApi.googleLogin(credential);
       const user = response.data;
       const sessionUser = {
-        ...user,
+        id: user.id,
         username: user.username || user.name || user.email?.split('@')[0] || 'user',
         role: user.role || 'user',
       };

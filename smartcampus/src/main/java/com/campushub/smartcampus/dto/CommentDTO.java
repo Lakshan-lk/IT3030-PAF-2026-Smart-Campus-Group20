@@ -11,6 +11,7 @@ public class CommentDTO {
     private Long userId;
     private String userName;
     private String userAvatar;
+    private String userRole;
     private String content;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -55,6 +56,14 @@ public class CommentDTO {
         this.userAvatar = userAvatar;
     }
 
+    public String getUserRole() {
+        return userRole;
+    }
+
+    public void setUserRole(String userRole) {
+        this.userRole = userRole;
+    }
+
     public String getContent() {
         return content;
     }
@@ -86,6 +95,7 @@ public class CommentDTO {
         dto.setUserId(comment.getUser().getId());
         dto.setUserName(comment.getUser().getName());
         dto.setUserAvatar(comment.getUser().getProfileImageUrl());
+        dto.setUserRole(comment.getUser().getRole());
         dto.setContent(comment.getContent());
         dto.setCreatedAt(comment.getCreatedAt());
         dto.setUpdatedAt(comment.getUpdatedAt());

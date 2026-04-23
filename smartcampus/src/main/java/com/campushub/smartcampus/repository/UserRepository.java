@@ -20,4 +20,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 	Optional<User> findTopByUniversityIdStartingWithOrderByUniversityIdDesc(String prefix);
 
 	List<User> findAllByOrderByCreatedAtDesc();
+
+	List<User> findByRoleIn(List<String> roles);
 }
