@@ -69,6 +69,9 @@ const CommentThread = ({ ticketId }) => {
         <div>
           <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Discussion</p>
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Comments</h3>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Users can ask for updates, technicians can report progress, and admins can add instructions at any stage.
+          </p>
         </div>
         <span className="rounded-full bg-slate-100 dark:bg-slate-700/50 px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
           {sortedComments.length}

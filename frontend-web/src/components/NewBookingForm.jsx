@@ -11,6 +11,13 @@ import { useAuth } from '../context/AuthContext';
 import { useResourceAvailability } from '../hooks/useResourceAvailability';
 
 const ROOM_TYPES = ['LECTURE_HALL', 'LAB', 'MEETING_ROOM', 'WORKSHOP'];
+const EXTRA_EQUIPMENT_OPTIONS = [
+  { key: 'PROJECTOR', label: 'Projector' },
+  { key: 'MIC', label: 'Mic' },
+  { key: 'CAMERA', label: 'Camera' },
+  { key: 'SPEAKER', label: 'Speaker' },
+  { key: 'WHITEBOARD', label: 'Whiteboard' },
+];
 
 const TIME_SLOTS = Array.from({ length: 11 }, (_, i) => {
   const hour = 8 + i;
@@ -24,7 +31,7 @@ const NewBookingForm = ({ isOpen, onClose, initialResourceId }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [filters, setFilters] = useState({ type: '', minCapacity: '', startTime: '', endTime: '', date: '' });
-  const [formData, setFormData] = useState({ purpose: '', attendees: '' });
+  const [formData, setFormData] = useState({ purpose: '', attendees: '', additionalEquipment: {} });
   const [errors, setErrors] = useState({});
   const [conflictError, setConflictError] = useState('');
 
@@ -45,7 +52,7 @@ const NewBookingForm = ({ isOpen, onClose, initialResourceId }) => {
       setCurrentStep(1);
       setSelectedRoom(null);
       setFilters({ type: '', minCapacity: '', startTime: '', endTime: '', date: '' });
-      setFormData({ purpose: '', attendees: '' });
+      setFormData({ purpose: '', attendees: '', additionalEquipment: {} });
       setErrors({});
       setConflictError('');
     }
@@ -67,6 +74,18 @@ const NewBookingForm = ({ isOpen, onClose, initialResourceId }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
     setConflictError('');
+  };
+
+  const handleAdditionalEquipmentChange = (equipmentKey, quantity) => {
+    setFormData((prev) => {
+      const next = { ...(prev.additionalEquipment || {}) };
+      if (!quantity || Number(quantity) < 1) {
+        delete next[equipmentKey];
+      } else {
+        next[equipmentKey] = Number(quantity);
+      }
+      return { ...prev, additionalEquipment: next };
+    });
   };
 
   const validateStep1 = () => {
@@ -104,6 +123,7 @@ const NewBookingForm = ({ isOpen, onClose, initialResourceId }) => {
       startTime: `${filters.date}T${fmt(filters.startTime)}`,
       endTime: `${filters.date}T${fmt(filters.endTime)}`,
       recurring: false,
+      additionalEquipment: formData.additionalEquipment,
     };
     try {
       await createBooking.mutateAsync(payload);
@@ -448,6 +468,33 @@ const NewBookingForm = ({ isOpen, onClose, initialResourceId }) => {
                       className={`w-full px-4 py-3 rounded-xl border ${errors.attendees ? 'border-rose-300 dark:border-rose-600' : 'border-slate-200 dark:border-slate-600'} bg-white dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 outline-none text-sm`}
                     />
                     {errors.attendees && <p className="text-xs text-rose-500 mt-1.5">{errors.attendees}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      Additional Equipment
+                    </label>
+                    <div className="space-y-2 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-700/20 p-4">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Optional extras for this booking. These are request-only and are not inventory-tracked.
+                      </p>
+                      {EXTRA_EQUIPMENT_OPTIONS.map((option) => {
+                        const value = formData.additionalEquipment?.[option.key] || 0;
+                        return (
+                          <div key={option.key} className="flex items-center justify-between gap-3 rounded-xl bg-white dark:bg-slate-700/40 px-3 py-2.5 border border-slate-200/70 dark:border-slate-600/40">
+                            <span className="text-sm text-slate-700 dark:text-slate-200">{option.label}</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={value}
+                              onChange={(event) => handleAdditionalEquipmentChange(option.key, event.target.value)}
+                              placeholder="0"
+                              className="w-20 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm outline-none"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div className="flex gap-3 pt-2">

@@ -59,17 +59,6 @@ export function useUpdateTicketStatus() {
   });
 }
 
-export function useUploadTicketAttachments() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, formData }) => ticketApi.uploadAttachments(id, formData),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tickets'] });
-      queryClient.invalidateQueries({ queryKey: ['tickets', variables.id] });
-    },
-  });
-}
-
 export function useDeleteTicket() {
   const queryClient = useQueryClient();
   return useMutation({

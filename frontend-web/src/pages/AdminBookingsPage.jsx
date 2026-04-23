@@ -329,6 +329,11 @@ const AdminBookingsPage = () => {
                           <p style={{ fontSize: 13, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {booking.purpose}
                           </p>
+                          {booking.additionalEquipmentSummary && (
+                            <p style={{ fontSize: 11, color: '#818cf8', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              Extra: {booking.additionalEquipmentSummary}
+                            </p>
+                          )}
                         </td>
 
                         {/* Date & Time */}

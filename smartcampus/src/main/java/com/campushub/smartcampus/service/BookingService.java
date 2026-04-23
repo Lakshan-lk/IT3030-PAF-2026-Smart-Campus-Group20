@@ -163,6 +163,7 @@ public class BookingService {
 
         String groupId = UUID.randomUUID().toString();
         String skipDatesStr = dto.getSkipDates() != null ? String.join(",", dto.getSkipDates()) : null;
+        String additionalEquipmentRequest = BookingRequestDTO.serializeAdditionalEquipment(dto.getAdditionalEquipment());
 
         List<BookingResponseDTO> results = new ArrayList<>();
         for (int i = 0; i < occurrenceStarts.size(); i++) {
@@ -179,6 +180,7 @@ public class BookingService {
             booking.setRecurrencePattern("WEEKLY");
             booking.setRecurrenceEndDate(endDate);
             booking.setSkipDates(skipDatesStr);
+            booking.setAdditionalEquipmentRequest(additionalEquipmentRequest);
 
             Booking saved = bookingRepository.save(booking);
             results.add(BookingResponseDTO.fromEntity(saved));
@@ -202,8 +204,10 @@ public class BookingService {
 
         booking.setResource(resource);
         booking.setPurpose(dto.getPurpose());
+        booking.setAttendees(dto.getAttendees());
         booking.setStartTime(dto.getStartTime());
         booking.setEndTime(dto.getEndTime());
+        booking.setAdditionalEquipmentRequest(BookingRequestDTO.serializeAdditionalEquipment(dto.getAdditionalEquipment()));
 
         Booking saved = bookingRepository.save(booking);
         return BookingResponseDTO.fromEntity(saved);

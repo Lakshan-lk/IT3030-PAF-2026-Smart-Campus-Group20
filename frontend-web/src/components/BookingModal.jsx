@@ -15,6 +15,14 @@ const STATUS_STYLE = {
   full:    { bg: 'bg-rose-500',     ring: 'ring-rose-300',    label: 'Fully booked' },
 };
 
+const EXTRA_EQUIPMENT_OPTIONS = [
+  { key: 'PROJECTOR', label: 'Projector' },
+  { key: 'MIC', label: 'Mic' },
+  { key: 'CAMERA', label: 'Camera' },
+  { key: 'SPEAKER', label: 'Speaker' },
+  { key: 'WHITEBOARD', label: 'Whiteboard' },
+];
+
 const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartTime, initialEndTime }) => {
   const isAvailable = resource.status === 'ACTIVE' || resource.status === 'AVAILABLE';
   const { authUser } = useAuth();
@@ -22,6 +30,7 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
     bookingData, setBookingData,
     conflictError,
     handleChange,
+    updateAdditionalEquipment,
     isValid,
     submit,
     isPending,
@@ -247,6 +256,32 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
               <input type="number" name="attendees" value={bookingData.attendees} onChange={handleChange}
                 placeholder="1" min="1"
                 className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50" />
+            </div>
+
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700/50 p-3">
+              <div className="mb-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Additional Equipment</p>
+                <p className="text-xs text-slate-400 mt-1">Optional. Request extras like projectors, mics, or cameras for this booking.</p>
+              </div>
+
+              <div className="space-y-2">
+                {EXTRA_EQUIPMENT_OPTIONS.map((option) => {
+                  const value = bookingData.additionalEquipment?.[option.key] || 0;
+                  return (
+                    <div key={option.key} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 dark:bg-slate-900/60 px-3 py-2">
+                      <span className="text-sm text-slate-700 dark:text-slate-200">{option.label}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={value}
+                        onChange={(event) => updateAdditionalEquipment(option.key, event.target.value)}
+                        placeholder="0"
+                        className="w-20 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm outline-none"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {conflictError && (

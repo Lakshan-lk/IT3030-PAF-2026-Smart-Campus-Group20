@@ -5,6 +5,7 @@ import com.campushub.smartcampus.dto.AdminUserResponseDTO;
 import com.campushub.smartcampus.entity.User;
 import com.campushub.smartcampus.enums.UserType;
 import com.campushub.smartcampus.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,8 +33,8 @@ public class AdminUserService {
 
     public AdminUserResponseDTO createUser(AdminUserCreateRequestDTO dto) {
         normalizeTechnicianFields(dto);
-        validateUniqueness(dto);
-        validateTypeSpecificFields(dto);
+        validateUniqueness(dto, null);
+        validateTypeSpecificFields(dto, false);
 
         int registrationYear = dto.getRegistrationYear() != null ? dto.getRegistrationYear() : DEFAULT_REGISTRATION_YEAR;
         if (registrationYear < 2000 || registrationYear > 2099) {
@@ -64,14 +65,60 @@ public class AdminUserService {
         return AdminUserResponseDTO.fromEntity(saved);
     }
 
-    private void validateUniqueness(AdminUserCreateRequestDTO dto) {
+    public AdminUserResponseDTO updateTechnician(Long id, AdminUserCreateRequestDTO dto) {
+        normalizeTechnicianFields(dto);
+        validateTechnicianOnly(dto);
+        validateUniqueness(dto, id);
+        validateTypeSpecificFields(dto, true);
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+        ensureTechnician(user);
+
+        user.setName(dto.getName().trim());
+        user.setEmail(dto.getEmail().trim().toLowerCase(Locale.ROOT));
+        user.setAge(dto.getAge());
+        user.setAddress(dto.getAddress().trim());
+        user.setPhone(dto.getPhone().trim());
+        user.setRegistrationYear(dto.getRegistrationYear() != null ? dto.getRegistrationYear() : user.getRegistrationYear());
+        user.setUsername(cleanOptional(dto.getUsername()));
+        String nextPassword = cleanOptional(dto.getPassword());
+        if (nextPassword != null) {
+            user.setPassword(nextPassword);
+        }
+        user.setProfession(cleanOptional(dto.getProfession()));
+        user.setRole("TECHNICIAN");
+        user.setUserType(UserType.STAFF);
+        user.setCourse(null);
+        user.setYearOfStudy(null);
+        user.setDepartment(null);
+        user.setDesignation(null);
+
+        User saved = userRepository.save(user);
+        return AdminUserResponseDTO.fromEntity(saved);
+    }
+
+    public void deleteTechnician(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+        ensureTechnician(user);
+        userRepository.delete(user);
+    }
+
+    private void validateUniqueness(AdminUserCreateRequestDTO dto, Long existingUserId) {
         String email = dto.getEmail().trim().toLowerCase(Locale.ROOT);
         String phone = dto.getPhone().trim();
 
-        if (userRepository.existsByEmailIgnoreCase(email)) {
+        boolean emailExists = existingUserId == null
+                ? userRepository.existsByEmailIgnoreCase(email)
+                : userRepository.existsByEmailIgnoreCaseAndIdNot(email, existingUserId);
+        if (emailExists) {
             throw new IllegalArgumentException("Email is already in use");
         }
-        if (userRepository.existsByPhone(phone)) {
+        boolean phoneExists = existingUserId == null
+                ? userRepository.existsByPhone(phone)
+                : userRepository.existsByPhoneAndIdNot(phone, existingUserId);
+        if (phoneExists) {
             throw new IllegalArgumentException("Phone number is already in use");
         }
 
@@ -81,20 +128,23 @@ public class AdminUserService {
                 throw new IllegalArgumentException("Username is required for technicians");
             }
             String username = dto.getUsername().trim().toLowerCase(Locale.ROOT);
-            if (userRepository.existsByUsernameIgnoreCase(username)) {
+            boolean usernameExists = existingUserId == null
+                    ? userRepository.existsByUsernameIgnoreCase(username)
+                    : userRepository.existsByUsernameIgnoreCaseAndIdNot(username, existingUserId);
+            if (usernameExists) {
                 throw new IllegalArgumentException("Username is already in use");
             }
         }
     }
 
-    private void validateTypeSpecificFields(AdminUserCreateRequestDTO dto) {
+    private void validateTypeSpecificFields(AdminUserCreateRequestDTO dto, boolean isUpdate) {
         String role = dto.getRole() != null ? dto.getRole().trim().toUpperCase(Locale.ROOT) : "USER";
 
         if ("TECHNICIAN".equals(role)) {
             if (dto.getUsername() == null || dto.getUsername().isBlank()) {
                 throw new IllegalArgumentException("Username is required for technicians");
             }
-            if (dto.getPassword() == null || dto.getPassword().isBlank()) {
+            if (!isUpdate && (dto.getPassword() == null || dto.getPassword().isBlank())) {
                 throw new IllegalArgumentException("Password is required for technicians");
             }
             if (dto.getProfession() == null || dto.getProfession().isBlank()) {
@@ -119,6 +169,19 @@ public class AdminUserService {
             if (dto.getDesignation() == null || dto.getDesignation().isBlank()) {
                 throw new IllegalArgumentException("Designation is required for staff");
             }
+        }
+    }
+
+    private void validateTechnicianOnly(AdminUserCreateRequestDTO dto) {
+        String role = dto.getRole() != null ? dto.getRole().trim().toUpperCase(Locale.ROOT) : "";
+        if (!"TECHNICIAN".equals(role)) {
+            throw new IllegalArgumentException("This endpoint only supports technician accounts");
+        }
+    }
+
+    private void ensureTechnician(User user) {
+        if (user.getRole() == null || !"TECHNICIAN".equalsIgnoreCase(user.getRole())) {
+            throw new IllegalArgumentException("Only technician accounts can be modified here");
         }
     }
 

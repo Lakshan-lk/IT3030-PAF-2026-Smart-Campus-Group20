@@ -2,10 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MdBuild, MdSearch, MdFilterAlt, MdClose, MdTune, MdWarning,
-  MdCheckCircle, MdPending, MdComment, MdSend, MdPersonPin,
+  MdCheckCircle, MdPending, MdComment, MdPersonPin,
 } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
-import { useTickets, useTicketById, useUpdateTicketStatus, useComments, useAddComment } from '../hooks/useTickets';
+import { useTickets, useTicketById, useUpdateTicketStatus } from '../hooks/useTickets';
+import CommentThread from '../components/CommentThread';
 
 // ─── Status config ────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -42,11 +43,8 @@ const TicketDetailPanel = ({ ticketId, onClose }) => {
   const { authUser } = useAuth();
   const { data: ticket, isLoading } = useTicketById(ticketId);
   const updateStatus = useUpdateTicketStatus();
-  const { data: comments = [], isLoading: commentsLoading } = useComments(ticketId);
-  const addComment = useAddComment(ticketId);
 
   const [resolutionNotes, setResolutionNotes] = useState('');
-  const [commentText, setCommentText] = useState('');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -65,17 +63,6 @@ const TicketDetailPanel = ({ ticketId, onClose }) => {
       setResolutionNotes('');
     } catch (err) {
       setError(err.response?.data?.message || 'Could not update ticket status.');
-    }
-  };
-
-  const handleAddComment = async (e) => {
-    e.preventDefault();
-    if (!commentText.trim()) return;
-    try {
-      await addComment.mutateAsync({ userId: authUser?.id, content: commentText });
-      setCommentText('');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Could not add comment.');
     }
   };
 
@@ -160,52 +147,7 @@ const TicketDetailPanel = ({ ticketId, onClose }) => {
               </section>
             ) : null}
 
-            {/* Comments */}
-            <section className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/85 dark:bg-slate-800/60 p-5">
-              <div className="mb-4 flex items-center gap-2">
-                <MdComment className="text-xl text-cyan-500" />
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Work log / Comments</h3>
-              </div>
-
-              {commentsLoading ? (
-                <div className="space-y-2">
-                  {[1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700/50" />)}
-                </div>
-              ) : comments.length === 0 ? (
-                <p className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-700/50 px-4 py-6 text-center text-sm text-slate-500">
-                  No comments yet. Log your work progress here.
-                </p>
-              ) : (
-                <div className="space-y-3 mb-4">
-                  {comments.map((c) => (
-                    <div key={c.id} className="rounded-2xl bg-slate-50 dark:bg-slate-900/40 p-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{c.userName || 'Technician'}</span>
-                        <span className="text-xs text-slate-400">{formatDate(c.createdAt)}</span>
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-300">{c.content}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <form onSubmit={handleAddComment} className="mt-3 flex gap-3">
-                <input
-                  type="text"
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Log your work update..."
-                  className="flex-1 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
-                />
-                <button
-                  type="submit"
-                  disabled={addComment.isPending || !commentText.trim()}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-600 to-teal-600 px-4 py-3 text-sm font-semibold text-white transition hover:from-cyan-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <MdSend />
-                </button>
-              </form>
-            </section>
+            <CommentThread ticketId={ticketId} />
           </div>
 
           {/* Right: status update */}

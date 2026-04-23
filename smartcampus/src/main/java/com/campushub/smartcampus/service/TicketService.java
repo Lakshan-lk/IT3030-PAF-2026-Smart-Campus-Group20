@@ -1,13 +1,11 @@
 package com.campushub.smartcampus.service;
 
-import com.campushub.smartcampus.dto.AttachmentDTO;
 import com.campushub.smartcampus.dto.AssignTicketRequestDTO;
 import com.campushub.smartcampus.dto.StatusUpdateDTO;
 import com.campushub.smartcampus.dto.TicketRequestDTO;
 import com.campushub.smartcampus.dto.TicketResponseDTO;
 import com.campushub.smartcampus.entity.Resource;
 import com.campushub.smartcampus.entity.Ticket;
-import com.campushub.smartcampus.entity.TicketAttachment;
 import com.campushub.smartcampus.entity.User;
 import com.campushub.smartcampus.enums.TicketCategory;
 import com.campushub.smartcampus.enums.TicketPriority;
@@ -18,21 +16,13 @@ import com.campushub.smartcampus.repository.TicketAttachmentRepository;
 import com.campushub.smartcampus.repository.TicketRepository;
 import com.campushub.smartcampus.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 @Service
@@ -44,9 +34,6 @@ public class TicketService {
     private final CommentRepository commentRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
-
-    @Value("${app.upload-dir:uploads}")
-    private String uploadDir;
 
     public TicketService(TicketRepository ticketRepository,
                          TicketAttachmentRepository ticketAttachmentRepository,
@@ -176,65 +163,6 @@ public class TicketService {
         ticketRepository.deleteById(id);
     }
 
-    public TicketResponseDTO addAttachments(Long ticketId, List<MultipartFile> files) {
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + ticketId));
-
-        if (files == null || files.isEmpty()) {
-            throw new IllegalArgumentException("At least one file is required");
-        }
-
-        long currentCount = ticketAttachmentRepository.countByTicketId(ticketId);
-        if (currentCount + files.size() > 3) {
-            throw new IllegalStateException("Maximum 3 attachments allowed");
-        }
-
-        Path uploadBase = Paths.get(uploadDir);
-        try {
-            Files.createDirectories(uploadBase);
-        } catch (IOException e) {
-            throw new IllegalStateException("Unable to prepare upload directory", e);
-        }
-
-        for (MultipartFile file : files) {
-            if (file.isEmpty()) {
-                continue;
-            }
-            String contentType = file.getContentType();
-            if (contentType == null || !contentType.startsWith("image/")) {
-                throw new IllegalArgumentException("Only image files are allowed");
-            }
-
-            String originalFilename = file.getOriginalFilename();
-            String safeName = (originalFilename == null || originalFilename.isBlank())
-                    ? "ticket-upload"
-                    : originalFilename.replaceAll("[\\\\/]+", "_");
-            String uniqueFilename = UUID.randomUUID() + "_" + safeName;
-            Path target = uploadBase.resolve(uniqueFilename);
-
-            try {
-                Files.write(target, file.getBytes());
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to store attachment " + safeName, e);
-            }
-
-            TicketAttachment attachment = new TicketAttachment();
-            attachment.setTicket(ticket);
-            attachment.setFileName(safeName);
-            attachment.setFilePath(uniqueFilename);
-            attachment.setContentType(contentType);
-            ticketAttachmentRepository.save(attachment);
-        }
-
-        return toResponse(ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + ticketId)));
-    }
-
-    @Transactional(readOnly = true)
-    public List<TicketAttachment> getAttachments(Long ticketId) {
-        return ticketAttachmentRepository.findByTicketId(ticketId);
-    }
-
     private void applyRequest(Ticket ticket, TicketRequestDTO dto) {
         Resource resource = null;
         if (dto.getResourceId() != null) {
@@ -295,7 +223,6 @@ public class TicketService {
     }
 
     private TicketResponseDTO toResponse(Ticket ticket) {
-        List<TicketAttachment> attachments = ticketAttachmentRepository.findByTicketId(ticket.getId());
-        return TicketResponseDTO.fromEntity(ticket, attachments);
+        return TicketResponseDTO.fromEntity(ticket);
     }
 }
