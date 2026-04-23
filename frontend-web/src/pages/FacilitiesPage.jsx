@@ -4,7 +4,7 @@ import { MdSearch, MdCheckCircle } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { useResources } from '../hooks/useResources';
 import FilterPanel from '../components/FilterPanel';
-import ResourceCard from '../components/ResourceCard';
+import FacilitySection from '../components/FacilitySection';
 import BookingModal from '../components/BookingModal';
 
 const FacilitiesPage = () => {
@@ -14,7 +14,7 @@ const FacilitiesPage = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterMinCapacity, setFilterMinCapacity] = useState('');
-  const [filterEquipment, setFilterEquipment] = useState([]);
+  const [filterEquipmentTypes, setFilterEquipmentTypes] = useState([]);
   const [filterDate, setFilterDate] = useState('');
   const [filterStartTime, setFilterStartTime] = useState('');
   const [filterEndTime, setFilterEndTime] = useState('');
@@ -31,19 +31,16 @@ const FacilitiesPage = () => {
     type: filterType,
     status: 'ACTIVE',
     minCapacity: filterMinCapacity || undefined,
-    equipmentTypes: filterEquipment.length ? filterEquipment.join(',') : undefined,
+    equipmentTypes: filterEquipmentTypes.length ? filterEquipmentTypes : undefined,
     date: filterDate || undefined,
     startTime: filterDate && filterStartTime ? `${filterDate}T${filterStartTime}:00` : undefined,
     endTime: filterDate && filterEndTime ? `${filterDate}T${filterEndTime}:00` : undefined,
   });
 
-  const toggleEquipment = (eq) =>
-    setFilterEquipment(prev => prev.includes(eq) ? prev.filter(e => e !== eq) : [...prev, eq]);
-
   const clearFilters = () => {
     setFilterType('');
     setFilterMinCapacity('');
-    setFilterEquipment([]);
+    setFilterEquipmentTypes([]);
     setFilterDate('');
     setFilterStartTime('');
     setFilterEndTime('');
@@ -56,7 +53,10 @@ const FacilitiesPage = () => {
   };
 
   const resourceList = resources?.content || resources || [];
-
+  const groupedResources = ['LECTURE_HALL', 'LAB', 'MEETING_ROOM', 'WORKSHOP'].map(type => ({
+    type,
+    resources: resourceList.filter(resource => resource.type === type),
+  }));
   return (
     <div className="min-h-screen dark:bg-slate-900 transition-colors duration-300">
 
@@ -72,7 +72,7 @@ const FacilitiesPage = () => {
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search for lecture halls, labs…"
+            placeholder="Search facilities..."
             className="w-full bg-slate-50 dark:bg-slate-900/50 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 outline-none text-slate-700 dark:text-slate-200 text-sm transition-all"
           />
         </div>
@@ -83,7 +83,7 @@ const FacilitiesPage = () => {
         <FilterPanel
           filterType={filterType} setFilterType={setFilterType}
           filterMinCapacity={filterMinCapacity} setFilterMinCapacity={setFilterMinCapacity}
-          filterEquipment={filterEquipment} toggleEquipment={toggleEquipment}
+          filterEquipmentTypes={filterEquipmentTypes} setFilterEquipmentTypes={setFilterEquipmentTypes}
           filterDate={filterDate} setFilterDate={setFilterDate}
           filterStartTime={filterStartTime} setFilterStartTime={setFilterStartTime}
           filterEndTime={filterEndTime} setFilterEndTime={setFilterEndTime}
@@ -109,11 +109,11 @@ const FacilitiesPage = () => {
           <p className="text-sm text-slate-500 dark:text-slate-400">Try adjusting your search or filters</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {resourceList.map(resource => (
-            <ResourceCard
-              key={resource.id}
-              resource={resource}
+        <div className="space-y-10">
+          {groupedResources.map(group => (
+            <FacilitySection
+              key={group.type}
+              resources={group.resources}
               onBook={r => setSelectedResource(r)}
             />
           ))}

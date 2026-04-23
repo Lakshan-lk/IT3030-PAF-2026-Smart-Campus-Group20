@@ -2,33 +2,25 @@ import { useState } from 'react';
 import { useCreateBooking } from './useBookings';
 
 const DEFAULT_FORM = {
-  userId: 2,
   date: '',
   startTime: '',
   endTime: '',
   purpose: '',
   attendees: '',
-  isRecurring: false,
-  recurrencePattern: 'WEEKLY',
-  recurrenceEndDate: '',
-  skipDates: [],
-  requestedEquipmentIds: [],
 };
 
-export const useBookingForm = ({ onSuccess, initialDate = '', initialStartTime = '', initialEndTime = '' } = {}) => {
+export const useBookingForm = ({ onSuccess, initialDate = '', initialStartTime = '', initialEndTime = '', userId } = {}) => {
   const [bookingData, setBookingData] = useState({
     ...DEFAULT_FORM,
     date: initialDate,
     startTime: initialStartTime,
     endTime: initialEndTime,
   });
-  const [skipDateInput, setSkipDateInput] = useState('');
   const [conflictError, setConflictError] = useState('');
   const createBooking = useCreateBooking();
 
   const reset = () => {
     setBookingData({ ...DEFAULT_FORM });
-    setSkipDateInput('');
     setConflictError('');
   };
 
@@ -62,25 +54,19 @@ export const useBookingForm = ({ onSuccess, initialDate = '', initialStartTime =
     bookingData.endTime &&
     bookingData.startTime < bookingData.endTime &&
     bookingData.purpose.trim() &&
-    bookingData.attendees >= 1 &&
-    (!bookingData.isRecurring || bookingData.recurrenceEndDate);
+    bookingData.attendees >= 1;
 
   const submit = async (resourceId) => {
     if (!isValid()) return;
     const fmt = t => t.split(':').length === 2 ? `${t}:00` : t;
     const payload = {
       resourceId,
-      userId: bookingData.userId,
+      userId: userId,
       purpose: bookingData.purpose,
       attendees: parseInt(bookingData.attendees),
       startTime: `${bookingData.date}T${fmt(bookingData.startTime)}`,
       endTime: `${bookingData.date}T${fmt(bookingData.endTime)}`,
-      recurring: bookingData.isRecurring,
-      recurrencePattern: bookingData.isRecurring ? bookingData.recurrencePattern : null,
-      recurrenceEndDate: bookingData.isRecurring && bookingData.recurrenceEndDate
-        ? `${bookingData.recurrenceEndDate}T23:59:59` : null,
-      skipDates: bookingData.isRecurring && bookingData.skipDates.length > 0 ? bookingData.skipDates : [],
-      requestedEquipmentIds: bookingData.requestedEquipmentIds.length > 0 ? bookingData.requestedEquipmentIds : [],
+      recurring: false,
     };
     try {
       await createBooking.mutateAsync(payload);
@@ -99,12 +85,7 @@ export const useBookingForm = ({ onSuccess, initialDate = '', initialStartTime =
   return {
     bookingData,
     setBookingData,
-    skipDateInput,
-    setSkipDateInput,
     conflictError,
-    addSkipDate,
-    removeSkipDate,
-    toggleEquipment,
     handleChange,
     isValid,
     submit,

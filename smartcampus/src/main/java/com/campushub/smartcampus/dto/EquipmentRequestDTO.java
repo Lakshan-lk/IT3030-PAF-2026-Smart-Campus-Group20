@@ -12,6 +12,8 @@ public class EquipmentRequestDTO {
 
     private String status;
 
+    private Long roomId;
+
     public String getName() {
         return name;
     }
@@ -34,5 +36,13 @@ public class EquipmentRequestDTO {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Long getRoomId() {
+        return roomId;
+    }
+
+    public void setRoomId(Long roomId) {
+        this.roomId = roomId;
     }
 }

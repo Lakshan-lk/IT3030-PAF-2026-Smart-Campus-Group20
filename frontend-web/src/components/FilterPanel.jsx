@@ -1,18 +1,29 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { MdClose, MdCalendarToday, MdAccessTime } from 'react-icons/md';
-import { EQUIPMENT_TYPES, EQUIPMENT_CONFIG, TIME_SLOTS, INPUT_CLS } from '../constants/facilities';
+import { TIME_SLOTS, INPUT_CLS, EQUIPMENT_TYPES, EQUIPMENT_CONFIG } from '../constants/facilities';
 
 const FilterPanel = ({
   filterType, setFilterType,
   filterMinCapacity, setFilterMinCapacity,
-  filterEquipment, toggleEquipment,
+  filterEquipmentTypes, setFilterEquipmentTypes,
   filterDate, setFilterDate,
   filterStartTime, setFilterStartTime,
   filterEndTime, setFilterEndTime,
   onClear,
 }) => {
-  const hasFilters = filterType || filterMinCapacity || filterDate || filterStartTime || filterEndTime || filterEquipment.length > 0;
+  const hasFilters =
+    filterType ||
+    filterMinCapacity ||
+    filterEquipmentTypes.length ||
+    filterDate ||
+    filterStartTime ||
+    filterEndTime;
+
+  const toggleEquipment = (type) => {
+    setFilterEquipmentTypes((prev) =>
+      prev.includes(type) ? prev.filter((item) => item !== type) : [...prev, type]
+    );
+  };
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
@@ -27,8 +38,6 @@ const FilterPanel = ({
             <option value="LAB">Laboratory</option>
             <option value="MEETING_ROOM">Meeting Room</option>
             <option value="WORKSHOP">Workshop</option>
-            <option value="SEMINAR_ROOM">Seminar Room</option>
-            <option value="EQUIPMENT">Equipment</option>
           </select>
         </div>
         <div>
@@ -44,65 +53,36 @@ const FilterPanel = ({
         </div>
       </div>
 
-      {/* row 2: equipment */}
       <div className="mb-5">
-        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2.5">Equipment</label>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-          {EQUIPMENT_TYPES.map(eq => {
-            const cfg = EQUIPMENT_CONFIG[eq];
+        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Equipment</label>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {EQUIPMENT_TYPES.map((type) => {
+            const cfg = EQUIPMENT_CONFIG[type];
+            const selected = filterEquipmentTypes.includes(type);
             const Icon = cfg.icon;
-            const active = filterEquipment.includes(eq);
+
             return (
-              <motion.button
-                key={eq}
+              <button
+                key={type}
                 type="button"
-                whileTap={{ scale: 0.94 }}
-                whileHover={{ scale: 1.05, y: -2 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                onClick={() => toggleEquipment(eq)}
-                className={`relative flex flex-col items-center gap-2 py-4 px-2 rounded-2xl cursor-pointer select-none overflow-hidden transition-all duration-250
-                  ${active
-                    ? `${cfg.bg} ring-2 ${cfg.ring} shadow-xl ${cfg.glow}`
-                    : 'bg-white/60 dark:bg-slate-700/30 ring-1 ring-slate-200/80 dark:ring-slate-600/50 hover:bg-white dark:hover:bg-slate-700/60 hover:ring-slate-300 dark:hover:ring-slate-500'
-                  }`}
+                onClick={() => toggleEquipment(type)}
+                className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border transition-all ${
+                  selected
+                    ? `border-transparent ring-2 ${cfg.ring} ${cfg.bg}`
+                    : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-500'
+                }`}
               >
-                <div className={`relative w-11 h-11 rounded-2xl flex items-center justify-center bg-gradient-to-br ${cfg.color} transition-all duration-250
-                  ${active ? 'shadow-lg scale-110' : 'opacity-50 scale-100'}`}>
-                  <Icon className="text-white text-[22px]" />
-                  {active && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="absolute inset-0 rounded-2xl bg-white/20"
-                    />
-                  )}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br ${cfg.color}`}>
+                  <Icon className="text-white text-base" />
                 </div>
-                <span className={`text-[10px] font-bold tracking-widest uppercase leading-none transition-colors duration-200
-                  ${active ? 'text-slate-700 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500'}`}>
-                  {cfg.label}
-                </span>
-                {active && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-gradient-to-br ${cfg.color} shadow-sm`}
-                  />
-                )}
-                {active && (
-                  <motion.div
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.2 }}
-                    className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r ${cfg.color} origin-left`}
-                  />
-                )}
-              </motion.button>
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">{cfg.label}</span>
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* row 3: date + time */}
+      {/* row 2: date + time */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
         <div>
           <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">

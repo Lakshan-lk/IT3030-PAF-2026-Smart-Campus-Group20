@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MdAdd, MdFilterList, MdEvent, MdHistory, MdCancel as MdCancelIcon } from 'react-icons/md';
+import { MdAdd, MdFilterList, MdEvent, MdHistory, MdCancel as MdCancelIcon, MdHourglassEmpty } from 'react-icons/md';
 import { useBookings, useCancelBooking, useCancelSeries } from '../hooks/useBookings';
+import { useAuth } from '../context/AuthContext';
 import NewBookingForm from '../components/NewBookingForm';
 import BookingCard from '../components/BookingCard';
 
 const BookingsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { authUser } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [cancelModal, setCancelModal] = useState({ open: false, bookingId: null, isSeries: false });
@@ -21,20 +23,25 @@ const BookingsPage = () => {
     }
   }, [location.state?.resourceId]);
 
-  const { data: bookings = [], isLoading, error, refetch } = useBookings();
+  const { data: bookings = [], isLoading, error, refetch } = useBookings(
+    authUser?.id ? { userId: authUser.id } : {}
+  );
   const cancelBooking = useCancelBooking();
   const cancelSeries = useCancelSeries();
 
   const groupedBookings = React.useMemo(() => {
     const now = new Date();
+    const pending = [];
     const upcoming = [];
     const past = [];
     const cancelled = [];
 
     bookings.forEach(booking => {
       const startTime = new Date(booking.startTime);
-      if (booking.status === 'CANCELLED') {
+      if (booking.status === 'CANCELLED' || booking.status === 'REJECTED') {
         cancelled.push(booking);
+      } else if (booking.status === 'PENDING') {
+        pending.push(booking);
       } else if (startTime < now) {
         past.push(booking);
       } else {
@@ -43,22 +50,25 @@ const BookingsPage = () => {
     });
 
     const sortByTime = (a, b) => new Date(a.startTime) - new Date(b.startTime);
-    
+
     return {
+      pending: pending.sort(sortByTime),
       upcoming: upcoming.sort(sortByTime),
       past: past.sort(sortByTime).reverse(),
       cancelled: cancelled.sort(sortByTime).reverse(),
     };
   }, [bookings]);
 
-  const displayBookings = activeTab === 'upcoming' ? groupedBookings.upcoming 
-    : activeTab === 'past' ? groupedBookings.past 
+  const displayBookings = activeTab === 'pending' ? groupedBookings.pending
+    : activeTab === 'upcoming' ? groupedBookings.upcoming
+    : activeTab === 'past' ? groupedBookings.past
     : groupedBookings.cancelled;
 
   const tabs = [
-    { key: 'upcoming', label: 'Upcoming', icon: MdEvent, count: groupedBookings.upcoming.length },
-    { key: 'past', label: 'Past', icon: MdHistory, count: groupedBookings.past.length },
-    { key: 'cancelled', label: 'Cancelled', icon: MdCancelIcon, count: groupedBookings.cancelled.length },
+    { key: 'pending',  label: 'Pending',  icon: MdHourglassEmpty, count: groupedBookings.pending.length },
+    { key: 'upcoming', label: 'Confirmed', icon: MdEvent,          count: groupedBookings.upcoming.length },
+    { key: 'past',     label: 'Past',      icon: MdHistory,        count: groupedBookings.past.length },
+    { key: 'cancelled', label: 'Cancelled', icon: MdCancelIcon,   count: groupedBookings.cancelled.length },
   ];
 
   const handleCancel = (bookingId) => {
@@ -166,15 +176,17 @@ const BookingsPage = () => {
           ) : displayBookings.length === 0 ? (
             <div className="col-span-full text-center py-12">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center">
-                {activeTab === 'upcoming' ? <MdAdd className="text-3xl text-slate-400" /> 
-                  : activeTab === 'past' ? <MdHistory className="text-3xl text-slate-400" />
+                {activeTab === 'pending'   ? <MdHourglassEmpty className="text-3xl text-amber-400" />
+                  : activeTab === 'upcoming' ? <MdAdd className="text-3xl text-slate-400" />
+                  : activeTab === 'past'     ? <MdHistory className="text-3xl text-slate-400" />
                   : <MdCancelIcon className="text-3xl text-slate-400" />}
               </div>
               <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                No {activeTab} bookings
+                {activeTab === 'pending' ? 'No pending bookings' : `No ${activeTab} bookings`}
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {activeTab === 'upcoming' ? 'Create your first booking to get started' 
+                {activeTab === 'pending'   ? 'All your bookings have been reviewed'
+                  : activeTab === 'upcoming' ? 'Book a facility to get started'
                   : `You don't have any ${activeTab} bookings`}
               </p>
             </div>

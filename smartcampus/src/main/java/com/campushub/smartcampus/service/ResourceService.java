@@ -166,7 +166,10 @@ public class ResourceService {
             return false;
         }
 
-        return equipment.stream().map(Equipment::getType).anyMatch(requestedEquipmentTypes::contains);
+        Set<EquipmentType> availableTypes = equipment.stream()
+                .map(Equipment::getType)
+                .collect(Collectors.toSet());
+        return availableTypes.containsAll(requestedEquipmentTypes);
     }
 
     private boolean matchesAvailability(Resource resource, LocalDateTime startTime, LocalDateTime endTime) {

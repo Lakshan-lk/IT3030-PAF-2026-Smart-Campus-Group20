@@ -1,33 +1,44 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MdClose, MdEventAvailable, MdVideocam, MdMic, MdComputer, MdAcUnit, MdBorderColor, MdCast, MdDevicesOther } from 'react-icons/md';
+import { MdClose, MdEventAvailable, MdCircle } from 'react-icons/md';
 import { TIME_SLOTS } from '../constants/facilities';
 import { useBookingForm } from '../hooks/useBookingForm';
-import { useAvailableEquipment } from '../hooks/useEquipment';
+import { useAuth } from '../context/AuthContext';
+import { useResourceAvailability } from '../hooks/useResourceAvailability';
 
-const EQUIPMENT_ICONS = {
-  PROJECTOR: MdCast,
-  WHITEBOARD: MdBorderColor,
-  AC: MdAcUnit,
-  MICROPHONE: MdMic,
-  PC: MdComputer,
-  CAMERA: MdVideocam,
+// Day-of-week labels
+const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const STATUS_STYLE = {
+  free:    { bg: 'bg-emerald-500',  ring: 'ring-emerald-300', label: 'Available' },
+  partial: { bg: 'bg-amber-400',    ring: 'ring-amber-300',   label: 'Partially booked' },
+  full:    { bg: 'bg-rose-500',     ring: 'ring-rose-300',    label: 'Fully booked' },
 };
 
 const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartTime, initialEndTime }) => {
+  const isAvailable = resource.status === 'ACTIVE' || resource.status === 'AVAILABLE';
+  const { authUser } = useAuth();
   const {
     bookingData, setBookingData,
-    skipDateInput, setSkipDateInput,
     conflictError,
-    addSkipDate, removeSkipDate,
-    toggleEquipment,
     handleChange,
     isValid,
     submit,
     isPending,
-  } = useBookingForm({ onSuccess, initialDate, initialStartTime, initialEndTime });
+  } = useBookingForm({ onSuccess, initialDate, initialStartTime, initialEndTime, userId: authUser?.id });
 
-  const { data: availableEquipment = [], isLoading: equipmentLoading } = useAvailableEquipment(resource?.id);
+  const {
+    isLoading: availLoading,
+    getBookedRangesForDate,
+    isStartSlotBooked,
+    isEndSlotConflicting,
+    getDayStatus,
+    getAvailabilityStrip,
+  } = useResourceAvailability(resource?.id);
+
+  const strip = getAvailabilityStrip(14);
+  const selectedDayStatus = bookingData.date ? getDayStatus(bookingData.date) : null;
+  const bookedRanges = bookingData.date ? getBookedRangesForDate(bookingData.date) : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -63,7 +74,7 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
               <h2 className="text-xl font-bold text-white">{resource.name}</h2>
               <p className="text-white/80 text-sm">{resource.location || 'Location not specified'}</p>
             </div>
-            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${resource.status === 'AVAILABLE' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${isAvailable ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
               {resource.status}
             </span>
           </div>
@@ -82,33 +93,147 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
             </div>
           </div>
 
+          {/* ── Availability Strip ── */}
+          {!availLoading && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Availability — Next 14 Days</p>
+                <div className="flex items-center gap-3 text-[10px] text-slate-400">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Free</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Partial</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500 inline-block" /> Full</span>
+                </div>
+              </div>
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {strip.map(({ date, status, dayObj }) => {
+                  const s = STATUS_STYLE[status];
+                  const isSelected = bookingData.date === date;
+                  return (
+                    <button
+                      key={date}
+                      type="button"
+                      onClick={() => {
+                        if (status !== 'full') {
+                          setBookingData(prev => ({ ...prev, date, startTime: '', endTime: '' }));
+                        }
+                      }}
+                      disabled={status === 'full'}
+                      title={`${date} — ${s.label}`}
+                      className={`flex-shrink-0 flex flex-col items-center gap-0.5 w-10 py-1.5 rounded-lg border-2 transition-all
+                        ${isSelected ? `border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30` : 'border-transparent hover:border-slate-200 dark:hover:border-slate-600'}
+                        ${status === 'full' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
+                      `}
+                    >
+                      <span className="text-[9px] font-semibold text-slate-400 uppercase">{DAY_SHORT[dayObj.getDay()]}</span>
+                      <span className={`text-[11px] font-bold ${isSelected ? 'text-indigo-600 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-200'}`}>
+                        {dayObj.getDate()}
+                      </span>
+                      <span className={`w-2 h-2 rounded-full ${s.bg}`} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <form onSubmit={e => { e.preventDefault(); submit(resource.id); }} className="space-y-3">
             {/* date + time */}
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Date</label>
-                <input type="date" name="date" value={bookingData.date} onChange={handleChange}
-                  className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50" />
+                <input
+                  type="date"
+                  name="date"
+                  value={bookingData.date}
+                  onChange={e => {
+                    handleChange(e);
+                    setBookingData(prev => ({ ...prev, startTime: '', endTime: '' }));
+                  }}
+                  className={`w-full px-2 py-2 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-indigo-400/50
+                    ${selectedDayStatus === 'full'
+                      ? 'border-rose-400 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300'
+                      : selectedDayStatus === 'partial'
+                      ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20'
+                      : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900'
+                    }`}
+                />
+                {selectedDayStatus === 'full' && (
+                  <p className="text-[10px] text-rose-500 mt-0.5 font-semibold">Fully booked</p>
+                )}
               </div>
+
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Start</label>
-                <select name="startTime" value={bookingData.startTime}
-                  onChange={e => setBookingData(prev => ({ ...prev, startTime: e.target.value, endTime: prev.endTime && prev.endTime <= e.target.value ? '' : prev.endTime }))}
-                  className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm outline-none">
+                <select
+                  name="startTime"
+                  value={bookingData.startTime}
+                  onChange={e => setBookingData(prev => ({
+                    ...prev,
+                    startTime: e.target.value,
+                    endTime: prev.endTime && prev.endTime <= e.target.value ? '' : prev.endTime,
+                  }))}
+                  className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm outline-none"
+                >
                   <option value="">Select</option>
-                  {TIME_SLOTS.slice(0, -1).map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  {TIME_SLOTS.slice(0, -1).map(t => {
+                    const booked = isStartSlotBooked(t.value, bookingData.date);
+                    return (
+                      <option
+                        key={t.value}
+                        value={t.value}
+                        disabled={booked}
+                        style={booked ? { color: '#ef4444', backgroundColor: '#fef2f2' } : {}}
+                      >
+                        {t.label}{booked ? ' — Taken' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
+
               <div>
                 <label className="text-xs text-slate-500 block mb-1">End</label>
-                <select name="endTime" value={bookingData.endTime} onChange={handleChange}
+                <select
+                  name="endTime"
+                  value={bookingData.endTime}
+                  onChange={handleChange}
                   disabled={!bookingData.startTime}
-                  className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm outline-none disabled:opacity-50">
+                  className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm outline-none disabled:opacity-50"
+                >
                   <option value="">Select</option>
-                  {TIME_SLOTS.filter(t => !bookingData.startTime || t.value > bookingData.startTime).map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  {TIME_SLOTS.filter(t => !bookingData.startTime || t.value > bookingData.startTime).map(t => {
+                    const conflicts = isEndSlotConflicting(bookingData.startTime, t.value, bookingData.date);
+                    return (
+                      <option
+                        key={t.value}
+                        value={t.value}
+                        disabled={conflicts}
+                        style={conflicts ? { color: '#ef4444', backgroundColor: '#fef2f2' } : {}}
+                      >
+                        {t.label}{conflicts ? ' — Conflict' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>
+
+            {/* Booked ranges warning for selected date */}
+            {bookedRanges.length > 0 && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-xl">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1.5">
+                  Already booked on this day:
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {bookedRanges.map((r, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-700/40 rounded-full text-[11px] font-bold">
+                      <MdCircle className="text-[6px]" />
+                      {r.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="text-xs text-slate-500 block mb-1">Purpose</label>
@@ -124,149 +249,6 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
                 className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50" />
             </div>
 
-            {/* recurring */}
-            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800/40">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" name="isRecurring" checked={bookingData.isRecurring} onChange={handleChange} className="sr-only" />
-                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${bookingData.isRecurring ? 'bg-amber-500 border-amber-500' : 'border-slate-300 dark:border-slate-600'}`}>
-                  {bookingData.isRecurring && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
-                <span className="font-semibold text-slate-700 dark:text-slate-200">Make this a recurring booking</span>
-              </label>
-
-              {bookingData.isRecurring && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="mt-4 pt-4 border-t border-amber-200 dark:border-amber-800/40 space-y-4"
-                >
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Repeat</label>
-                      <select name="recurrencePattern" value={bookingData.recurrencePattern} onChange={handleChange}
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm outline-none">
-                        <option value="WEEKLY">Weekly</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Until</label>
-                      <input type="date" name="recurrenceEndDate" value={bookingData.recurrenceEndDate} onChange={handleChange}
-                        min={bookingData.date}
-                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm outline-none" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Skip Specific Dates (optional)</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="date"
-                        value={skipDateInput}
-                        onChange={e => setSkipDateInput(e.target.value)}
-                        min={bookingData.date}
-                        max={bookingData.recurrenceEndDate}
-                        className="flex-1 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={addSkipDate}
-                        disabled={!skipDateInput}
-                        className="px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors disabled:opacity-50"
-                      >
-                        Add
-                      </button>
-                    </div>
-                    {bookingData.skipDates.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {bookingData.skipDates.map(date => (
-                          <span key={date} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-200 dark:bg-slate-600 rounded-lg text-xs text-slate-700 dark:text-slate-200">
-                            {date}
-                            <button type="button" onClick={() => removeSkipDate(date)} className="hover:text-rose-500">×</button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </div>
-
-            {/* additional equipment */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  Request Additional Equipment
-                </label>
-                {bookingData.requestedEquipmentIds.length > 0 && (
-                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full">
-                    {bookingData.requestedEquipmentIds.length} selected
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                Select equipment not available in this room — admin will review your request.
-              </p>
-
-              {equipmentLoading ? (
-                <div className="grid grid-cols-3 gap-2">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="h-16 rounded-xl bg-slate-100 dark:bg-slate-700/50 animate-pulse" />
-                  ))}
-                </div>
-              ) : availableEquipment.length === 0 ? (
-                <p className="text-xs text-slate-400 italic text-center py-3">
-                  No additional equipment available to request.
-                </p>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {availableEquipment.map(item => {
-                    const Icon = EQUIPMENT_ICONS[item.type] || MdDevicesOther;
-                    const selected = bookingData.requestedEquipmentIds.includes(item.id);
-                    return (
-                      <motion.button
-                        key={item.id}
-                        type="button"
-                        onClick={() => toggleEquipment(item.id)}
-                        whileTap={{ scale: 0.95 }}
-                        className={`relative flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border-2 text-center transition-all duration-200 cursor-pointer select-none
-                          ${selected
-                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-sm shadow-indigo-200 dark:shadow-indigo-900/50'
-                            : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:border-indigo-300 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10'
-                          }`}
-                      >
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors
-                          ${selected ? 'bg-indigo-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
-                          <Icon className="text-base" />
-                        </div>
-                        <span className={`text-[10px] font-semibold leading-tight transition-colors
-                          ${selected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400'}`}>
-                          {item.name}
-                        </span>
-                        <span className={`text-[9px] leading-none transition-colors
-                          ${selected ? 'text-indigo-400 dark:text-indigo-500' : 'text-slate-400 dark:text-slate-500'}`}>
-                          {item.type.replace(/_/g, ' ')}
-                        </span>
-                        {selected && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-indigo-500 rounded-full flex items-center justify-center"
-                          >
-                            <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </motion.div>
-                        )}
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
             {conflictError && (
               <div className="p-3 bg-rose-50 dark:bg-rose-900/20 rounded-xl border border-rose-100 dark:border-rose-800/30 text-sm text-rose-600 dark:text-rose-400">
                 {conflictError}
@@ -275,10 +257,10 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
 
             <button
               type="submit"
-              disabled={resource.status !== 'AVAILABLE' || isPending || !isValid()}
+              disabled={!isAvailable || isPending || !isValid() || selectedDayStatus === 'full'}
               className="w-full py-2.5 bg-gradient-to-r from-indigo-700 to-indigo-500 hover:from-indigo-800 hover:to-indigo-600 disabled:from-slate-300 disabled:to-slate-300 dark:disabled:from-slate-700 dark:disabled:to-slate-700 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-500/20 transition-all"
             >
-              {isPending ? 'Booking…' : resource.status === 'AVAILABLE' ? 'Book this Facility' : 'Currently Unavailable'}
+              {isPending ? 'Booking…' : isAvailable ? 'Book this Facility' : 'Currently Unavailable'}
             </button>
           </form>
         </div>

@@ -14,8 +14,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Comparator;
 
 @RestController
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"}, allowCredentials = "true")
 @RequestMapping("/api/v1")
 public class EquipmentController {
 
@@ -25,6 +27,26 @@ public class EquipmentController {
     public EquipmentController(EquipmentRepository equipmentRepository, ResourceRepository resourceRepository) {
         this.equipmentRepository = equipmentRepository;
         this.resourceRepository = resourceRepository;
+    }
+
+    @GetMapping("/equipment")
+    public ResponseEntity<List<EquipmentDTO>> getAllEquipment(
+            @RequestParam(required = false) Long roomId,
+            @RequestParam(required = false) Long excludeRoomId) {
+        List<Equipment> equipment;
+        if (roomId != null) {
+            equipment = equipmentRepository.findByRoomId(roomId);
+        } else if (excludeRoomId != null) {
+            equipment = equipmentRepository.findByRoomIdNot(excludeRoomId);
+        } else {
+            equipment = equipmentRepository.findAll();
+        }
+
+        List<EquipmentDTO> dtos = equipment.stream()
+                .sorted(Comparator.comparing(Equipment::getId))
+                .map(EquipmentDTO::fromEntity)
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/resources/{roomId}/equipment")
@@ -64,6 +86,11 @@ public class EquipmentController {
         equipment.setType(EquipmentType.valueOf(dto.getType()));
         if (dto.getStatus() != null) {
             equipment.setStatus(dto.getStatus());
+        }
+        if (dto.getRoomId() != null) {
+            Resource room = resourceRepository.findById(dto.getRoomId())
+                    .orElseThrow(() -> new EntityNotFoundException("Room not found with id: " + dto.getRoomId()));
+            equipment.setRoom(room);
         }
 
         Equipment saved = equipmentRepository.save(equipment);

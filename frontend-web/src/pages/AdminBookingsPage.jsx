@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MdSearch, MdCheck, MdClose, MdCancel } from 'react-icons/md';
 import { useBookings, useApproveBooking, useRejectBooking, useCancelBooking } from '../hooks/useBookings';
-import { useAllEquipment } from '../hooks/useEquipment';
 
 const STATUS_CONFIG = {
   PENDING:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.28)',  pulse: true  },
@@ -19,12 +18,10 @@ const STAT_CARDS = [
   { key: 'cancelled', label: 'Cancelled', statKey: 'cancelled', color: '#64748b' },
 ];
 
-const COLS = ['Resource', 'User', 'Purpose', 'Date & Time', 'Status', 'Equipment', ''];
+const COLS = ['Resource', 'User', 'Purpose', 'Date & Time', 'Status', 'Actions'];
 
 const AdminBookingsPage = () => {
   const { data: bookings = [], isLoading } = useBookings();
-  const { data: allEquipment = [] } = useAllEquipment();
-  const equipmentMap = Object.fromEntries(allEquipment.map(e => [String(e.id), e.name]));
   const approveBooking = useApproveBooking();
   const rejectBooking  = useRejectBooking();
   const cancelBooking  = useCancelBooking();
@@ -368,30 +365,9 @@ const AdminBookingsPage = () => {
                           </div>
                         </td>
 
-                        {/* Equipment */}
-                        <td style={{ padding: '13px 16px', verticalAlign: 'middle' }}>
-                          {booking.requestedEquipmentIds ? (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                              {booking.requestedEquipmentIds.split(',').map(id => id.trim()).filter(Boolean).map(id => (
-                                <span key={id} style={{
-                                  padding: '3px 8px', borderRadius: 4,
-                                  fontSize: 12, fontWeight: 600,
-                                  background: 'rgba(99,102,241,0.14)',
-                                  border: '1px solid rgba(99,102,241,0.28)',
-                                  color: '#818cf8', whiteSpace: 'nowrap',
-                                }}>
-                                  {equipmentMap[id] || `#${id}`}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: 13, color: '#1e293b' }}>—</span>
-                          )}
-                        </td>
-
                         {/* Actions */}
                         <td style={{ padding: '13px 16px', verticalAlign: 'middle' }}>
-                          <div className="ab-actions" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                             {booking.status === 'PENDING' && (
                               <>
                                 <button
@@ -399,30 +375,30 @@ const AdminBookingsPage = () => {
                                   onClick={() => approveBooking.mutate(booking.id)}
                                   title="Approve"
                                   style={{
-                                    width: 30, height: 30, borderRadius: 8, cursor: 'pointer',
-                                    border: '1px solid rgba(16,185,129,0.35)',
-                                    background: 'rgba(16,185,129,0.12)',
+                                    padding: '6px 14px', borderRadius: 8, cursor: 'pointer',
+                                    border: '1px solid rgba(16,185,129,0.45)',
+                                    background: 'rgba(16,185,129,0.15)',
                                     color: '#10b981',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 16,
+                                    display: 'flex', alignItems: 'center', gap: 5,
+                                    fontSize: 13, fontWeight: 700,
                                   }}
                                 >
-                                  <MdCheck />
+                                  <MdCheck style={{ fontSize: 16 }} /> Approve
                                 </button>
                                 <button
                                   className="ab-act-btn"
-                                  onClick={() => rejectBooking.mutate(booking.id)}
+                                  onClick={() => handleRejectClick(booking.id)}
                                   title="Reject"
                                   style={{
-                                    width: 30, height: 30, borderRadius: 8, cursor: 'pointer',
-                                    border: '1px solid rgba(244,63,94,0.35)',
-                                    background: 'rgba(244,63,94,0.12)',
+                                    padding: '6px 14px', borderRadius: 8, cursor: 'pointer',
+                                    border: '1px solid rgba(244,63,94,0.45)',
+                                    background: 'rgba(244,63,94,0.15)',
                                     color: '#f43f5e',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 16,
+                                    display: 'flex', alignItems: 'center', gap: 5,
+                                    fontSize: 13, fontWeight: 700,
                                   }}
                                 >
-                                  <MdClose />
+                                  <MdClose style={{ fontSize: 16 }} /> Reject
                                 </button>
                               </>
                             )}
@@ -432,7 +408,7 @@ const AdminBookingsPage = () => {
                                 onClick={() => cancelBooking.mutate(booking.id)}
                                 title="Cancel"
                                 style={{
-                                  width: 30, height: 30, borderRadius: 8, cursor: 'pointer',
+                                  width: 32, height: 32, borderRadius: 8, cursor: 'pointer',
                                   border: '1px solid rgba(100,116,139,0.3)',
                                   background: 'rgba(100,116,139,0.08)',
                                   color: '#64748b',
@@ -442,6 +418,9 @@ const AdminBookingsPage = () => {
                               >
                                 <MdCancel />
                               </button>
+                            )}
+                            {booking.status !== 'PENDING' && booking.status !== 'APPROVED' && (
+                              <span style={{ fontSize: 12, color: '#1e293b' }}>—</span>
                             )}
                           </div>
                         </td>
@@ -477,6 +456,78 @@ const AdminBookingsPage = () => {
           </div>
         )}
       </motion.div>
+
+      {/* ── Reject Modal ── */}
+      {showRejectModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)',
+        }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.22 }}
+            style={{
+              background: 'rgba(13,18,30,0.97)',
+              border: '1px solid rgba(244,63,94,0.25)',
+              borderRadius: 16, padding: 28,
+              width: '100%', maxWidth: 420,
+              boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+              fontFamily: "'Outfit', sans-serif",
+            }}
+          >
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#f1f5f9', marginBottom: 6 }}>
+              Reject Booking
+            </h3>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
+              Please provide a reason for rejection. This will be shown to the user.
+            </p>
+            <textarea
+              autoFocus
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="e.g. Time slot conflicts with a scheduled event..."
+              rows={3}
+              style={{
+                width: '100%', padding: '10px 12px',
+                borderRadius: 10, border: '1px solid rgba(244,63,94,0.3)',
+                background: 'rgba(244,63,94,0.06)', color: '#f1f5f9',
+                fontSize: 14, fontFamily: "'Outfit', sans-serif",
+                resize: 'none', outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button
+                onClick={() => { setShowRejectModal(false); setRejectReason(''); }}
+                style={{
+                  flex: 1, padding: '10px 0', borderRadius: 10, cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'rgba(255,255,255,0.04)', color: '#94a3b8',
+                  fontSize: 14, fontWeight: 600,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectConfirm}
+                disabled={!rejectReason.trim() || rejectBooking.isPending}
+                style={{
+                  flex: 1, padding: '10px 0', borderRadius: 10, cursor: 'pointer',
+                  border: '1px solid rgba(244,63,94,0.4)',
+                  background: rejectReason.trim() ? 'rgba(244,63,94,0.2)' : 'rgba(244,63,94,0.06)',
+                  color: rejectReason.trim() ? '#f43f5e' : '#475569',
+                  fontSize: 14, fontWeight: 700,
+                  transition: 'all 0.15s',
+                }}
+              >
+                {rejectBooking.isPending ? 'Rejecting…' : 'Confirm Reject'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

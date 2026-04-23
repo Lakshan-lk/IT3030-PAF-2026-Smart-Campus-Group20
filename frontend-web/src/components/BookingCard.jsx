@@ -1,6 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MdEvent, MdAccessTime, MdPeople, MdCancel, MdInfo, MdRepeat } from 'react-icons/md';
+import { MdEvent, MdAccessTime, MdPeople, MdCancel, MdInfo, MdRepeat, MdHourglassEmpty, MdCheckCircle } from 'react-icons/md';
+
+const STATUS_LABELS = {
+  PENDING: 'Pending Approval',
+  APPROVED: 'Confirmed',
+  REJECTED: 'Rejected',
+  CANCELLED: 'Cancelled',
+};
 
 const statusColors = {
   PENDING: { 
@@ -79,9 +86,23 @@ const BookingCard = ({ booking, onCancel, onCancelSeries, isAdmin = false }) => 
         </div>
         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${colors.bg} ${colors.text} border ${colors.border} rounded-full text-xs font-bold flex-shrink-0`}>
           <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
-          {booking.status}
+          {STATUS_LABELS[booking.status] || booking.status}
         </span>
       </div>
+
+      {booking.status === 'PENDING' && (
+        <div className="flex items-center gap-2 px-3 py-2 mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-xl">
+          <MdHourglassEmpty className="text-amber-500 text-lg flex-shrink-0 animate-pulse" />
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Awaiting admin approval</p>
+        </div>
+      )}
+
+      {booking.status === 'APPROVED' && (
+        <div className="flex items-center gap-2 px-3 py-2 mb-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl">
+          <MdCheckCircle className="text-emerald-500 text-lg flex-shrink-0" />
+          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Booking confirmed</p>
+        </div>
+      )}
 
       <div className="space-y-3">
         <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
