@@ -13,8 +13,12 @@ import AdminBookingsPage from './pages/AdminBookingsPage';
 import AdminResourcesPage from './pages/AdminResourcesPage';
 import AdminEquipmentPage from './pages/AdminEquipmentPage';
 import AdminTicketsPage from './pages/AdminTicketsPage';
+<<<<<<< HEAD
 import AdminUsersPage from './pages/AdminUsersPage';
 import TechnicianTicketsPage from './pages/TechnicianTicketsPage';
+=======
+import DebugNotificationsPage from './pages/DebugNotificationsPage';
+>>>>>>> b531ae34a82aad084bace72ebdb3165ae7c0edea
 import { useAuth } from './context/AuthContext';
 
 const RequireAuth = ({ allowedRoles }) => {
@@ -57,6 +61,7 @@ function App() {
             <Route path="/facilities" element={<FacilitiesPage />} />
             <Route path="/bookings" element={<BookingsPage />} />
             <Route path="/tickets" element={<TicketsPage />} />
+            <Route path="/debug/notifications" element={<DebugNotificationsPage />} />
           </Route>
         </Route>
 
@@ -70,6 +75,7 @@ function App() {
             <Route path="/admin/tickets" element={<AdminTicketsPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin" element={<AdminOverviewPage />} />
+            <Route path="/debug/notifications" element={<DebugNotificationsPage />} />
           </Route>
         </Route>
 

@@ -26,5 +26,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 	List<User> findAllByOrderByCreatedAtDesc();
 
+<<<<<<< HEAD
 	Optional<User> findByUsernameIgnoreCase(String username);
+=======
+	List<User> findByRoleIn(List<String> roles);
+>>>>>>> b531ae34a82aad084bace72ebdb3165ae7c0edea
 }

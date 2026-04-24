@@ -16,6 +16,12 @@ import com.campushub.smartcampus.repository.TicketAttachmentRepository;
 import com.campushub.smartcampus.repository.TicketRepository;
 import com.campushub.smartcampus.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+<<<<<<< HEAD
+=======
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+>>>>>>> b531ae34a82aad084bace72ebdb3165ae7c0edea
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,22 +35,27 @@ import java.util.stream.Stream;
 @Transactional
 public class TicketService {
 
+    private static final Logger log = LoggerFactory.getLogger(TicketService.class);
+
     private final TicketRepository ticketRepository;
     private final TicketAttachmentRepository ticketAttachmentRepository;
     private final CommentRepository commentRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public TicketService(TicketRepository ticketRepository,
                          TicketAttachmentRepository ticketAttachmentRepository,
                          CommentRepository commentRepository,
                          ResourceRepository resourceRepository,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         NotificationService notificationService) {
         this.ticketRepository = ticketRepository;
         this.ticketAttachmentRepository = ticketAttachmentRepository;
         this.commentRepository = commentRepository;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -92,10 +103,18 @@ public class TicketService {
     }
 
     public TicketResponseDTO createTicket(TicketRequestDTO dto) {
+        log.info("Creating ticket with userId: {}", dto.getUserId());
         Ticket ticket = new Ticket();
         applyRequest(ticket, dto);
         ticket.setStatus(TicketStatus.OPEN);
         Ticket saved = ticketRepository.save(ticket);
+        log.info("Ticket saved with id: {}, calling notification service", saved.getId());
+        try {
+            notificationService.createTicketCreatedNotification(saved);
+            log.info("Notification created successfully");
+        } catch (Exception e) {
+            log.error("Failed to create notification: {}", e.getMessage(), e);
+        }
         return toResponse(saved);
     }
 
@@ -128,6 +147,7 @@ public class TicketService {
         ticket.setAssignedTo(assignee);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
         Ticket saved = ticketRepository.save(ticket);
+        notificationService.createTicketAssignedNotification(saved, assignee);
         return toResponse(saved);
     }
 
@@ -151,6 +171,15 @@ public class TicketService {
         }
 
         Ticket saved = ticketRepository.save(ticket);
+
+        if (nextStatus == TicketStatus.REJECTED) {
+            notificationService.createTicketRejectedNotification(saved);
+        } else if (nextStatus == TicketStatus.RESOLVED) {
+            notificationService.createTicketResolvedNotification(saved);
+        } else if (nextStatus == TicketStatus.CLOSED) {
+            notificationService.createTicketClosedNotification(saved);
+        }
+
         return toResponse(saved);
     }
 

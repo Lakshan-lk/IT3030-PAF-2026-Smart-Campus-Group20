@@ -26,6 +26,23 @@ const CommentThread = ({ ticketId }) => {
   const [editingContent, setEditingContent] = useState('');
 
   const sortedComments = useMemo(() => comments ?? [], [comments]);
+  
+  const isAdmin = authUser?.role === 'admin';
+  const isAdminView = isAdmin; // Show admin role in UI
+
+  const canEdit = (comment) => {
+    // User can always edit their own comment
+    if (authUser?.id === comment.userId) return true;
+    // Admin can edit their own comments only (backend will enforce)
+    return false;
+  };
+  
+  const canDelete = (comment) => {
+    // User can always delete their own comment
+    if (authUser?.id === comment.userId) return true;
+    // Admin can delete their own comments only (backend will enforce)
+    return false;
+  };
 
   const handleAdd = async (event) => {
     event.preventDefault();
@@ -91,6 +108,9 @@ const CommentThread = ({ ticketId }) => {
         ) : (
           sortedComments.map((comment) => {
             const isOwner = authUser?.id && comment.userId === authUser.id;
+            const isCommentAdmin = comment.userRole === 'ADMIN' || comment.userRole === 'admin';
+            const canEditThis = canEdit(comment);
+            const canDeleteThis = canDelete(comment);
             const isEditing = editingId === comment.id;
             return (
               <article
@@ -107,7 +127,10 @@ const CommentThread = ({ ticketId }) => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-slate-800 dark:text-slate-100">{comment.userName}</p>
+                      <p className="font-semibold text-slate-800 dark:text-slate-100">
+                        {comment.userName}
+                        {isCommentAdmin && <span className="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">ADMIN</span>}
+                      </p>
                       <span className="text-xs text-slate-400 dark:text-slate-500">{formatTimestamp(comment.createdAt)}</span>
                     </div>
 
@@ -144,16 +167,18 @@ const CommentThread = ({ ticketId }) => {
                     )}
                   </div>
 
-                  {isOwner && !isEditing && (
+                  {canDeleteThis && !isEditing && (
                     <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => beginEdit(comment)}
-                        className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-amber-500"
-                        title="Edit"
-                      >
-                        <MdEdit />
-                      </button>
+                      {canEditThis && (
+                        <button
+                          type="button"
+                          onClick={() => beginEdit(comment)}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-amber-500"
+                          title="Edit"
+                        >
+                          <MdEdit />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => removeComment(comment.id, authUser.id)}

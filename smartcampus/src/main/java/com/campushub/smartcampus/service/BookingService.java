@@ -23,6 +23,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 @Transactional
@@ -33,11 +35,13 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public BookingService(BookingRepository bookingRepository, ResourceRepository resourceRepository, UserRepository userRepository) {
+    public BookingService(BookingRepository bookingRepository, ResourceRepository resourceRepository, UserRepository userRepository, NotificationService notificationService) {
         this.bookingRepository = bookingRepository;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -119,6 +123,14 @@ public class BookingService {
             booking.setAttendees(dto.getAttendees());
         }
         Booking saved = bookingRepository.save(booking);
+        
+        // Notification - call via proxy for async
+        try {
+            notificationService.createBookingCreatedNotificationAsync(saved);
+        } catch (Exception e) {
+            log.error("Notify failed: {}", e.getMessage());
+        }
+        
         return List.of(BookingResponseDTO.fromEntity(saved));
     }
 
@@ -223,6 +235,10 @@ public class BookingService {
 
         booking.setStatus(BookingStatus.APPROVED);
         Booking saved = bookingRepository.save(booking);
+        
+        // Async notification
+        notificationService.createBookingApprovedNotificationAsync(saved);
+        
         return BookingResponseDTO.fromEntity(saved);
     }
 
@@ -237,6 +253,10 @@ public class BookingService {
         booking.setStatus(BookingStatus.REJECTED);
         booking.setRejectionReason(reason);
         Booking saved = bookingRepository.save(booking);
+        
+        // Async notification
+        notificationService.createBookingRejectedNotificationAsync(saved, reason);
+        
         return BookingResponseDTO.fromEntity(saved);
     }
 
