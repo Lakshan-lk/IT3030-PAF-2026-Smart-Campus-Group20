@@ -10,9 +10,13 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"}, allowCredentials = "true")
@@ -75,6 +79,20 @@ public class ResourceController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteResource(@PathVariable Long id) {
         resourceService.deleteResource(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/upload-image", consumes = "multipart/form-data")
+    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) throws IOException {
+        String imageUrl = resourceService.uploadResourceImage(file);
+        Map<String, String> response = new HashMap<>();
+        response.put("imageUrl", imageUrl);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/upload-image")
+    public ResponseEntity<Void> deleteUploadedImage(@RequestParam("imageUrl") String imageUrl) {
+        resourceService.deleteUploadedImage(imageUrl);
         return ResponseEntity.noContent().build();
     }
 }
