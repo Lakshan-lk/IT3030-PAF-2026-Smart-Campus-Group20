@@ -53,9 +53,13 @@ const FilterPanel = ({
         </div>
       </div>
 
+      {/* ================= EQUIPMENT (UPGRADED UI ONLY) ================= */}
       <div className="mb-5">
-        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Equipment</label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+          Equipment
+        </label>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {EQUIPMENT_TYPES.map((type) => {
             const cfg = EQUIPMENT_CONFIG[type];
             const selected = filterEquipmentTypes.includes(type);
@@ -66,16 +70,63 @@ const FilterPanel = ({
                 key={type}
                 type="button"
                 onClick={() => toggleEquipment(type)}
-                className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border transition-all ${
-                  selected
-                    ? `border-transparent ring-2 ${cfg.ring} ${cfg.bg}`
-                    : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-500'
-                }`}
+                className={`
+                  relative group flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl
+                  transition-all duration-300 overflow-hidden border
+                  ${selected
+                    ? `border-transparent shadow-2xl scale-[1.05] ${cfg.bg} ring-2 ${cfg.ring}`
+                    : 'border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-800/40 hover:shadow-md hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-500'
+                  }
+                `}
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br ${cfg.color}`}>
+                {/* animated glow background */}
+                <div
+                  className={`
+                    absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 blur-2xl
+                    ${cfg.color}
+                  `}
+                />
+
+                {/* selected pulse glow */}
+                {selected && (
+                  <div className={`absolute inset-0 opacity-30 animate-pulse bg-gradient-to-br ${cfg.color}`} />
+                )}
+
+                {/* icon container */}
+                <div
+                  className={`
+                    relative w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br ${cfg.color}
+                    shadow-lg transition-transform duration-300
+                    ${selected ? 'scale-110' : 'group-hover:scale-105'}
+                  `}
+                >
                   <Icon className="text-white text-base" />
                 </div>
-                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">{cfg.label}</span>
+
+                {/* label */}
+                <span
+                  className={`
+                    relative text-[11px] font-semibold tracking-wide transition-colors duration-200
+                    ${selected
+                      ? 'text-slate-900 dark:text-white'
+                      : 'text-slate-500 dark:text-slate-300 group-hover:text-slate-700 dark:group-hover:text-white'
+                    }
+                  `}
+                >
+                  {cfg.label}
+                </span>
+
+                {/* active dot */}
+                {selected && (
+                  <span
+                    className={`absolute top-2 right-2 w-2 h-2 rounded-full bg-gradient-to-br ${cfg.color} shadow-md`}
+                  />
+                )}
+
+                {/* bottom glow line */}
+                {selected && (
+                  <div className={`absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r ${cfg.color}`} />
+                )}
               </button>
             );
           })}
