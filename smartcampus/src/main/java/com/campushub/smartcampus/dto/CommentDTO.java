@@ -13,6 +13,7 @@ public class CommentDTO {
     private String userAvatar;
     private String userRole;
     private String content;
+    private Boolean isInternal;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -72,6 +73,14 @@ public class CommentDTO {
         this.content = content;
     }
 
+    public Boolean getIsInternal() {
+        return isInternal;
+    }
+
+    public void setIsInternal(Boolean isInternal) {
+        this.isInternal = isInternal;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -97,6 +106,7 @@ public class CommentDTO {
         dto.setUserAvatar(comment.getUser().getProfileImageUrl());
         dto.setUserRole(comment.getUser().getRole());
         dto.setContent(comment.getContent());
+        dto.setIsInternal(comment.getIsInternal());
         dto.setCreatedAt(comment.getCreatedAt());
         dto.setUpdatedAt(comment.getUpdatedAt());
         return dto;

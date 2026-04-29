@@ -50,6 +50,7 @@ public class CommentService {
         comment.setTicket(ticket);
         comment.setUser(user);
         comment.setContent(dto.getContent());
+        comment.setIsInternal(dto.getIsInternal() != null ? dto.getIsInternal() : false);
         Comment saved = commentRepository.save(comment);
         
         // Send notification to ticket owner
