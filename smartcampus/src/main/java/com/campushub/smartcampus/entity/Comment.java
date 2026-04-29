@@ -39,6 +39,9 @@ public class Comment {
     @Column(columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "is_internal")
+    private Boolean isInternal = false;
+
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
@@ -91,6 +94,14 @@ public class Comment {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public Boolean getIsInternal() {
+        return isInternal;
+    }
+
+    public void setIsInternal(Boolean internal) {
+        isInternal = internal;
     }
 
     public LocalDateTime getCreatedAt() {

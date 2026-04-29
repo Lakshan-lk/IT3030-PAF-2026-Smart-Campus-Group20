@@ -27,7 +27,7 @@ export function useEquipmentByRoom(roomId) {
 export function useCreateEquipment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ roomId, data }) => equipmentApi.create(roomId, data),
+    mutationFn: (data) => equipmentApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
       queryClient.invalidateQueries({ queryKey: ['resources'] });

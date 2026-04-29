@@ -5,14 +5,16 @@ import { TIME_SLOTS, EQUIPMENT_CONFIG } from '../constants/facilities';
 import { useBookingForm } from '../hooks/useBookingForm';
 import { useAuth } from '../context/AuthContext';
 import { useResourceAvailability } from '../hooks/useResourceAvailability';
+import { resolveMediaUrl } from '../utils/media';
+import ResourceFallbackThumbnail from './ResourceFallbackThumbnail';
 
 // Day-of-week labels
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const STATUS_STYLE = {
-  free:    { bg: 'bg-emerald-500',  ring: 'ring-emerald-300', label: 'Available' },
-  partial: { bg: 'bg-amber-400',    ring: 'ring-amber-300',   label: 'Partially booked' },
-  full:    { bg: 'bg-rose-500',     ring: 'ring-rose-300',    label: 'Fully booked' },
+  free: { bg: 'bg-emerald-500', ring: 'ring-emerald-300', label: 'Available' },
+  partial: { bg: 'bg-amber-400', ring: 'ring-amber-300', label: 'Partially booked' },
+  full: { bg: 'bg-rose-500', ring: 'ring-rose-300', label: 'Fully booked' },
 };
 
 const EXTRA_EQUIPMENT_OPTIONS = [
@@ -25,6 +27,7 @@ const EXTRA_EQUIPMENT_OPTIONS = [
 
 const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartTime, initialEndTime }) => {
   const isAvailable = resource.status === 'ACTIVE' || resource.status === 'AVAILABLE';
+  const imageUrl = resolveMediaUrl(resource.imageUrl);
   const { authUser } = useAuth();
   const {
     bookingData, setBookingData,
@@ -67,12 +70,10 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
       >
         {/* header image */}
         <div className="h-40 relative">
-          {resource.imageUrl ? (
-            <img src={resource.imageUrl} alt={resource.name} className="w-full h-full object-cover" />
+          {imageUrl ? (
+            <img src={imageUrl} alt={resource.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-indigo-700 to-violet-500 flex items-center justify-center">
-              <MdEventAvailable className="text-white/40 text-6xl" />
-            </div>
+            <ResourceFallbackThumbnail type={resource.type} compact />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors">
@@ -162,8 +163,8 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
                     ${selectedDayStatus === 'full'
                       ? 'border-rose-400 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300'
                       : selectedDayStatus === 'partial'
-                      ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20'
-                      : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900'
+                        ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20'
+                        : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900'
                     }`}
                 />
                 {selectedDayStatus === 'full' && (

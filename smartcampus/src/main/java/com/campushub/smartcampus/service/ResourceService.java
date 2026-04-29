@@ -18,6 +18,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -34,12 +35,14 @@ public class ResourceService {
     private final ResourceRepository resourceRepository;
     private final EquipmentRepository equipmentRepository;
     private final BookingRepository bookingRepository;
+    private final ResourceImageService resourceImageService;
 
     public ResourceService(ResourceRepository resourceRepository, EquipmentRepository equipmentRepository,
-                           BookingRepository bookingRepository) {
+                           BookingRepository bookingRepository, ResourceImageService resourceImageService) {
         this.resourceRepository = resourceRepository;
         this.equipmentRepository = equipmentRepository;
         this.bookingRepository = bookingRepository;
+        this.resourceImageService = resourceImageService;
     }
 
     @Transactional(readOnly = true)
@@ -98,12 +101,14 @@ public class ResourceService {
         }
 
         Resource saved = resourceRepository.save(resource);
-        return ResourceResponseDTO.fromEntity(saved, List.of());
+        syncEquipment(saved, dto.getEquipmentTypes());
+        return ResourceResponseDTO.fromEntity(saved, equipmentRepository.findByRoomId(saved.getId()));
     }
 
     public ResourceResponseDTO updateResource(Long id, ResourceRequestDTO dto) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
+        String previousImageUrl = resource.getImageUrl();
 
         resource.setName(dto.getName());
         resource.setDescription(dto.getDescription());
@@ -117,15 +122,26 @@ public class ResourceService {
         }
 
         Resource saved = resourceRepository.save(resource);
+        cleanupReplacedImage(previousImageUrl, resource.getImageUrl());
+        syncEquipment(saved, dto.getEquipmentTypes());
         List<Equipment> equipment = equipmentRepository.findByRoomId(id);
         return ResourceResponseDTO.fromEntity(saved, equipment);
     }
 
     public void deleteResource(Long id) {
-        if (!resourceRepository.existsById(id)) {
-            throw new EntityNotFoundException("Resource not found with id: " + id);
-        }
+        Resource resource = resourceRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
+
+        resourceImageService.deleteUploadedImage(resource.getImageUrl());
         resourceRepository.deleteById(id);
+    }
+
+    public String uploadResourceImage(MultipartFile file) throws java.io.IOException {
+        return resourceImageService.saveResourceImage(file);
+    }
+
+    public void deleteUploadedImage(String imageUrl) {
+        resourceImageService.deleteUploadedImage(imageUrl);
     }
 
     private boolean matchesSearch(Resource resource, String search) {
@@ -193,6 +209,14 @@ public class ResourceService {
         return value != null && value.toLowerCase().contains(search);
     }
 
+    private void cleanupReplacedImage(String previousImageUrl, String currentImageUrl) {
+        if (previousImageUrl == null || previousImageUrl.equals(currentImageUrl)) {
+            return;
+        }
+
+        resourceImageService.deleteUploadedImage(previousImageUrl);
+    }
+
     private ResourceType parseResourceType(String type) {
         if (type == null || type.isBlank()) {
             return null;
@@ -232,5 +256,37 @@ public class ResourceService {
             }
         }
         return parsed;
+    }
+    private void syncEquipment(Resource resource, List<String> equipmentTypes) {
+        if (equipmentTypes == null) {
+            return;
+        }
+
+        // Get current equipment
+        List<Equipment> currentEquipment = equipmentRepository.findByRoomId(resource.getId());
+        Set<EquipmentType> currentTypes = currentEquipment.stream()
+                .map(Equipment::getType)
+                .collect(Collectors.toSet());
+
+        Set<EquipmentType> requestedTypes = parseEquipmentTypes(equipmentTypes);
+
+        // Remove equipment no longer requested
+        for (Equipment eq : currentEquipment) {
+            if (!requestedTypes.contains(eq.getType())) {
+                equipmentRepository.delete(eq);
+            }
+        }
+
+        // Add new equipment
+        for (EquipmentType type : requestedTypes) {
+            if (!currentTypes.contains(type)) {
+                Equipment eq = new Equipment();
+                eq.setName(resource.getName() + " " + type.name());
+                eq.setType(type);
+                eq.setRoom(resource);
+                eq.setStatus("ACTIVE");
+                equipmentRepository.save(eq);
+            }
+        }
     }
 }

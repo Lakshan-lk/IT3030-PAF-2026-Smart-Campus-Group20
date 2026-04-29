@@ -2,9 +2,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { MdLocationOn, MdPeople } from 'react-icons/md';
 import { EQUIPMENT_CONFIG } from '../constants/facilities';
+import { resolveMediaUrl } from '../utils/media';
+import ResourceFallbackThumbnail from './ResourceFallbackThumbnail';
 
 const ResourceCard = ({ resource, onBook }) => {
   const equipmentList = resource.equipment || resource.equipments || [];
+  const imageUrl = resolveMediaUrl(resource.imageUrl);
 
   return (
     <motion.div
@@ -13,22 +16,28 @@ const ResourceCard = ({ resource, onBook }) => {
       className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col"
     >
       <div className="h-40 bg-slate-200 dark:bg-slate-700 relative">
-        {resource.imageUrl ? (
-          <img src={resource.imageUrl} alt={resource.name} className="w-full h-full object-cover" />
+        {imageUrl ? (
+          <img src={imageUrl} alt={resource.name} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-indigo-50 dark:from-indigo-900/40 dark:to-slate-800 flex items-center justify-center">
-            <span className="text-indigo-300 dark:text-indigo-600 font-bold text-xl tracking-wide uppercase">
-              {resource.type?.replace(/_/g, ' ')}
-            </span>
-          </div>
+          <ResourceFallbackThumbnail type={resource.type} />
         )}
-        <div className="absolute top-3 left-3 bg-white/90 dark:bg-slate-900/80 px-2 py-1 rounded-md text-xs font-bold capitalize backdrop-blur-sm">
-          {resource.type?.replace(/_/g, ' ').toLowerCase()}
+        <div className="absolute top-3 left-3">
+          <motion.div
+            animate={{ y: [0, -2, 0] }}
+            transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+            className="bg-white/90 dark:bg-slate-900/80 px-2 py-1 rounded-md text-xs font-bold capitalize backdrop-blur-sm"
+          >
+            {resource.type?.replace(/_/g, ' ').toLowerCase()}
+          </motion.div>
         </div>
-        <div className={`absolute top-3 right-3 text-xs font-bold px-2 py-1 rounded-md backdrop-blur-sm
-          ${resource.status === 'ACTIVE' ? 'bg-emerald-100/90 text-emerald-700' : 'bg-slate-200/90 text-slate-700'}`}>
+        <motion.div
+          animate={{ scale: [1, 1.03, 1] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+          className={`absolute top-3 right-3 text-xs font-bold px-2 py-1 rounded-md backdrop-blur-sm
+            ${resource.status === 'ACTIVE' ? 'bg-emerald-100/90 text-emerald-700' : 'bg-slate-200/90 text-slate-700'}`}
+        >
           {resource.status === 'ACTIVE' ? 'Active' : 'Out of Service'}
-        </div>
+        </motion.div>
       </div>
 
       <div className="p-5 flex-1 flex flex-col">

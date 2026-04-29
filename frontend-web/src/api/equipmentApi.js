@@ -10,8 +10,10 @@ export const equipmentApi = {
   getByRoom: (roomId) =>
     api.get(`/api/v1/resources/${roomId}/equipment`),
 
-  create: (roomId, data) =>
-    api.post(`/api/v1/resources/${roomId}/equipment`, data),
+  create: (data) =>
+    data.hiringEquipment
+      ? api.post('/api/v1/equipment', data)
+      : api.post(`/api/v1/resources/${data.roomId}/equipment`, data),
 
   update: (id, data) =>
     api.put(`/api/v1/equipment/${id}`, data),

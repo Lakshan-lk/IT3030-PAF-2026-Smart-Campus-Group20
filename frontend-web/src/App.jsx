@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage';
 import FacilitiesPage from './pages/FacilitiesPage';
 import BookingsPage from './pages/BookingsPage';
 import TicketsPage from './pages/TicketsPage';
+import EquipmentHirePage from './pages/EquipmentHirePage';
 import AdminOverviewPage from './pages/AdminOverviewPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
 import AdminResourcesPage from './pages/AdminResourcesPage';
@@ -15,6 +16,7 @@ import AdminEquipmentPage from './pages/AdminEquipmentPage';
 import AdminTicketsPage from './pages/AdminTicketsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import TechnicianTicketsPage from './pages/TechnicianTicketsPage';
+import DebugNotificationsPage from './pages/DebugNotificationsPage';
 import { useAuth } from './context/AuthContext';
 
 const RequireAuth = ({ allowedRoles }) => {
@@ -56,7 +58,9 @@ function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/facilities" element={<FacilitiesPage />} />
             <Route path="/bookings" element={<BookingsPage />} />
+            <Route path="/equipment-hire" element={<EquipmentHirePage />} />
             <Route path="/tickets" element={<TicketsPage />} />
+            <Route path="/debug/notifications" element={<DebugNotificationsPage />} />
           </Route>
         </Route>
 
@@ -70,6 +74,7 @@ function App() {
             <Route path="/admin/tickets" element={<AdminTicketsPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin" element={<AdminOverviewPage />} />
+            <Route path="/debug/notifications" element={<DebugNotificationsPage />} />
           </Route>
         </Route>
 

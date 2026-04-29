@@ -22,10 +22,34 @@ const CommentThread = ({ ticketId }) => {
   const deleteComment = useDeleteComment(ticketId);
   const { authUser } = useAuth();
   const [content, setContent] = useState('');
+  const [isInternal, setIsInternal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingContent, setEditingContent] = useState('');
 
-  const sortedComments = useMemo(() => comments ?? [], [comments]);
+  const sortedComments = useMemo(() => {
+    let list = comments ?? [];
+    if (authUser?.role !== 'admin' && authUser?.role !== 'technician') {
+      list = list.filter(c => !c.isInternal);
+    }
+    return list;
+  }, [comments, authUser?.role]);
+  
+  const isAdmin = authUser?.role === 'admin';
+  const isAdminView = isAdmin; // Show admin role in UI
+
+  const canEdit = (comment) => {
+    // User can always edit their own comment
+    if (authUser?.id === comment.userId) return true;
+    // Admin can edit their own comments only (backend will enforce)
+    return false;
+  };
+  
+  const canDelete = (comment) => {
+    // User can always delete their own comment
+    if (authUser?.id === comment.userId) return true;
+    // Admin can delete their own comments only (backend will enforce)
+    return false;
+  };
 
   const handleAdd = async (event) => {
     event.preventDefault();
@@ -35,8 +59,9 @@ const CommentThread = ({ ticketId }) => {
     if (!authUser?.id) {
       return;
     }
-    await addComment.mutateAsync({ userId: authUser.id, content });
+    await addComment.mutateAsync({ userId: authUser.id, content, isInternal });
     setContent('');
+    setIsInternal(false);
   };
 
   const beginEdit = (comment) => {
@@ -91,6 +116,9 @@ const CommentThread = ({ ticketId }) => {
         ) : (
           sortedComments.map((comment) => {
             const isOwner = authUser?.id && comment.userId === authUser.id;
+            const isCommentAdmin = comment.userRole === 'ADMIN' || comment.userRole === 'admin';
+            const canEditThis = canEdit(comment);
+            const canDeleteThis = canDelete(comment);
             const isEditing = editingId === comment.id;
             return (
               <article
@@ -107,8 +135,16 @@ const CommentThread = ({ ticketId }) => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-slate-800 dark:text-slate-100">{comment.userName}</p>
+                      <p className="font-semibold text-slate-800 dark:text-slate-100">
+                        {comment.userName}
+                        {isCommentAdmin && <span className="ml-2 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">ADMIN</span>}
+                      </p>
                       <span className="text-xs text-slate-400 dark:text-slate-500">{formatTimestamp(comment.createdAt)}</span>
+                      {comment.isInternal && (
+                        <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">
+                          Internal Only
+                        </span>
+                      )}
                     </div>
 
                     {isEditing ? (
@@ -144,16 +180,18 @@ const CommentThread = ({ ticketId }) => {
                     )}
                   </div>
 
-                  {isOwner && !isEditing && (
+                  {canDeleteThis && !isEditing && (
                     <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => beginEdit(comment)}
-                        className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-amber-500"
-                        title="Edit"
-                      >
-                        <MdEdit />
-                      </button>
+                      {canEditThis && (
+                        <button
+                          type="button"
+                          onClick={() => beginEdit(comment)}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-amber-500"
+                          title="Edit"
+                        >
+                          <MdEdit />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => removeComment(comment.id, authUser.id)}
@@ -173,22 +211,38 @@ const CommentThread = ({ ticketId }) => {
 
       <form onSubmit={handleAdd} className="mt-4">
         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Add a comment</label>
-        <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-          <textarea
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            rows={3}
-            placeholder="Write a helpful update..."
-            className="min-h-24 flex-1 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
-          />
-          <button
-            type="submit"
-            disabled={addComment.isPending || !authUser?.id}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:from-amber-600 hover:to-orange-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-36"
-          >
-            <MdSend className="text-lg" />
-            Send
-          </button>
+        <div className="mt-2 flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <textarea
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              rows={3}
+              placeholder="Write a helpful update..."
+              className="min-h-24 flex-1 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+            />
+            <button
+              type="submit"
+              disabled={addComment.isPending || !authUser?.id}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:from-amber-600 hover:to-orange-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-36 h-fit min-h-12"
+            >
+              <MdSend className="text-lg" />
+              Send
+            </button>
+          </div>
+          {(authUser?.role === 'admin' || authUser?.role === 'technician') && (
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="internal-comment"
+                checked={isInternal}
+                onChange={(e) => setIsInternal(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500 dark:border-slate-600 dark:bg-slate-800"
+              />
+              <label htmlFor="internal-comment" className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                Internal comment (Technicians and Admins only)
+              </label>
+            </div>
+          )}
         </div>
       </form>
     </section>

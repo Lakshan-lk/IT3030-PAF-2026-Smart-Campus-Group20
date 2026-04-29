@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { MdAdd, MdSearch, MdDelete, MdEdit, MdBuild, MdRoom } from 'react-icons/md';
+import { AnimatePresence } from 'framer-motion';
+import { MdAdd, MdSearch, MdDelete, MdEdit, MdBuild, MdRoom, MdSell } from 'react-icons/md';
 import { useAllEquipment, useDeleteEquipment } from '../hooks/useEquipment';
 import { useResources } from '../hooks/useResources';
 import EquipmentForm from '../components/EquipmentForm';
-import { EQUIPMENT_CONFIG } from '../constants/facilities';
+import { EQUIPMENT_CONFIG, formatEquipmentLabel } from '../constants/facilities';
 
 const STATUS_TABS = [
   { key: 'all', label: 'All' },
@@ -17,6 +17,7 @@ const AdminEquipmentPage = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState(null);
+  const [formMode, setFormMode] = useState('room');
 
   const { data: equipmentData, isLoading } = useAllEquipment();
   const { data: resourcesData } = useResources({ page: 0, size: 200 });
@@ -37,6 +38,8 @@ const AdminEquipmentPage = () => {
       const room = resourceMap[item.roomId];
       return item.name?.toLowerCase().includes(q)
         || item.type?.toLowerCase().includes(q)
+        || item.hireType?.toLowerCase().includes(q)
+        || item.description?.toLowerCase().includes(q)
         || item.status?.toLowerCase().includes(q)
         || room?.name?.toLowerCase().includes(q)
         || room?.location?.toLowerCase().includes(q);
@@ -46,15 +49,24 @@ const AdminEquipmentPage = () => {
     total: equipment.length,
     active: equipment.filter(item => item.status === 'ACTIVE').length,
     outOfService: equipment.filter(item => item.status === 'OUT_OF_SERVICE').length,
+    hire: equipment.filter(item => item.hiringEquipment).length,
   };
 
   const handleCreate = () => {
     setEditingEquipment(null);
+    setFormMode('room');
+    setIsFormOpen(true);
+  };
+
+  const handleCreateHiring = () => {
+    setEditingEquipment(null);
+    setFormMode('hiring');
     setIsFormOpen(true);
   };
 
   const handleEdit = (item) => {
     setEditingEquipment(item);
+    setFormMode(item.hiringEquipment ? 'hiring' : 'room');
     setIsFormOpen(true);
   };
 
@@ -78,20 +90,30 @@ const AdminEquipmentPage = () => {
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Add, update, and delete equipment stored in the database</p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl text-sm font-medium transition-colors shadow-sm"
-        >
-          <MdAdd className="text-lg" />
-          Add Equipment
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl text-sm font-medium transition-colors shadow-sm"
+          >
+            <MdAdd className="text-lg" />
+            Add Equipment
+          </button>
+          <button
+            onClick={handleCreateHiring}
+            className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-medium transition-colors shadow-sm"
+          >
+            <MdSell className="text-lg" />
+            Add Hiring Equipments
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
           { label: 'Total', value: stats.total, icon: MdBuild },
           { label: 'Active', value: stats.active, icon: MdBuild, accent: 'text-emerald-600' },
           { label: 'Out of Service', value: stats.outOfService, icon: MdBuild, accent: 'text-slate-500' },
+          { label: 'Hire', value: stats.hire, icon: MdSell, accent: 'text-amber-600' },
         ].map(card => {
           const Icon = card.icon;
           return (
@@ -171,24 +193,46 @@ const AdminEquipmentPage = () => {
                 {filteredEquipment.map(item => {
                   const cfg = EQUIPMENT_CONFIG[item.type];
                   const room = resourceMap[item.roomId];
+                  const typeLabel = item.hiringEquipment
+                    ? item.hireType
+                    : formatEquipmentLabel(item.type);
                   return (
                     <tr
                       key={item.id}
                       className="border-b border-slate-50 dark:border-slate-700/20 hover:bg-slate-50/80 dark:hover:bg-slate-700/20 transition-colors group"
                     >
                       <td className="p-4">
-                        <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{item.name}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{item.name}</p>
+                          {item.hiringEquipment ? (
+                            <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300">
+                              Hire
+                            </span>
+                          ) : null}
+                        </div>
                         <p className="text-xs text-slate-400 dark:text-slate-500">ID: {item.id}</p>
+                        {item.hiringEquipment && item.description ? (
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{item.description}</p>
+                        ) : null}
                       </td>
                       <td className="p-4">
                         <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300">
-                          {cfg ? <span className="w-2 h-2 rounded-full bg-slate-400" /> : null}
-                          {item.type?.replace(/_/g, ' ').toLowerCase()}
+                          {!item.hiringEquipment && cfg ? <span className="w-2 h-2 rounded-full bg-slate-400" /> : null}
+                          {typeLabel}
                         </span>
                       </td>
                       <td className="p-4">
-                        <p className="text-sm text-slate-600 dark:text-slate-300">{room?.name || `Room #${item.roomId || 'N/A'}`}</p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500">{room?.location || 'Location not specified'}</p>
+                        {item.hiringEquipment ? (
+                          <>
+                            <p className="text-sm text-slate-600 dark:text-slate-300">Hiring inventory</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500">{item.imageUrls?.length || 0} image(s)</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm text-slate-600 dark:text-slate-300">{room?.name || `Room #${item.roomId || 'N/A'}`}</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500">{room?.location || 'Location not specified'}</p>
+                          </>
+                        )}
                       </td>
                       <td className="p-4">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
@@ -230,8 +274,10 @@ const AdminEquipmentPage = () => {
       <AnimatePresence>
         {isFormOpen && (
           <EquipmentForm
+            key={`${formMode}-${editingEquipment?.id ?? 'new'}`}
             equipment={editingEquipment}
             resources={resources}
+            mode={formMode}
             onClose={closeForm}
           />
         )}
