@@ -16,12 +16,9 @@ import com.campushub.smartcampus.repository.TicketAttachmentRepository;
 import com.campushub.smartcampus.repository.TicketRepository;
 import com.campushub.smartcampus.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-<<<<<<< HEAD
-=======
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
->>>>>>> b531ae34a82aad084bace72ebdb3165ae7c0edea
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

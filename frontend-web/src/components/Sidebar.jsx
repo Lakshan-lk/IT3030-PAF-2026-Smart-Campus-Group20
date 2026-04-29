@@ -1,13 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MdDashboard, MdEventSeat, MdEvent, MdBuild } from 'react-icons/md';
+import { MdDashboard, MdEventSeat, MdEvent, MdBuild, MdSell } from 'react-icons/md';
 
 const Sidebar = () => {
   const links = [
     { name: 'Dashboard', path: '/', icon: <MdDashboard /> },
     { name: 'Facilities & Assets', path: '/facilities', icon: <MdEventSeat /> },
     { name: 'My Bookings', path: '/bookings', icon: <MdEvent /> },
+    { name: 'Equipment Hire', path: '/equipment-hire', icon: <MdSell /> },
     { name: 'Maintenance Tickets', path: '/tickets', icon: <MdBuild /> },
   ];
 

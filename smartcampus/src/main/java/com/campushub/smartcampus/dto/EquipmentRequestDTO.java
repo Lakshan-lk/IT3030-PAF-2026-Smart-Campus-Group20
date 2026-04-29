@@ -1,18 +1,23 @@
 package com.campushub.smartcampus.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 
 public class EquipmentRequestDTO {
 
-    @NotBlank(message = "Name is required")
     private String name;
-
-    @NotBlank(message = "Type is required")
     private String type;
 
     private String status;
 
     private Long roomId;
+
+    private Boolean hiringEquipment;
+
+    private String hireType;
+
+    private String description;
+
+    private List<String> imageUrls;
 
     public String getName() {
         return name;
@@ -44,5 +49,37 @@ public class EquipmentRequestDTO {
 
     public void setRoomId(Long roomId) {
         this.roomId = roomId;
+    }
+
+    public Boolean getHiringEquipment() {
+        return hiringEquipment;
+    }
+
+    public void setHiringEquipment(Boolean hiringEquipment) {
+        this.hiringEquipment = hiringEquipment;
+    }
+
+    public String getHireType() {
+        return hireType;
+    }
+
+    public void setHireType(String hireType) {
+        this.hireType = hireType;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 }
