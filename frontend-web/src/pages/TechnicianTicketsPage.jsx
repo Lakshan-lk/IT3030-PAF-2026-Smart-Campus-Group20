@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTickets, useTicketById, useUpdateTicketStatus } from '../hooks/useTickets';
 import CommentThread from '../components/CommentThread';
+import { resolveMediaUrl } from '../utils/media';
 
 // ─── Status config ────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -124,6 +125,29 @@ const TicketDetailPanel = ({ ticketId, onClose }) => {
                 </div>
 
                 <p className="text-sm leading-7 text-slate-600 dark:text-slate-300">{ticket.description}</p>
+
+                {ticket.attachments?.length > 0 && (
+                  <div className="mt-5">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Attachments</p>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                      {ticket.attachments.map((attachment) => (
+                        <a
+                          key={attachment.id}
+                          href={resolveMediaUrl(attachment.url)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="group overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50"
+                        >
+                          <img
+                            src={resolveMediaUrl(attachment.url)}
+                            alt={attachment.fileName || 'Attachment'}
+                            className="h-24 w-full object-cover transition group-hover:scale-[1.03]"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                   <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/40 p-4">
