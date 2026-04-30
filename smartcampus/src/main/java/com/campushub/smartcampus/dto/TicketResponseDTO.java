@@ -2,6 +2,7 @@ package com.campushub.smartcampus.dto;
 
 import com.campushub.smartcampus.entity.Ticket;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class TicketResponseDTO {
 
@@ -21,6 +22,7 @@ public class TicketResponseDTO {
     private String preferredContact;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<AttachmentDTO> attachments;
 
     public Long getId() {
         return id;
@@ -148,6 +150,14 @@ public class TicketResponseDTO {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<AttachmentDTO> getAttachments() {
+        return attachments;
+    }
+
+    public void setAttachments(List<AttachmentDTO> attachments) {
+        this.attachments = attachments;
     }
 
     public static TicketResponseDTO fromEntity(Ticket ticket) {

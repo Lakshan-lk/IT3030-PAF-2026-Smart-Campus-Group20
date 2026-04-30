@@ -1,6 +1,7 @@
 package com.campushub.smartcampus.service;
 
 import com.campushub.smartcampus.dto.AssignTicketRequestDTO;
+import com.campushub.smartcampus.dto.AttachmentDTO;
 import com.campushub.smartcampus.dto.StatusUpdateDTO;
 import com.campushub.smartcampus.dto.TicketRequestDTO;
 import com.campushub.smartcampus.dto.TicketResponseDTO;
@@ -36,6 +37,7 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final TicketAttachmentRepository ticketAttachmentRepository;
+    private final TicketAttachmentService ticketAttachmentService;
     private final CommentRepository commentRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
@@ -46,13 +48,15 @@ public class TicketService {
                          CommentRepository commentRepository,
                          ResourceRepository resourceRepository,
                          UserRepository userRepository,
-                         NotificationService notificationService) {
+                         NotificationService notificationService,
+                         TicketAttachmentService ticketAttachmentService) {
         this.ticketRepository = ticketRepository;
         this.ticketAttachmentRepository = ticketAttachmentRepository;
         this.commentRepository = commentRepository;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.ticketAttachmentService = ticketAttachmentService;
     }
 
     @Transactional(readOnly = true)
@@ -184,7 +188,7 @@ public class TicketService {
         if (!ticketRepository.existsById(id)) {
             throw new EntityNotFoundException("Ticket not found with id: " + id);
         }
-        ticketAttachmentRepository.findByTicketId(id).forEach(ticketAttachmentRepository::delete);
+        ticketAttachmentService.deleteAttachments(id);
         commentRepository.findByTicketIdOrderByCreatedAtAsc(id).forEach(commentRepository::delete);
         ticketRepository.deleteById(id);
     }
@@ -249,6 +253,10 @@ public class TicketService {
     }
 
     private TicketResponseDTO toResponse(Ticket ticket) {
-        return TicketResponseDTO.fromEntity(ticket);
+        TicketResponseDTO dto = TicketResponseDTO.fromEntity(ticket);
+        dto.setAttachments(ticketAttachmentRepository.findByTicketId(ticket.getId()).stream()
+                .map(AttachmentDTO::fromEntity)
+                .toList());
+        return dto;
     }
 }
