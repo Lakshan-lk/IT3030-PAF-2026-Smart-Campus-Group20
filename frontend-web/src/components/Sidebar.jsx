@@ -7,6 +7,7 @@ const Sidebar = () => {
   const links = [
     { name: 'Dashboard', path: '/', icon: <MdDashboard /> },
     { name: 'Facilities & Assets', path: '/facilities', icon: <MdEventSeat /> },
+    { name: 'Hire Equipment', path: '/hire-equipment', icon: <MdBuild /> },
     { name: 'My Bookings', path: '/bookings', icon: <MdEvent /> },
     { name: 'Maintenance Tickets', path: '/tickets', icon: <MdBuild /> },
   ];

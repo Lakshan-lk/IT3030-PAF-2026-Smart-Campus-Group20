@@ -11,6 +11,7 @@ const AdminSidebar = () => {
     { name: 'Resources', path: '/admin/resources', icon: <MdApartment /> },
     { name: 'Equipment', path: '/admin/equipment', icon: <MdBuild /> },
     { name: 'Bookings', path: '/admin/bookings', icon: <MdEvent /> },
+    { name: 'Eq Bookings', path: '/admin/equipment-bookings', icon: <MdBuild /> },
   ];
 
   return (
