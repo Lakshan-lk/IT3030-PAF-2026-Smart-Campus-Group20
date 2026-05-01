@@ -1,8 +1,9 @@
 import api from './axios';
 
 export const equipmentBookingApi = {
-<<<<<<< HEAD
   getAll: (params = {}) => api.get('/api/v1/equipment-bookings', { params }),
+
+  getMyBookings: (params = {}) => api.get('/api/v1/equipment-bookings/my-bookings', { params }),
 
   getById: (id) => api.get(`/api/v1/equipment-bookings/${id}`),
 
@@ -14,13 +15,7 @@ export const equipmentBookingApi = {
 
   cancel: (id) => api.post(`/api/v1/equipment-bookings/${id}/cancel`),
 
+  delete: (id) => api.delete(`/api/v1/equipment-bookings/${id}`),
+
   getActiveCount: () => api.get('/api/v1/equipment-bookings/stats/active'),
-=======
-    create: (data) => api.post('/api/v1/equipment-bookings', data),
-    getAll: (params) => api.get('/api/v1/equipment-bookings', { params }),
-    getMyBookings: (params) => api.get('/api/v1/equipment-bookings/my-bookings', { params }),
-    approve: (id) => api.put(`/api/v1/equipment-bookings/${id}/approve`),
-    reject: (id, reason) => api.put(`/api/v1/equipment-bookings/${id}/reject`, { reason }),
-    delete: (id) => api.delete(`/api/v1/equipment-bookings/${id}`)
->>>>>>> 074e5aa570971928637500386fbb67ef1cfb0a82
 };

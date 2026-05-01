@@ -9,7 +9,6 @@ import FacilitiesPage from './pages/FacilitiesPage';
 import EquipmentHirePage from './pages/EquipmentHirePage';
 import BookingsPage from './pages/BookingsPage';
 import TicketsPage from './pages/TicketsPage';
-import EquipmentHirePage from './pages/EquipmentHirePage';
 import AdminOverviewPage from './pages/AdminOverviewPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
 import AdminEquipmentBookingsPage from './pages/AdminEquipmentBookingsPage';
