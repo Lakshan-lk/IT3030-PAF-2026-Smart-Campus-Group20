@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { MdSearch, MdCheckCircle, MdCategory } from 'react-icons/md';
 import { useAllEquipment } from '../hooks/useEquipment';
 import HireModal from '../components/HireModal';
+import { getCampusStatusMeta, isCampusStatusAvailable } from '../utils/status';
 
 const EquipmentHirePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,36 +87,42 @@ const EquipmentHirePage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredEquipment.map(item => (
-            <motion.div key={item.id} whileHover={{ y: -4 }} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col">
-              <div className="h-40 bg-slate-100 dark:bg-slate-700 relative">
-                {item.imageUrls?.length > 0 ? (
-                  <img src={item.imageUrls[0]} alt={item.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-300">No Image</div>
-                )}
-                <div className="absolute top-3 right-3 px-2 py-1 bg-white/90 dark:bg-slate-800/90 rounded text-xs font-bold text-amber-600 dark:text-amber-400 shadow-sm backdrop-blur-sm">
-                  {item.hireType || 'Equipment'}
+          {filteredEquipment.map(item => {
+            const statusMeta = getCampusStatusMeta(item.status);
+            const isAvailable = isCampusStatusAvailable(item.status);
+
+            return (
+              <motion.div key={item.id} whileHover={{ y: -4 }} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col">
+                <div className="h-40 bg-slate-100 dark:bg-slate-700 relative">
+                  {item.imageUrls?.length > 0 ? (
+                    <img src={item.imageUrls[0]} alt={item.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-300">No Image</div>
+                  )}
+                  <div className="absolute top-3 right-3 px-2 py-1 bg-white/90 dark:bg-slate-800/90 rounded text-xs font-bold text-amber-600 dark:text-amber-400 shadow-sm backdrop-blur-sm">
+                    {item.hireType || 'Equipment'}
+                  </div>
                 </div>
-              </div>
-              <div className="p-5 flex-1 flex flex-col">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">{item.name}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{item.description || 'No description available'}</p>
-                <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-700/50 flex justify-between items-center">
-                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${item.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400'}`}>
-                    {item.status}
-                  </span>
-                  <button
-                    onClick={() => setSelectedEquipment(item)}
-                    disabled={item.status !== 'ACTIVE'}
-                    className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-semibold rounded-lg transition-colors"
-                  >
-                    Hire
-                  </button>
+                <div className="p-5 flex-1 flex flex-col">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">{item.name}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{item.description || 'No description available'}</p>
+                  <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-700/50 flex justify-between items-center">
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${statusMeta.badge}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
+                      {statusMeta.label}
+                    </span>
+                    <button
+                      onClick={() => setSelectedEquipment(item)}
+                      disabled={!isAvailable}
+                      className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-semibold rounded-lg transition-colors"
+                    >
+                      {isAvailable ? 'Hire' : statusMeta.label}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       )}
 

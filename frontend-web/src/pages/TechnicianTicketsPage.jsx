@@ -86,7 +86,14 @@ const TicketDetailPanel = ({ ticketId, onClose }) => {
         <div className="flex items-center justify-between border-b border-slate-200/70 dark:border-slate-700/50 bg-white/80 dark:bg-slate-900/70 px-6 py-4">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-500">Ticket details</p>
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{ticket?.resourceName || 'Ticket'}</h2>
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+              {ticket?.equipmentName || ticket?.resourceName || 'General Ticket'}
+            </h2>
+            {ticket && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Ticket #{ticket.id} · Reported by {ticket.userName}
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -256,7 +263,9 @@ const TechTicketCard = ({ ticket, onClick }) => {
         <span className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase ${PRIORITY_BADGE[ticket.priority] || ''}`}>
           {ticket.priority}
         </span>
-        <span className="text-xs text-slate-400">{ticket.resourceName || 'No room'}</span>
+        <span className="text-xs text-slate-400">
+          {ticket.equipmentName || ticket.resourceName || 'No asset'}
+        </span>
       </div>
       <p className="mt-2 text-xs text-slate-400">{formatDate(ticket.createdAt)}</p>
     </motion.button>

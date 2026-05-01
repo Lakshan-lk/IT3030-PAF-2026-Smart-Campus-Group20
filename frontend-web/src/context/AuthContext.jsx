@@ -26,16 +26,33 @@ export function AuthProvider({ children }) {
     const normalizedUser = normalizeUsername(username);
 
     if (normalizedUser === 'admin' && password === 'admin') {
-      const user = toSessionUser({
-        id: 1,
-        username: 'admin',
-        role: 'admin',
-        name: 'System Administrator',
-        provider: 'local',
-      });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      setAuthUser(user);
-      return { success: true, role: user.role, user };
+      // Fetch the real admin user from the DB so we use the actual DB id
+      try {
+        const res = await authApi.getAdminUser();
+        const dbAdmin = res.data;
+        const user = toSessionUser({
+          id: dbAdmin.id,
+          username: 'admin',
+          role: dbAdmin.role || 'admin',
+          name: dbAdmin.name || 'System Administrator',
+          provider: 'local',
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+        setAuthUser(user);
+        return { success: true, role: user.role, user };
+      } catch {
+        // Fallback if backend is down — id: -1 will still fail comments but at least the UI works
+        const user = toSessionUser({
+          id: -1,
+          username: 'admin',
+          role: 'admin',
+          name: 'System Administrator',
+          provider: 'local',
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+        setAuthUser(user);
+        return { success: true, role: user.role, user };
+      }
     }
 
     try {

@@ -178,6 +178,9 @@ public class TicketService {
             if (nextStatus != TicketStatus.REJECTED) {
                 ticket.setRejectionReason(null);
             }
+        } else if (nextStatus == TicketStatus.OPEN) {
+            ticket.setResolutionNotes(null);
+            ticket.setRejectionReason(null);
         }
 
         Ticket saved = ticketRepository.save(ticket);
@@ -185,6 +188,8 @@ public class TicketService {
         // Restore to ACTIVE when work is done; keep UNDER_MAINTENANCE while IN_PROGRESS
         if (nextStatus == TicketStatus.RESOLVED || nextStatus == TicketStatus.CLOSED || nextStatus == TicketStatus.REJECTED) {
             setMaintenanceStatus(saved, false);
+        } else if (nextStatus == TicketStatus.OPEN) {
+            setMaintenanceStatus(saved, true);
         }
 
         if (nextStatus == TicketStatus.REJECTED) {
@@ -270,7 +275,7 @@ public class TicketService {
                 }
             }
             case RESOLVED -> {
-                if (next != TicketStatus.CLOSED) {
+                if (next != TicketStatus.CLOSED && next != TicketStatus.OPEN) {
                     throw new IllegalArgumentException("Invalid status transition from RESOLVED to " + next);
                 }
             }

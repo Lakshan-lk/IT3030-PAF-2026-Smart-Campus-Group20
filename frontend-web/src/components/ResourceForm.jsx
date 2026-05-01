@@ -4,6 +4,11 @@ import { MdClose, MdImage, MdUpload, MdDelete } from 'react-icons/md';
 import { useCreateResource, useUpdateResource } from '../hooks/useResources';
 import { resourceApi } from '../api/resourceApi';
 import { resolveMediaUrl } from '../utils/media';
+import {
+  RESOURCE_STATUS_OPTIONS,
+  normalizeResourceStatusForApi,
+  normalizeResourceStatusForForm,
+} from '../utils/status';
 
 const ResourceForm = ({ resource, onClose, onSaved }) => {
   const isEditing = !!resource;
@@ -17,7 +22,7 @@ const ResourceForm = ({ resource, onClose, onSaved }) => {
     type: resource?.type || 'LECTURE_HALL',
     location: resource?.location || '',
     capacity: resource?.capacity || 10,
-    status: resource?.status || 'ACTIVE',
+    status: normalizeResourceStatusForForm(resource?.status || 'ACTIVE'),
     imageUrl: resource?.imageUrl || '',
     equipmentTypes: resource?.equipment?.map(e => e.type) || [],
   }), [resource]);
@@ -115,6 +120,7 @@ const ResourceForm = ({ resource, onClose, onSaved }) => {
 
       const payload = {
         ...formData,
+        status: normalizeResourceStatusForApi(formData.status),
         imageUrl,
       };
 
@@ -242,9 +248,9 @@ const ResourceForm = ({ resource, onClose, onSaved }) => {
                     onChange={handleChange}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all"
                   >
-                    <option value="ACTIVE">Active</option>
-                    <option value="UNDER_MAINTENANCE">Under Maintenance</option>
-                    <option value="OUT_OF_SERVICE">Out of Service</option>
+                    {RESOURCE_STATUS_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>

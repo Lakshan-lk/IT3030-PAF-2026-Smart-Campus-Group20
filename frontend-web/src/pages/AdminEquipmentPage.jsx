@@ -6,12 +6,20 @@ import { useAllEquipmentBookings, useApproveEquipmentBooking, useRejectEquipment
 import { useResources } from '../hooks/useResources';
 import EquipmentForm from '../components/EquipmentForm';
 import { EQUIPMENT_CONFIG, formatEquipmentLabel } from '../constants/facilities';
+import { getCampusStatusMeta } from '../utils/status';
 
 const STATUS_TABS = [
   { key: 'all', label: 'All' },
-  { key: 'active', label: 'Active' },
-  { key: 'out_of_service', label: 'Out of Service' },
+  { key: 'available', label: 'Available' },
+  { key: 'under_maintenance', label: 'Under Maintenance' },
+  { key: 'unavailable', label: 'Unavailable' },
 ];
+
+const TAB_TO_API_STATUS = {
+  available: 'ACTIVE',
+  under_maintenance: 'UNDER_MAINTENANCE',
+  unavailable: 'OUT_OF_SERVICE',
+};
 
 const AdminEquipmentPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,7 +46,7 @@ const AdminEquipmentPage = () => {
   const filteredEquipment = equipment
     .filter(item => {
       if (activeTab === 'all') return true;
-      return item.status === activeTab.toUpperCase();
+      return item.status === TAB_TO_API_STATUS[activeTab];
     })
     .filter(item => {
       if (!searchQuery) return true;
@@ -49,14 +57,16 @@ const AdminEquipmentPage = () => {
         || item.hireType?.toLowerCase().includes(q)
         || item.description?.toLowerCase().includes(q)
         || item.status?.toLowerCase().includes(q)
+        || getCampusStatusMeta(item.status).label.toLowerCase().includes(q)
         || room?.name?.toLowerCase().includes(q)
         || room?.location?.toLowerCase().includes(q);
     });
 
   const stats = {
     total: equipment.length,
-    active: equipment.filter(item => item.status === 'ACTIVE').length,
-    outOfService: equipment.filter(item => item.status === 'OUT_OF_SERVICE').length,
+    available: equipment.filter(item => item.status === 'ACTIVE').length,
+    underMaintenance: equipment.filter(item => item.status === 'UNDER_MAINTENANCE').length,
+    unavailable: equipment.filter(item => item.status === 'OUT_OF_SERVICE').length,
     hire: equipment.filter(item => item.hiringEquipment).length,
   };
 
@@ -153,8 +163,9 @@ const AdminEquipmentPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
           { label: 'Total', value: stats.total, icon: MdBuild },
-          { label: 'Active', value: stats.active, icon: MdBuild, accent: 'text-emerald-600' },
-          { label: 'Out of Service', value: stats.outOfService, icon: MdBuild, accent: 'text-slate-500' },
+          { label: 'Available', value: stats.available, icon: MdBuild, accent: 'text-emerald-600' },
+          { label: 'Under Maintenance', value: stats.underMaintenance, icon: MdBuild, accent: 'text-amber-600' },
+          { label: 'Unavailable', value: stats.unavailable, icon: MdBuild, accent: 'text-rose-600' },
           { label: 'Hire', value: stats.hire, icon: MdSell, accent: 'text-amber-600' },
         ].map(card => {
           const Icon = card.icon;
@@ -277,13 +288,9 @@ const AdminEquipmentPage = () => {
                         )}
                       </td>
                       <td className="p-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                          item.status === 'ACTIVE'
-                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
-                            : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600/50'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${item.status === 'ACTIVE' ? 'bg-emerald-400' : 'bg-slate-400'}`} />
-                          {item.status === 'ACTIVE' ? 'Active' : 'Out of Service'}
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${getCampusStatusMeta(item.status).badge}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${getCampusStatusMeta(item.status).dot}`} />
+                          {getCampusStatusMeta(item.status).label}
                         </span>
                       </td>
                       <td className="p-4">

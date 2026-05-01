@@ -5,12 +5,11 @@ import { EQUIPMENT_TYPES, HIRING_EQUIPMENT_TYPES, formatEquipmentLabel } from '.
 import { useCreateEquipment, useUpdateEquipment } from '../hooks/useEquipment';
 import { resourceApi } from '../api/resourceApi';
 import { resolveMediaUrl } from '../utils/media';
-
-const STATUS_OPTIONS = [
-  { value: 'ACTIVE', label: 'Active' },
-  { value: 'UNDER_MAINTENANCE', label: 'Under Maintenance' },
-  { value: 'OUT_OF_SERVICE', label: 'Out of Service' },
-];
+import {
+  EQUIPMENT_STATUS_OPTIONS,
+  normalizeEquipmentStatusForApi,
+  normalizeEquipmentStatusForForm,
+} from '../utils/status';
 
 const EquipmentForm = ({ equipment, resources, mode = 'room', onClose }) => {
   const isEditing = !!equipment;
@@ -21,7 +20,7 @@ const EquipmentForm = ({ equipment, resources, mode = 'room', onClose }) => {
   const initialFormData = {
     name: equipment?.name || '',
     type: equipment?.type || 'PROJECTOR',
-    status: equipment?.status || 'ACTIVE',
+    status: normalizeEquipmentStatusForForm(equipment?.status || 'ACTIVE'),
     roomId: equipment?.roomId ? String(equipment.roomId) : (resources[0] ? String(resources[0].id) : ''),
     hiringEquipment: !!equipment?.hiringEquipment || isHiringMode,
     hireType: equipment?.hireType || HIRING_EQUIPMENT_TYPES[0],
@@ -94,7 +93,7 @@ const EquipmentForm = ({ equipment, resources, mode = 'room', onClose }) => {
       const payload = {
         name: formData.name.trim(),
         type: isHiringMode ? null : formData.type,
-        status: formData.status,
+        status: normalizeEquipmentStatusForApi(formData.status),
         roomId: isHiringMode ? null : (formData.roomId ? Number(formData.roomId) : null),
         hiringEquipment: isHiringMode,
         hireType: isHiringMode ? formData.hireType : null,
@@ -199,7 +198,7 @@ const EquipmentForm = ({ equipment, resources, mode = 'room', onClose }) => {
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all"
               >
-                {STATUS_OPTIONS.map(option => (
+                {EQUIPMENT_STATUS_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>

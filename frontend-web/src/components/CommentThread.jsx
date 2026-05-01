@@ -27,7 +27,7 @@ function getRoleStyle(role = '') {
 }
 
 // ── Single chat bubble ──────────────────────────────────────────────────────
-const ChatBubble = ({ comment, isMine, onEdit, onDelete }) => {
+const ChatBubble = ({ comment, isMine, canModerate, canEditOwn, onEdit, onDelete }) => {
   const rs = getRoleStyle(comment.userRole);
 
   return (
@@ -75,7 +75,7 @@ const ChatBubble = ({ comment, isMine, onEdit, onDelete }) => {
         </div>
 
         {/* Action buttons — only mine */}
-        {isMine && (
+        {((isMine && canEditOwn) || canModerate) && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               type="button"
@@ -122,10 +122,18 @@ const CommentThread = ({ ticketId }) => {
   const messagesEndRef = useRef(null);
   const inputRef       = useRef(null);
 
-  const isStaff = authUser?.role === 'admin' || authUser?.role === 'technician';
+  const currentRole = (authUser?.role || '').toLowerCase();
+  const isAdminViewer = currentRole === 'admin';
+  const isTechnician = currentRole === 'technician';
+  const canCompose = !isAdminViewer && (currentRole === 'user' || isTechnician);
+  const canUseInternalNotes = isTechnician;
+  const composerModeLabel = isInternal ? 'Internal note' : 'Public reply';
+  const composerHelperText = isInternal
+    ? 'Visible only to the ticket owner and technicians.'
+    : 'Visible to the ticket owner and staff.';
 
   // Filter internal messages for regular users
-  const visibleComments = isStaff
+  const visibleComments = isAdminViewer || isTechnician
     ? (comments ?? [])
     : (comments ?? []).filter(c => !c.isInternal);
 
@@ -147,7 +155,12 @@ const CommentThread = ({ ticketId }) => {
   const handleSend = async (e) => {
     e.preventDefault();
     if (!message.trim() || !authUser?.id) return;
-    await addComment.mutateAsync({ userId: authUser.id, content: message.trim(), isInternal });
+    if (isAdminViewer) return;
+    await addComment.mutateAsync({
+      userId: authUser.id,
+      content: message.trim(),
+      isInternal: canUseInternalNotes ? isInternal : false,
+    });
     setMessage('');
     setIsInternal(false);
     inputRef.current?.focus();
@@ -218,6 +231,8 @@ const CommentThread = ({ ticketId }) => {
                     key={comment.id}
                     comment={comment}
                     isMine={authUser?.id === comment.userId}
+                    canModerate={isTechnician}
+                    canEditOwn={!isAdminViewer}
                     onEdit={startEdit}
                     onDelete={handleDelete}
                   />
@@ -231,7 +246,7 @@ const CommentThread = ({ ticketId }) => {
 
       {/* Edit banner */}
       <AnimatePresence>
-        {editingComment && (
+        {editingComment && !isAdminViewer && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -257,50 +272,81 @@ const CommentThread = ({ ticketId }) => {
 
       {/* Input bar */}
       <form onSubmit={handleSend} className="shrink-0 border-t border-slate-100 dark:border-slate-700/50 bg-white/90 dark:bg-slate-800/80 px-4 py-3">
-        {isStaff && (
-          <div className="flex items-center gap-2 mb-2">
+        {!isAdminViewer && canCompose && canUseInternalNotes ? (
+          <div className="mb-3 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-900/30 p-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsInternal(false)}
+                className={`flex-1 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider transition-all ${
+                  !isInternal
+                    ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700'
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                Public Reply
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsInternal(true)}
+                className={`flex-1 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider transition-all ${
+                  isInternal
+                    ? 'bg-rose-500 text-white shadow-sm ring-1 ring-rose-600'
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  <MdLock className="text-xs" />
+                  Internal Note
+                </span>
+              </button>
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-2 px-1">
+              <p className={`text-[10px] font-semibold ${isInternal ? 'text-rose-500 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                {composerModeLabel}
+              </p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">{composerHelperText}</p>
+            </div>
+          </div>
+        ) : !isAdminViewer && canCompose ? (
+          <div className="mb-3 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-900/30 px-4 py-3">
+            <p className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Public reply</p>
+            <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+              Replies from users stay public. Technicians can add internal notes.
+            </p>
+          </div>
+        ) : null}
+        {canCompose && (
+          <div className="flex items-end gap-2">
+            <div className={`flex-1 rounded-2xl border transition-all ${
+              isInternal
+                ? 'border-rose-300 dark:border-rose-700/60 bg-rose-50 dark:bg-rose-900/10'
+                : 'border-slate-200 dark:border-slate-600/50 bg-slate-50 dark:bg-slate-900/50'
+            }`}>
+              <textarea
+                ref={inputRef}
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                rows={1}
+                placeholder={isInternal ? 'Write an internal note... (staff only)' : 'Write a public reply... (Enter to send, Shift+Enter for new line)'}
+                className="w-full bg-transparent px-4 py-2.5 text-sm text-slate-800 dark:text-slate-100 outline-none resize-none placeholder:text-slate-400"
+                style={{ minHeight: 40, maxHeight: 100 }}
+              />
+            </div>
             <button
-              type="button"
-              onClick={() => setIsInternal(v => !v)}
-              className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full transition-all ${
+              type="submit"
+              disabled={!message.trim() || addComment.isPending}
+              className={`w-10 h-10 flex items-center justify-center rounded-2xl text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0 ${
                 isInternal
-                  ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 ring-1 ring-rose-300 dark:ring-rose-700'
-                  : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                  ? 'bg-gradient-to-br from-rose-500 to-fuchsia-500 shadow-rose-500/25 hover:from-rose-600 hover:to-fuchsia-600'
+                  : 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-amber-500/25 hover:from-amber-600 hover:to-orange-600'
               }`}
             >
-              <MdLock className="text-xs" />
-              {isInternal ? 'Internal Only (Staff)' : 'Mark as Internal'}
+              <MdSend className="text-lg" />
             </button>
-            {isInternal && (
-              <p className="text-[10px] text-rose-500 dark:text-rose-400">Only admins & technicians can see this</p>
-            )}
           </div>
         )}
-        <div className="flex items-end gap-2">
-          <div className={`flex-1 rounded-2xl border transition-all ${
-            isInternal
-              ? 'border-rose-300 dark:border-rose-700/60 bg-rose-50 dark:bg-rose-900/10'
-              : 'border-slate-200 dark:border-slate-600/50 bg-slate-50 dark:bg-slate-900/50'
-          }`}>
-            <textarea
-              ref={inputRef}
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              rows={1}
-              placeholder={isInternal ? 'Internal message (staff only)...' : 'Type a message... (Enter to send, Shift+Enter for new line)'}
-              className="w-full bg-transparent px-4 py-2.5 text-sm text-slate-800 dark:text-slate-100 outline-none resize-none placeholder:text-slate-400"
-              style={{ minHeight: 40, maxHeight: 100 }}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={!message.trim() || addComment.isPending}
-            className="w-10 h-10 flex items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/25 hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-          >
-            <MdSend className="text-lg" />
-          </button>
-        </div>
       </form>
     </section>
   );

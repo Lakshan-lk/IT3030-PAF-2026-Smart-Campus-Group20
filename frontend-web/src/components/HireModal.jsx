@@ -5,6 +5,7 @@ import { useCreateEquipmentBooking } from '../hooks/useEquipmentBooking';
 import { useAuth } from '../context/AuthContext';
 import { useEquipmentAvailability } from '../hooks/useResourceAvailability';
 import { TIME_SLOTS } from '../constants/facilities';
+import { getCampusStatusMeta, isCampusStatusAvailable } from '../utils/status';
 
 // Day-of-week labels
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -22,6 +23,8 @@ const HireModal = ({ equipment, onClose, onSuccess }) => {
   const [submitError, setSubmitError] = useState(null);
   const createBooking = useCreateEquipmentBooking();
   const { authUser } = useAuth();
+  const statusMeta = getCampusStatusMeta(equipment?.status);
+  const isAvailable = isCampusStatusAvailable(equipment?.status);
 
   const {
     isLoading: availLoading,
@@ -93,6 +96,10 @@ const HireModal = ({ equipment, onClose, onSuccess }) => {
           <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl">
             <h3 className="font-semibold text-slate-800 dark:text-slate-200">{equipment.name}</h3>
             <p className="text-sm text-slate-500 mt-1">{equipment.hireType || 'Equipment'}</p>
+            <span className={`mt-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${statusMeta.badge}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
+              {statusMeta.label}
+            </span>
           </div>
           
           {/* ── Availability Strip ── */}
@@ -248,10 +255,10 @@ const HireModal = ({ equipment, onClose, onSuccess }) => {
             
             <button
               type="submit"
-              disabled={!isValid || isSubmitting}
+              disabled={!isAvailable || !isValid || isSubmitting}
               className="w-full py-2.5 mt-2 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold rounded-xl text-sm transition-all"
             >
-              {isSubmitting ? 'Submitting...' : 'Confirm Hire Request'}
+              {isSubmitting ? 'Submitting...' : isAvailable ? 'Confirm Hire Request' : 'Currently Unavailable'}
             </button>
           </form>
         </div>

@@ -7,6 +7,7 @@ import com.campushub.smartcampus.entity.Resource;
 import com.campushub.smartcampus.enums.EquipmentType;
 import com.campushub.smartcampus.repository.EquipmentRepository;
 import com.campushub.smartcampus.repository.ResourceRepository;
+import com.campushub.smartcampus.util.StatusMapper;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -71,7 +72,7 @@ public class EquipmentController {
         Equipment equipment = new Equipment();
         equipment.setName(dto.getName());
         equipment.setType(EquipmentType.valueOf(dto.getType()));
-        equipment.setStatus(dto.getStatus() != null ? dto.getStatus() : "ACTIVE");
+        equipment.setStatus(StatusMapper.normalizeEquipmentStatus(dto.getStatus()));
         equipment.setRoom(room);
         equipment.setHiringEquipment(false);
         equipment.setHireType(null);
@@ -88,7 +89,7 @@ public class EquipmentController {
 
         Equipment equipment = new Equipment();
         equipment.setName(dto.getName());
-        equipment.setStatus(dto.getStatus() != null ? dto.getStatus() : "ACTIVE");
+        equipment.setStatus(StatusMapper.normalizeEquipmentStatus(dto.getStatus()));
         equipment.setDescription(dto.getDescription());
         equipment.setImageUrls(dto.getImageUrls() != null ? dto.getImageUrls() : List.of());
 
@@ -129,7 +130,7 @@ public class EquipmentController {
 
         equipment.setName(dto.getName());
         if (dto.getStatus() != null) {
-            equipment.setStatus(dto.getStatus());
+            equipment.setStatus(StatusMapper.normalizeEquipmentStatus(dto.getStatus()));
         }
         equipment.setDescription(dto.getDescription());
         equipment.setImageUrls(dto.getImageUrls() != null ? dto.getImageUrls() : List.of());

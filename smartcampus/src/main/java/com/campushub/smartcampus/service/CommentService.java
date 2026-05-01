@@ -45,18 +45,48 @@ public class CommentService {
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + ticketId));
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
+        if (isAdmin(user)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admins can only view ticket discussions");
+        }
+        boolean isStaff = isStaff(user);
+        boolean requestedInternal = Boolean.TRUE.equals(dto.getIsInternal());
+
+        if (requestedInternal && !isStaff) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only technicians can post internal notes");
+        }
 
         Comment comment = new Comment();
         comment.setTicket(ticket);
         comment.setUser(user);
         comment.setContent(dto.getContent());
-        comment.setIsInternal(dto.getIsInternal() != null ? dto.getIsInternal() : false);
+        comment.setIsInternal(requestedInternal);
         Comment saved = commentRepository.save(comment);
         
-        // Send notification to ticket owner
-        Long ticketOwnerId = ticket.getUser().getId();
-        boolean isCommenterAdmin = "ADMIN".equalsIgnoreCase(user.getRole());
-        notificationService.createCommentNotificationAsync(user.getId(), user.getName(), ticketId, ticketOwnerId, isCommenterAdmin);
+        // --- IMPROVED NOTIFICATION LOGIC ---
+        String commenterRole = (user.getRole() != null ? user.getRole() : "USER").toUpperCase();
+        boolean isInternal = comment.getIsInternal();
+        
+        // 1. Notify Ticket Reporter (unless reporter is the one who commented)
+        User reporter = ticket.getUser();
+        if (reporter != null && !reporter.getId().equals(user.getId()) && !isInternal) {
+            notificationService.createCommentNotificationAsync(user.getId(), user.getName(), ticketId, reporter.getId(), "ADMIN".equals(commenterRole));
+        }
+        
+        // 2. Notify Assigned Technician (if any, and unless tech is the one who commented)
+        User technician = ticket.getAssignedTo();
+        if (technician != null && !technician.getId().equals(user.getId())) {
+            notificationService.createCommentNotificationAsync(user.getId(), user.getName(), ticketId, technician.getId(), "ADMIN".equals(commenterRole));
+        }
+        
+        // 3. Notify Admins (unless admin is the one who commented)
+        if (!"ADMIN".equals(commenterRole)) {
+            List<User> allAdmins = userRepository.findByRoleIn(List.of("ADMIN", "admin"));
+            for (User admin : allAdmins) {
+                if (!admin.getId().equals(user.getId())) {
+                    notificationService.createCommentNotificationAsync(user.getId(), user.getName(), ticketId, admin.getId(), false);
+                }
+            }
+        }
         
         return CommentDTO.fromEntity(saved);
     }
@@ -70,18 +100,16 @@ public class CommentService {
         
         User requestingUser = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
-        
-        boolean isOwner = comment.getUser().getId().equals(dto.getUserId());
-        boolean isAdmin = "ADMIN".equalsIgnoreCase(requestingUser.getRole());
-        
-        // Admin can only edit their OWN comments, not user's comments  
-        if (isAdmin && !isOwner) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin cannot edit user's comments");
+        if (isAdmin(requestingUser)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admins can only view ticket discussions");
         }
         
-        // Only owner can edit their own comment
-        if (!isOwner) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the comment owner can edit this comment");
+        boolean isOwner = comment.getUser().getId().equals(dto.getUserId());
+        boolean isStaff = isStaff(requestingUser);
+
+        // Owners can edit their own comment. Staff can moderate any comment on the ticket.
+        if (!isOwner && !isStaff) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the comment owner or staff can edit this comment");
         }
 
         comment.setContent(dto.getContent());
@@ -97,20 +125,35 @@ public class CommentService {
 
         User requestingUser = userRepository.findById(requestingUserId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + requestingUserId));
+        if (isAdmin(requestingUser)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admins can only view ticket discussions");
+        }
 
         boolean isOwner = comment.getUser().getId().equals(requestingUserId);
-        boolean isAdmin = "ADMIN".equalsIgnoreCase(requestingUser.getRole());
-        
-        // Admin can only delete their OWN comments, not user's comments
-        if (isAdmin && !isOwner) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin cannot delete user's comments");
-        }
-        
-        // Only owner can delete their own comment
-        if (!isOwner) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the comment owner can delete this comment");
+        boolean isStaff = isStaff(requestingUser);
+
+        // Owners can delete their own comment. Staff can moderate any comment on the ticket.
+        if (!isOwner && !isStaff) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the comment owner or staff can delete this comment");
         }
 
         commentRepository.delete(comment);
+    }
+
+    private boolean isStaff(User user) {
+        if (user == null || user.getRole() == null) {
+            return false;
+        }
+
+        String role = user.getRole().trim().toUpperCase();
+        return "TECHNICIAN".equals(role);
+    }
+
+    private boolean isAdmin(User user) {
+        if (user == null || user.getRole() == null) {
+            return false;
+        }
+
+        return "ADMIN".equalsIgnoreCase(user.getRole().trim());
     }
 }

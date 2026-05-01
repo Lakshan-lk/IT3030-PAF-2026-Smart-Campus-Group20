@@ -11,6 +11,7 @@ import com.campushub.smartcampus.exception.BookingConflictException;
 import com.campushub.smartcampus.repository.EquipmentBookingRepository;
 import com.campushub.smartcampus.repository.EquipmentRepository;
 import com.campushub.smartcampus.repository.UserRepository;
+import com.campushub.smartcampus.util.StatusMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,7 +37,7 @@ public class EquipmentBookingService {
         Equipment equipment = equipmentRepository.findById(requestDTO.getEquipmentId())
                 .orElseThrow(() -> new RuntimeException("Equipment not found"));
 
-        if (!"ACTIVE".equals(equipment.getStatus())) {
+        if (!"ACTIVE".equals(StatusMapper.normalizeEquipmentStatus(equipment.getStatus()))) {
             throw new RuntimeException("Equipment is not available for booking");
         }
 
