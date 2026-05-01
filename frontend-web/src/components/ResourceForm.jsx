@@ -228,8 +228,6 @@ const ResourceForm = ({ resource, onClose, onSaved }) => {
                     <option value="LECTURE_HALL">Lecture Hall</option>
                     <option value="LAB">Lab</option>
                     <option value="MEETING_ROOM">Meeting Room</option>
-                    <option value="SEMINAR_ROOM">Seminar Room</option>
-                    <option value="EQUIPMENT">Equipment</option>
                     <option value="WORKSHOP">Workshop</option>
                   </select>
                 </div>

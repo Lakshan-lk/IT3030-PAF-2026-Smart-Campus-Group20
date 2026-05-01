@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MdAdd, MdSearch, MdDelete, MdEdit, MdBuild, MdRoom, MdSell } from 'react-icons/md';
+import { MdAdd, MdSearch, MdDelete, MdEdit, MdBuild, MdRoom, MdSell, MdCheckCircle, MdInfo, MdClose } from 'react-icons/md';
 import { useAllEquipment, useDeleteEquipment } from '../hooks/useEquipment';
 import { useAllEquipmentBookings, useApproveEquipmentBooking, useRejectEquipmentBooking } from '../hooks/useEquipmentBooking';
 import { useResources } from '../hooks/useResources';
@@ -22,6 +22,23 @@ const AdminEquipmentPage = () => {
   const [viewMode, setViewMode] = useState('equipment');
   const [actionModal, setActionModal] = useState({ open: false, type: null, bookingId: null });
   const [rejectReason, setRejectReason] = useState('');
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type, id: Date.now() });
+  };
+
+  const handleEquipmentSaved = ({ message } = {}) => {
+    if (message) {
+      showToast(message, 'success');
+    }
+  };
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const { data: bookingsData, isLoading: isLoadingBookings } = useAllEquipmentBookings();
   const approveBooking = useApproveEquipmentBooking();
@@ -80,7 +97,10 @@ const AdminEquipmentPage = () => {
 
   const handleDelete = (id) => {
     if (window.confirm('Delete this equipment item? This will remove it from the database.')) {
-      deleteEquipment.mutate(id);
+      deleteEquipment.mutate(id, {
+        onSuccess: () => showToast('Equipment was deleted successfully.', 'delete'),
+        onError: () => showToast('Delete failed. Please try again.', 'error')
+      });
     }
   };
 
@@ -98,10 +118,16 @@ const AdminEquipmentPage = () => {
 
   const confirmAction = () => {
     if (actionModal.type === 'approve') {
-      approveBooking.mutate(actionModal.bookingId);
+      approveBooking.mutate(actionModal.bookingId, {
+        onSuccess: () => showToast('Booking approved successfully.', 'success'),
+        onError: () => showToast('Failed to approve booking.', 'error')
+      });
     } else if (actionModal.type === 'reject') {
       if (!rejectReason.trim()) return; // Required
-      rejectBooking.mutate({ id: actionModal.bookingId, reason: rejectReason });
+      rejectBooking.mutate({ id: actionModal.bookingId, reason: rejectReason }, {
+        onSuccess: () => showToast('Booking rejected successfully.', 'success'),
+        onError: () => showToast('Failed to reject booking.', 'error')
+      });
     }
     setActionModal({ open: false, type: null, bookingId: null });
   };
@@ -388,6 +414,7 @@ const AdminEquipmentPage = () => {
             resources={resources}
             mode={formMode}
             onClose={closeForm}
+            onSaved={handleEquipmentSaved}
           />
         )}
       </AnimatePresence>
@@ -446,6 +473,93 @@ const AdminEquipmentPage = () => {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 18, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.96 }}
+            transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+            className="fixed bottom-5 right-3 z-[70] w-[calc(100vw-1.5rem)] max-w-md sm:right-5 sm:w-[24rem]"
+          >
+            <div
+              className={`relative overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl ${
+                toast.type === 'delete'
+                  ? 'border-rose-200/70 bg-white/95 text-slate-800 dark:border-rose-900/40 dark:bg-slate-900/95 dark:text-slate-100'
+                  : toast.type === 'error'
+                  ? 'border-rose-200/70 bg-white/95 text-slate-800 dark:border-rose-900/40 dark:bg-slate-900/95 dark:text-slate-100'
+                  : 'border-emerald-200/70 bg-white/95 text-slate-800 dark:border-emerald-900/40 dark:bg-slate-900/95 dark:text-slate-100'
+              }`}
+            >
+              <div
+                className={`absolute inset-x-0 top-0 h-1 ${
+                  toast.type === 'delete'
+                    ? 'bg-gradient-to-r from-rose-500 via-orange-400 to-amber-400'
+                    : toast.type === 'error'
+                    ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-rose-400'
+                    : 'bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400'
+                }`}
+              />
+
+              <div className="flex items-start gap-3 p-4 sm:p-4.5">
+                <div
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                    toast.type === 'delete'
+                      ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300'
+                      : toast.type === 'error'
+                      ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300'
+                      : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300'
+                  }`}
+                >
+                  {toast.type === 'delete' ? (
+                    <MdDelete className="text-2xl" />
+                  ) : toast.type === 'error' ? (
+                    <MdInfo className="text-2xl" />
+                  ) : (
+                    <MdCheckCircle className="text-2xl" />
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold leading-5">
+                    {toast.type === 'delete'
+                      ? 'Deleted'
+                      : toast.type === 'error'
+                      ? 'Something went wrong'
+                      : 'Saved successfully'}
+                  </p>
+                  <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">
+                    {toast.message}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setToast(null)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  aria-label="Close toast"
+                >
+                  <MdClose className="text-lg" />
+                </button>
+              </div>
+
+              <motion.div
+                initial={{ width: '100%' }}
+                animate={{ width: '0%' }}
+                transition={{ duration: 3.5, ease: 'linear' }}
+                className={`h-1 ${
+                  toast.type === 'delete'
+                    ? 'bg-gradient-to-r from-rose-500 to-amber-400'
+                    : toast.type === 'error'
+                    ? 'bg-gradient-to-r from-rose-500 to-pink-400'
+                    : 'bg-gradient-to-r from-emerald-500 to-cyan-400'
+                }`}
+              />
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
