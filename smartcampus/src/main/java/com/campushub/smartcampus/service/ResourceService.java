@@ -12,6 +12,7 @@ import com.campushub.smartcampus.enums.ResourceType;
 import com.campushub.smartcampus.repository.EquipmentRepository;
 import com.campushub.smartcampus.repository.BookingRepository;
 import com.campushub.smartcampus.repository.ResourceRepository;
+import com.campushub.smartcampus.util.StatusMapper;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -93,12 +94,7 @@ public class ResourceService {
         resource.setLocation(dto.getLocation());
         resource.setCapacity(dto.getCapacity());
         resource.setImageUrl(dto.getImageUrl());
-
-        if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
-            resource.setStatus(ResourceStatus.valueOf(dto.getStatus().trim().toUpperCase()));
-        } else {
-            resource.setStatus(ResourceStatus.ACTIVE);
-        }
+        resource.setStatus(StatusMapper.normalizeResourceStatus(dto.getStatus()));
 
         Resource saved = resourceRepository.save(resource);
         syncEquipment(saved, dto.getEquipmentTypes());
@@ -116,10 +112,7 @@ public class ResourceService {
         resource.setLocation(dto.getLocation());
         resource.setCapacity(dto.getCapacity());
         resource.setImageUrl(dto.getImageUrl());
-
-        if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
-            resource.setStatus(ResourceStatus.valueOf(dto.getStatus().trim().toUpperCase()));
-        }
+        resource.setStatus(StatusMapper.normalizeResourceStatus(dto.getStatus()));
 
         Resource saved = resourceRepository.save(resource);
         cleanupReplacedImage(previousImageUrl, resource.getImageUrl());
@@ -152,7 +145,8 @@ public class ResourceService {
                 || contains(resource.getDescription(), search)
                 || contains(resource.getLocation(), search)
                 || contains(resource.getType() != null ? resource.getType().name() : null, search)
-                || contains(resource.getStatus() != null ? resource.getStatus().name() : null, search);
+                || contains(resource.getStatus() != null ? resource.getStatus().name() : null, search)
+                || contains(getStatusLabel(resource.getStatus()), search);
     }
 
     private boolean matchesType(Resource resource, ResourceType type) {
@@ -209,6 +203,18 @@ public class ResourceService {
         return value != null && value.toLowerCase().contains(search);
     }
 
+    private String getStatusLabel(ResourceStatus status) {
+        if (status == null) {
+            return null;
+        }
+
+        return switch (status) {
+            case ACTIVE -> "available";
+            case UNDER_MAINTENANCE -> "under maintenance";
+            case OUT_OF_SERVICE -> "unavailable";
+        };
+    }
+
     private void cleanupReplacedImage(String previousImageUrl, String currentImageUrl) {
         if (previousImageUrl == null || previousImageUrl.equals(currentImageUrl)) {
             return;
@@ -233,7 +239,7 @@ public class ResourceService {
             return null;
         }
         try {
-            return ResourceStatus.valueOf(status.trim().toUpperCase());
+            return StatusMapper.normalizeResourceStatus(status);
         } catch (IllegalArgumentException e) {
             return null;
         }

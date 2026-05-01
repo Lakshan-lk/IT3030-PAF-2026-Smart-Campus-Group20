@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { MdClose, MdPersonAdd, MdTune, MdWarning } from 'react-icons/md';
+import { MdCheckCircle, MdClose, MdPersonAdd, MdTune, MdWarning } from 'react-icons/md';
 import { useQuery } from '@tanstack/react-query';
 import { useTicketById, useUpdateTicketStatus, useAssignTicket } from '../hooks/useTickets';
 import { useAuth } from '../context/AuthContext';
@@ -40,8 +40,9 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
   const updateStatus = useUpdateTicketStatus();
   const assignTicket = useAssignTicket();
   const { authUser } = useAuth();
-  const canManageTickets = authUser?.role === 'admin' || authUser?.role === 'technician';
-  const canAssignTechnician = authUser?.role === 'admin';
+  const currentRole = (authUser?.role || '').toLowerCase();
+  const canManageTickets = currentRole === 'admin' || currentRole === 'technician';
+  const canAssignTechnician = currentRole === 'admin';
 
   const { data: users = [] } = useQuery({
     queryKey: ['admin-users'],
@@ -71,16 +72,11 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
     }
   }, [ticket?.status]);
 
-  useEffect(() => {
-    if (!availableStatusOptions.length) {
-      return;
-    }
-    setStatusForm((current) =>
-      current.status === availableStatusOptions[0]
-        ? current
-        : { ...current, status: availableStatusOptions[0] }
-    );
-  }, [availableStatusOptions]);
+  const currentStatus = availableStatusOptions.includes(statusForm.status)
+    ? statusForm.status
+    : (availableStatusOptions[0] || statusForm.status);
+  const canReopenTicket = currentRole === 'admin' && ticket?.status === 'RESOLVED';
+  const assignedTechnician = ticket?.assignedToName || ticket?.assignedTo?.name || '';
 
   if (!isOpen) {
     return null;
@@ -93,7 +89,10 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
     try {
       await updateStatus.mutateAsync({
         id: ticketId,
-        data: statusForm,
+        data: {
+          ...statusForm,
+          status: currentStatus,
+        },
       });
     } catch (mutationError) {
       setError(mutationError.response?.data?.message || 'Could not update ticket status.');
@@ -119,6 +118,19 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
     }
   };
 
+  const handleReopen = async () => {
+    setError('');
+
+    try {
+      await updateStatus.mutateAsync({
+        id: ticketId,
+        data: { status: 'OPEN' },
+      });
+    } catch (mutationError) {
+      setError(mutationError.response?.data?.message || 'Could not reopen the ticket.');
+    }
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -138,7 +150,14 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
           <div className="flex items-center justify-between border-b border-slate-200/70 dark:border-slate-700/50 bg-white/80 dark:bg-slate-900/70 px-6 py-4">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Ticket details</p>
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{ticket?.resourceName || 'Ticket'}</h2>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                {ticket?.equipmentName || ticket?.resourceName || 'General Ticket'}
+              </h2>
+              {ticket && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Ticket #{ticket.id} · Reported by {ticket.userName}
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -217,12 +236,14 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
             </div>
 
             <div className="space-y-6">
-              <section className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/85 dark:bg-slate-800/60 p-5">
-                <div className="mb-4 flex items-center gap-3">
-                  <MdTune className="text-2xl text-slate-500 dark:text-slate-400" />
+              <section className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/85 dark:bg-slate-800/60 p-5 shadow-sm">
+                <div className="mb-5 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                    <MdTune className="text-2xl" />
+                  </div>
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Workflow</p>
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Status update</h3>
+                    <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Action Center</p>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Status Update</h3>
                   </div>
                 </div>
 
@@ -232,90 +253,136 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
                     <div className="h-24 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700/50" />
                   </div>
                 ) : canManageTickets && availableStatusOptions.length > 0 ? (
-                  <form onSubmit={handleStatusUpdate} className="space-y-4">
-                    <label className="block space-y-2">
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">New status</span>
-                      <select
-                        value={statusForm.status}
-                        onChange={(event) => setStatusForm((current) => ({ ...current, status: event.target.value }))}
-                        className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
-                      >
-                        {availableStatusOptions.map((status) => (
-                          <option key={status} value={status}>{status.replace('_', ' ')}</option>
-                        ))}
-                      </select>
-                    </label>
+                  <form onSubmit={handleStatusUpdate} className="space-y-5">
+                    <div className="space-y-4">
+                      <label className="block space-y-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Target Status</span>
+                        <div className="relative">
+                          <select
+                            value={currentStatus}
+                            onChange={(event) => setStatusForm((current) => ({ ...current, status: event.target.value }))}
+                            className="w-full appearance-none rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100 outline-none transition-all focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10"
+                          >
+                            {availableStatusOptions.map((status) => (
+                              <option key={status} value={status}>{status.replace('_', ' ')}</option>
+                            ))}
+                          </select>
+                          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                            <MdTune />
+                          </div>
+                        </div>
+                      </label>
 
-                    <label className="block space-y-2">
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Reason / rejection note</span>
-                      <textarea
-                        value={statusForm.reason}
-                        onChange={(event) => setStatusForm((current) => ({ ...current, reason: event.target.value }))}
-                        rows={3}
-                        className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
-                      />
-                    </label>
+                      {currentStatus === 'REJECTED' && (
+                        <label className="block space-y-2">
+                          <span className="text-xs font-bold uppercase tracking-wider text-rose-500">Rejection Reason (Required)</span>
+                          <textarea
+                            value={statusForm.reason}
+                            onChange={(event) => setStatusForm((current) => ({ ...current, reason: event.target.value }))}
+                            rows={3}
+                            required
+                            placeholder="Explain why this ticket is being rejected..."
+                            className="w-full rounded-2xl border border-rose-200 dark:border-rose-800/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none transition-all focus:border-rose-400 focus:ring-4 focus:ring-rose-400/10"
+                          />
+                        </label>
+                      )}
 
-                    <label className="block space-y-2">
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Resolution notes</span>
-                      <textarea
-                        value={statusForm.resolutionNotes}
-                        onChange={(event) => setStatusForm((current) => ({ ...current, resolutionNotes: event.target.value }))}
-                        rows={3}
-                        className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
-                      />
-                    </label>
+                      {(currentStatus === 'RESOLVED' || currentStatus === 'CLOSED') && (
+                        <label className="block space-y-2">
+                          <span className="text-xs font-bold uppercase tracking-wider text-emerald-500 font-semibold">Resolution Notes (Required)</span>
+                          <textarea
+                            value={statusForm.resolutionNotes}
+                            onChange={(event) => setStatusForm((current) => ({ ...current, resolutionNotes: event.target.value }))}
+                            rows={4}
+                            required
+                            placeholder="Detail the work performed, parts used, and final result..."
+                            className="w-full rounded-2xl border border-emerald-200 dark:border-emerald-800/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none transition-all focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/10"
+                          />
+                        </label>
+                      )}
+
+                      {canReopenTicket && (
+                        <button
+                          type="button"
+                          onClick={handleReopen}
+                          disabled={updateStatus.isPending}
+                          className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {updateStatus.isPending ? 'Reopening...' : 'Reopen to Open'}
+                        </button>
+                      )}
+                    </div>
 
                     <button
                       type="submit"
                       disabled={updateStatus.isPending}
-                      className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-2xl bg-slate-900 px-6 py-4 text-sm font-bold text-white transition-all hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/10 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      Update status
+                      {updateStatus.isPending ? 'Processing...' : `Update to ${currentStatus.replace('_', ' ')}`}
                     </button>
                   </form>
                 ) : (
-                  <p className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-700/50 px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
-                    {canManageTickets
-                      ? 'This ticket is already closed or rejected, so its status can no longer be changed.'
-                      : 'Status management is available to admins and technicians only.'}
-                  </p>
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-700/50 px-4 py-10 text-center">
+                    <MdCheckCircle className="text-4xl text-slate-200 dark:text-slate-700 mb-3" />
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 max-w-[200px]">
+                      {canManageTickets
+                        ? 'This ticket is in a final state and cannot be modified.'
+                        : 'You do not have permission to change this ticket status.'}
+                    </p>
+                  </div>
                 )}
               </section>
 
               {canAssignTechnician && (
-                <section className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/85 dark:bg-slate-800/60 p-5">
-                  <div className="mb-4 flex items-center gap-3">
-                    <MdPersonAdd className="text-2xl text-slate-500 dark:text-slate-400" />
+                <section className="rounded-3xl border border-amber-200/60 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-900/10 p-5 shadow-sm">
+                  <div className="mb-5 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-amber-500 shadow-sm dark:bg-slate-800">
+                      <MdPersonAdd className="text-2xl" />
+                    </div>
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Assignment</p>
-                      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Assign technician</h3>
+                      <p className="text-xs font-black uppercase tracking-[0.25em] text-amber-600/70 dark:text-amber-400/70">Resource Dispatch</p>
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Assign Technician</h3>
                     </div>
                   </div>
 
-                  <form onSubmit={handleAssign} className="space-y-4">
-                    <label className="block space-y-2">
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Technician</span>
-                      <select
-                        value={assigneeId}
-                        onChange={(event) => setAssigneeId(event.target.value)}
-                        className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
-                      >
-                        <option value="">Choose a technician</option>
-                        {technicianOptions.map((option) => (
-                          <option key={option.id} value={option.id}>{option.name}</option>
-                        ))}
-                      </select>
-                    </label>
+                  {assignedTechnician ? (
+                    <div className="rounded-2xl border border-amber-200/70 dark:border-amber-700/40 bg-white/70 dark:bg-slate-900/30 px-4 py-4">
+                      <p className="text-xs font-bold uppercase tracking-wider text-amber-600/80 dark:text-amber-300">Assigned technician</p>
+                      <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">{assignedTechnician}</p>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        This ticket is already assigned, so the technician panel is read only.
+                      </p>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleAssign} className="space-y-4">
+                      <label className="block space-y-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Select Specialist</span>
+                        <div className="relative">
+                          <select
+                            value={assigneeId}
+                            onChange={(event) => setAssigneeId(event.target.value)}
+                            className="w-full appearance-none rounded-2xl border border-amber-200 dark:border-amber-700/40 bg-white dark:bg-slate-900/40 px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100 outline-none transition-all focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10"
+                          >
+                            <option value="">-- Select Specialist --</option>
+                            {technicianOptions.map((option) => (
+                              <option key={option.id} value={option.id}>{option.name} ({option.profession || 'Technician'})</option>
+                            ))}
+                          </select>
+                          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-amber-500/50">
+                            <MdPersonAdd />
+                          </div>
+                        </div>
+                      </label>
 
-                    <button
-                      type="submit"
-                      disabled={assignTicket.isPending}
-                      className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Assign ticket
-                    </button>
-                  </form>
+                      <button
+                        type="submit"
+                        disabled={assignTicket.isPending || !assigneeId}
+                        className="w-full rounded-2xl bg-amber-500 px-6 py-4 text-sm font-bold text-white transition-all hover:bg-amber-600 hover:shadow-xl hover:shadow-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {assignTicket.isPending ? 'Dispatching...' : 'Assign & Dispatch'}
+                      </button>
+                    </form>
+                  )}
                 </section>
               )}
             </div>

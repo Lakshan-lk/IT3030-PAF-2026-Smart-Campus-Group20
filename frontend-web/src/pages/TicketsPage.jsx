@@ -135,8 +135,17 @@ const TicketsPage = ({ mode = 'user', showCreateButton = true, pageTitle, pageSu
             <option value="ALL">All categories</option>
             <option value="FACILITY_ISSUE">Facility issue</option>
             <option value="EQUIPMENT_FAULT">Equipment fault</option>
+            <option value="CLEANING">Cleaning required</option>
+            <option value="ELECTRICAL">Electrical problem</option>
+            <option value="PLUMBING">Plumbing issue</option>
+            <option value="HVAC">HVAC / Air-con</option>
             <option value="IT_NETWORK">IT / network</option>
+            <option value="SOFTWARE_BUG">Software bug</option>
+            <option value="HARDWARE_FAILURE">Hardware failure</option>
             <option value="SAFETY_HAZARD">Safety hazard</option>
+            <option value="SECURITY_CONCERN">Security concern</option>
+            <option value="PEST_CONTROL">Pest control</option>
+            <option value="OTHER">Other</option>
           </select>
         </div>
       </div>

@@ -3,11 +3,14 @@ import { motion } from 'framer-motion';
 import { MdLocationOn, MdPeople } from 'react-icons/md';
 import { EQUIPMENT_CONFIG } from '../constants/facilities';
 import { resolveMediaUrl } from '../utils/media';
+import { getCampusStatusMeta, isCampusStatusAvailable } from '../utils/status';
 import ResourceFallbackThumbnail from './ResourceFallbackThumbnail';
 
 const ResourceCard = ({ resource, onBook }) => {
   const equipmentList = resource.equipment || resource.equipments || [];
   const imageUrl = resolveMediaUrl(resource.imageUrl);
+  const statusMeta = getCampusStatusMeta(resource.status);
+  const isAvailable = isCampusStatusAvailable(resource.status);
 
   return (
     <motion.div
@@ -33,10 +36,10 @@ const ResourceCard = ({ resource, onBook }) => {
         <motion.div
           animate={{ scale: [1, 1.03, 1] }}
           transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-          className={`absolute top-3 right-3 text-xs font-bold px-2 py-1 rounded-md backdrop-blur-sm
-            ${resource.status === 'ACTIVE' ? 'bg-emerald-100/90 text-emerald-700' : 'bg-slate-200/90 text-slate-700'}`}
+          className={`absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-bold backdrop-blur-sm ${statusMeta.badge}`}
         >
-          {resource.status === 'ACTIVE' ? 'Active' : 'Out of Service'}
+          <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
+          {statusMeta.label}
         </motion.div>
       </div>
 
@@ -72,9 +75,10 @@ const ResourceCard = ({ resource, onBook }) => {
         <div className="mt-auto">
           <button
             onClick={() => onBook(resource)}
-            className="w-full py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors text-sm"
+            disabled={!isAvailable}
+            className="w-full py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:disabled:bg-slate-700/50 dark:disabled:text-slate-500"
           >
-            View & Book
+            {isAvailable ? 'View & Book' : statusMeta.label}
           </button>
         </div>
       </div>

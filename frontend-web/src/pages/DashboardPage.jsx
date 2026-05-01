@@ -17,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useBookings } from '../hooks/useBookings';
 import { useTickets } from '../hooks/useTickets';
 import { useResources } from '../hooks/useResources';
+import { getCampusStatusMeta } from '../utils/status';
 
 const ACTION_LINKS = [
   {
@@ -95,7 +96,6 @@ const DashboardPage = () => {
     authUser?.id ? { userId: authUser.id } : {}
   );
   const { data: resourcesData, isLoading: resourcesLoading } = useResources({
-    status: 'ACTIVE',
     page: 0,
     size: 6,
   });
@@ -375,9 +375,9 @@ const DashboardPage = () => {
         <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Discover</p>
-            <h2 className="mt-2 text-2xl font-bold text-slate-800 dark:text-slate-100">Active spaces around campus</h2>
+            <h2 className="mt-2 text-2xl font-bold text-slate-800 dark:text-slate-100">Campus spaces and status</h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Quick shortcuts to available places you can book next.
+              See what is available, under maintenance, or currently unavailable before you book.
             </p>
           </div>
           <Link
@@ -397,35 +397,40 @@ const DashboardPage = () => {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {resources.slice(0, 3).map((resource) => (
-              <Link
-                key={resource.id}
-                to="/facilities"
-                className="group rounded-[1.75rem] border border-slate-200/70 bg-gradient-to-br from-white to-slate-50 p-5 transition hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-900/5 dark:border-slate-700/40 dark:from-slate-800 dark:to-slate-900/60"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="rounded-2xl bg-slate-900 p-3 text-white dark:bg-slate-100 dark:text-slate-900">
-                    <MdLocationOn className="text-2xl" />
-                  </div>
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
-                    Active
-                  </span>
-                </div>
+            {resources.slice(0, 3).map((resource) => {
+              const statusMeta = getCampusStatusMeta(resource.status);
 
-                <h3 className="mt-5 text-xl font-bold text-slate-800 dark:text-slate-100">{resource.name}</h3>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{resource.location || 'Campus location'}</p>
-
-                <div className="mt-5 flex items-center justify-between text-sm">
-                  <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                    <MdGroups />
-                    <span>Capacity {resource.capacity || 'N/A'}</span>
+              return (
+                <Link
+                  key={resource.id}
+                  to="/facilities"
+                  className="group rounded-[1.75rem] border border-slate-200/70 bg-gradient-to-br from-white to-slate-50 p-5 transition hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-900/5 dark:border-slate-700/40 dark:from-slate-800 dark:to-slate-900/60"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="rounded-2xl bg-slate-900 p-3 text-white dark:bg-slate-100 dark:text-slate-900">
+                      <MdLocationOn className="text-2xl" />
+                    </div>
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] ${statusMeta.badge}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
+                      {statusMeta.label}
+                    </span>
                   </div>
-                  <span className="font-semibold text-slate-700 group-hover:text-slate-900 dark:text-slate-300 dark:group-hover:text-slate-100">
-                    View
-                  </span>
-                </div>
-              </Link>
-            ))}
+
+                  <h3 className="mt-5 text-xl font-bold text-slate-800 dark:text-slate-100">{resource.name}</h3>
+                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{resource.location || 'Campus location'}</p>
+
+                  <div className="mt-5 flex items-center justify-between text-sm">
+                    <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                      <MdGroups />
+                      <span>Capacity {resource.capacity || 'N/A'}</span>
+                    </div>
+                    <span className="font-semibold text-slate-700 group-hover:text-slate-900 dark:text-slate-300 dark:group-hover:text-slate-100">
+                      View
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </section>

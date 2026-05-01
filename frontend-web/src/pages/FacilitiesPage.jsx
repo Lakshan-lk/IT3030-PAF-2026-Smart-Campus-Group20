@@ -29,7 +29,6 @@ const FacilitiesPage = () => {
   const { data: resources, isLoading, isError } = useResources({
     search: debouncedSearch,
     type: filterType,
-    status: 'ACTIVE',
     minCapacity: filterMinCapacity || undefined,
     equipmentTypes: filterEquipmentTypes.length ? filterEquipmentTypes : undefined,
     date: filterDate || undefined,

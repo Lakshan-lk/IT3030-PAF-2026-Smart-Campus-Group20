@@ -6,6 +6,7 @@ import { useBookingForm } from '../hooks/useBookingForm';
 import { useAuth } from '../context/AuthContext';
 import { useResourceAvailability } from '../hooks/useResourceAvailability';
 import { resolveMediaUrl } from '../utils/media';
+import { getCampusStatusMeta, isCampusStatusAvailable } from '../utils/status';
 import ResourceFallbackThumbnail from './ResourceFallbackThumbnail';
 
 // Day-of-week labels
@@ -26,7 +27,8 @@ const EXTRA_EQUIPMENT_OPTIONS = [
 ];
 
 const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartTime, initialEndTime }) => {
-  const isAvailable = resource.status === 'ACTIVE' || resource.status === 'AVAILABLE';
+  const statusMeta = getCampusStatusMeta(resource.status);
+  const isAvailable = isCampusStatusAvailable(resource.status);
   const imageUrl = resolveMediaUrl(resource.imageUrl);
   const { authUser } = useAuth();
   const {
@@ -84,8 +86,8 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
               <h2 className="text-xl font-bold text-white">{resource.name}</h2>
               <p className="text-white/80 text-sm">{resource.location || 'Location not specified'}</p>
             </div>
-            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${isAvailable ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-              {resource.status}
+            <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${statusMeta.badge}`}>
+              {statusMeta.label}
             </span>
           </div>
         </div>

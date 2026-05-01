@@ -8,6 +8,8 @@ public class TicketRequestDTO {
 
     private Long resourceId;
 
+    private Long equipmentId;
+
     @NotNull(message = "User ID is required")
     private Long userId;
 
@@ -30,6 +32,14 @@ public class TicketRequestDTO {
 
     public void setResourceId(Long resourceId) {
         this.resourceId = resourceId;
+    }
+
+    public Long getEquipmentId() {
+        return equipmentId;
+    }
+
+    public void setEquipmentId(Long equipmentId) {
+        this.equipmentId = equipmentId;
     }
 
     public Long getUserId() {

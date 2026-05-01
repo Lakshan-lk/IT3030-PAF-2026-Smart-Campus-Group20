@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MdSearch, MdAdd, MdEdit, MdDelete, MdApartment, MdWarningAmber, MdClose, MdCheckCircle, MdInfo } from 'react-icons/md';
 import { useResources, useDeleteResource } from '../hooks/useResources';
 import ResourceForm from '../components/ResourceForm';
+import { getCampusStatusMeta } from '../utils/status';
 
 const AdminResourcesPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,7 +13,11 @@ const AdminResourcesPage = () => {
   
   const { data, isLoading } = useResources({ 
     search: searchQuery || undefined,
-    status: activeTab === 'all' ? undefined : activeTab.toUpperCase(),
+    status: activeTab === 'all' ? undefined : {
+      available: 'ACTIVE',
+      under_maintenance: 'UNDER_MAINTENANCE',
+      unavailable: 'OUT_OF_SERVICE',
+    }[activeTab],
     page,
     size 
   });
@@ -29,8 +34,9 @@ const AdminResourcesPage = () => {
 
   const tabs = [
     { key: 'all', label: 'All' },
-    { key: 'active', label: 'Active' },
-    { key: 'out_of_service', label: 'Out of Service' },
+    { key: 'available', label: 'Available' },
+    { key: 'under_maintenance', label: 'Under Maintenance' },
+    { key: 'unavailable', label: 'Unavailable' },
   ];
 
   const handleEdit = (resource) => {
@@ -90,11 +96,6 @@ const AdminResourcesPage = () => {
     const timer = setTimeout(() => setToast(null), 3500);
     return () => clearTimeout(timer);
   }, [toast]);
-
-  const statusColors = {
-    ACTIVE: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800/40', dot: 'bg-emerald-400' },
-    OUT_OF_SERVICE: { bg: 'bg-slate-50 dark:bg-slate-800/50', text: 'text-slate-500 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-600/50', dot: 'bg-slate-400' },
-  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -194,7 +195,7 @@ const AdminResourcesPage = () => {
                 </thead>
                 <tbody>
                   {resources.map((resource) => {
-                    const colors = statusColors[resource.status] || statusColors.ACTIVE;
+                    const colors = getCampusStatusMeta(resource.status);
 
                     return (
                       <motion.tr
@@ -216,9 +217,9 @@ const AdminResourcesPage = () => {
                           <p className="text-sm text-slate-600 dark:text-slate-300">{resource.capacity} pax</p>
                         </td>
                         <td className="p-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${colors.bg} ${colors.text} border ${colors.border} rounded-full text-xs font-bold`}>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-full text-xs font-bold ${colors.badge}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
-                            {resource.status === 'ACTIVE' ? 'Active' : 'Out of Service'}
+                            {colors.label || resource.status}
                           </span>
                         </td>
                         <td className="p-4">

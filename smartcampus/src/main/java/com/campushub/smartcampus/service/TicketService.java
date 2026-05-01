@@ -11,7 +11,9 @@ import com.campushub.smartcampus.entity.User;
 import com.campushub.smartcampus.enums.TicketCategory;
 import com.campushub.smartcampus.enums.TicketPriority;
 import com.campushub.smartcampus.enums.TicketStatus;
+import com.campushub.smartcampus.enums.ResourceStatus;
 import com.campushub.smartcampus.repository.CommentRepository;
+import com.campushub.smartcampus.repository.EquipmentRepository;
 import com.campushub.smartcampus.repository.ResourceRepository;
 import com.campushub.smartcampus.repository.TicketAttachmentRepository;
 import com.campushub.smartcampus.repository.TicketRepository;
@@ -40,6 +42,7 @@ public class TicketService {
     private final TicketAttachmentService ticketAttachmentService;
     private final CommentRepository commentRepository;
     private final ResourceRepository resourceRepository;
+    private final EquipmentRepository equipmentRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
@@ -47,6 +50,7 @@ public class TicketService {
                          TicketAttachmentRepository ticketAttachmentRepository,
                          CommentRepository commentRepository,
                          ResourceRepository resourceRepository,
+                         EquipmentRepository equipmentRepository,
                          UserRepository userRepository,
                          NotificationService notificationService,
                          TicketAttachmentService ticketAttachmentService) {
@@ -54,6 +58,7 @@ public class TicketService {
         this.ticketAttachmentRepository = ticketAttachmentRepository;
         this.commentRepository = commentRepository;
         this.resourceRepository = resourceRepository;
+        this.equipmentRepository = equipmentRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.ticketAttachmentService = ticketAttachmentService;
@@ -148,6 +153,10 @@ public class TicketService {
         ticket.setAssignedTo(assignee);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
         Ticket saved = ticketRepository.save(ticket);
+
+        // Put the linked facility/equipment UNDER_MAINTENANCE
+        setMaintenanceStatus(saved, true);
+
         notificationService.createTicketAssignedNotification(saved, assignee);
         return toResponse(saved);
     }
@@ -169,9 +178,19 @@ public class TicketService {
             if (nextStatus != TicketStatus.REJECTED) {
                 ticket.setRejectionReason(null);
             }
+        } else if (nextStatus == TicketStatus.OPEN) {
+            ticket.setResolutionNotes(null);
+            ticket.setRejectionReason(null);
         }
 
         Ticket saved = ticketRepository.save(ticket);
+
+        // Restore to ACTIVE when work is done; keep UNDER_MAINTENANCE while IN_PROGRESS
+        if (nextStatus == TicketStatus.RESOLVED || nextStatus == TicketStatus.CLOSED || nextStatus == TicketStatus.REJECTED) {
+            setMaintenanceStatus(saved, false);
+        } else if (nextStatus == TicketStatus.OPEN) {
+            setMaintenanceStatus(saved, true);
+        }
 
         if (nextStatus == TicketStatus.REJECTED) {
             notificationService.createTicketRejectedNotification(saved);
@@ -182,6 +201,28 @@ public class TicketService {
         }
 
         return toResponse(saved);
+    }
+
+    /**
+     * Flips the status of the resource or equipment linked to this ticket.
+     * maintenance=true  → UNDER_MAINTENANCE
+     * maintenance=false → ACTIVE
+     */
+    private void setMaintenanceStatus(Ticket ticket, boolean maintenance) {
+        ResourceStatus target = maintenance ? ResourceStatus.UNDER_MAINTENANCE : ResourceStatus.ACTIVE;
+
+        if (ticket.getResource() != null) {
+            ticket.getResource().setStatus(target);
+            resourceRepository.save(ticket.getResource());
+            log.info("Resource {} status set to {}", ticket.getResource().getId(), target);
+        }
+
+        if (ticket.getEquipment() != null) {
+            String equipStatus = maintenance ? "UNDER_MAINTENANCE" : "ACTIVE";
+            ticket.getEquipment().setStatus(equipStatus);
+            equipmentRepository.save(ticket.getEquipment());
+            log.info("Equipment {} status set to {}", ticket.getEquipment().getId(), equipStatus);
+        }
     }
 
     public void deleteTicket(Long id) {
@@ -200,10 +241,17 @@ public class TicketService {
                     .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + dto.getResourceId()));
         }
 
+        com.campushub.smartcampus.entity.Equipment equipment = null;
+        if (dto.getEquipmentId() != null) {
+            equipment = equipmentRepository.findById(dto.getEquipmentId())
+                    .orElseThrow(() -> new EntityNotFoundException("Equipment not found with id: " + dto.getEquipmentId()));
+        }
+
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
 
         ticket.setResource(resource);
+        ticket.setEquipment(equipment);
         ticket.setUser(user);
         ticket.setCategory(TicketCategory.valueOf(dto.getCategory().toUpperCase(Locale.ROOT)));
         ticket.setDescription(dto.getDescription());
@@ -227,7 +275,7 @@ public class TicketService {
                 }
             }
             case RESOLVED -> {
-                if (next != TicketStatus.CLOSED) {
+                if (next != TicketStatus.CLOSED && next != TicketStatus.OPEN) {
                     throw new IllegalArgumentException("Invalid status transition from RESOLVED to " + next);
                 }
             }

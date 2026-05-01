@@ -10,6 +10,7 @@ import com.campushub.smartcampus.exception.BookingConflictException;
 import com.campushub.smartcampus.repository.BookingRepository;
 import com.campushub.smartcampus.repository.ResourceRepository;
 import com.campushub.smartcampus.repository.UserRepository;
+import com.campushub.smartcampus.enums.ResourceStatus;
 import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,6 +103,10 @@ public class BookingService {
         Resource resource = resourceRepository.findById(dto.getResourceId())
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + dto.getResourceId()));
         log.info("Resource found: id={}, name={}", resource.getId(), resource.getName());
+
+        if (resource.getStatus() != ResourceStatus.ACTIVE) {
+            throw new IllegalArgumentException("Resource is not available for booking");
+        }
 
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
@@ -213,6 +218,10 @@ public class BookingService {
 
         Resource resource = resourceRepository.findById(dto.getResourceId())
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + dto.getResourceId()));
+
+        if (resource.getStatus() != ResourceStatus.ACTIVE) {
+            throw new IllegalArgumentException("Resource is not available for booking");
+        }
 
         booking.setResource(resource);
         booking.setPurpose(dto.getPurpose());
