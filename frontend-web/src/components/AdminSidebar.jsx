@@ -11,7 +11,6 @@ const AdminSidebar = () => {
     { name: 'Resources', path: '/admin/resources', icon: <MdApartment /> },
     { name: 'Equipment', path: '/admin/equipment', icon: <MdBuild /> },
     { name: 'Bookings', path: '/admin/bookings', icon: <MdEvent /> },
-    { name: 'Eq Bookings', path: '/admin/equipment-bookings', icon: <MdBuild /> },
   ];
 
   return (
@@ -47,15 +46,6 @@ const AdminSidebar = () => {
             {link.name}
           </NavLink>
         ))}
-        <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-700/40">
-          <NavLink
-            to="/"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium text-slate-500 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-700 dark:hover:text-slate-300"
-          >
-            <span className="text-xl"><MdAdminPanelSettings /></span>
-            Back to Campus
-          </NavLink>
-        </div>
       </nav>
     </motion.aside>
   );
