@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MdAdd, MdSearch, MdDelete, MdEdit, MdBuild, MdRoom, MdSell, MdCheckCircle, MdInfo, MdClose } from 'react-icons/md';
+import { MdAdd, MdSearch, MdDelete, MdEdit, MdBuild, MdRoom, MdSell, MdCheckCircle, MdInfo, MdClose, MdWarningAmber } from 'react-icons/md';
 import { useAllEquipment, useDeleteEquipment } from '../hooks/useEquipment';
 import { useAllEquipmentBookings, useApproveEquipmentBooking, useRejectEquipmentBooking } from '../hooks/useEquipmentBooking';
 import { useResources } from '../hooks/useResources';
@@ -23,6 +23,7 @@ const AdminEquipmentPage = () => {
   const [actionModal, setActionModal] = useState({ open: false, type: null, bookingId: null });
   const [rejectReason, setRejectReason] = useState('');
   const [toast, setToast] = useState(null);
+  const [equipmentToDelete, setEquipmentToDelete] = useState(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type, id: Date.now() });
@@ -95,13 +96,25 @@ const AdminEquipmentPage = () => {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Delete this equipment item? This will remove it from the database.')) {
-      deleteEquipment.mutate(id, {
-        onSuccess: () => showToast('Equipment was deleted successfully.', 'delete'),
-        onError: () => showToast('Delete failed. Please try again.', 'error')
-      });
-    }
+  const handleDelete = (item) => {
+    setEquipmentToDelete(item);
+  };
+
+  const confirmDelete = () => {
+    if (!equipmentToDelete) return;
+    deleteEquipment.mutate(equipmentToDelete.id, {
+      onSuccess: () => {
+        showToast('Equipment was deleted successfully.', 'delete');
+        setEquipmentToDelete(null);
+      },
+      onError: () => {
+        showToast('Delete failed. Please try again.', 'error');
+      }
+    });
+  };
+
+  const handleCloseDeleteModal = () => {
+    setEquipmentToDelete(null);
   };
 
   const closeForm = () => {
@@ -322,7 +335,7 @@ const AdminEquipmentPage = () => {
                             <MdEdit className="text-lg" />
                           </button>
                           <button
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => handleDelete(item)}
                             className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
                             title="Delete"
                           >
@@ -473,6 +486,100 @@ const AdminEquipmentPage = () => {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {equipmentToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          >
+            <motion.button
+              type="button"
+              aria-label="Close delete confirmation"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+              onClick={handleCloseDeleteModal}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+              className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-rose-200/60 dark:border-rose-900/40 bg-white dark:bg-slate-800 shadow-2xl"
+            >
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-amber-400" />
+
+              <div className="flex items-start justify-between gap-4 p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300">
+                    <MdWarningAmber className="text-2xl" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                      Delete equipment?
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                      This will remove <span className="font-semibold text-slate-900 dark:text-slate-100">{equipmentToDelete.name}</span> from the list.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseDeleteModal}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                >
+                  <MdClose className="text-lg" />
+                </button>
+              </div>
+
+              <div className="px-6 pb-5">
+                <div className="rounded-2xl border border-rose-200/70 dark:border-rose-900/30 bg-rose-50/80 dark:bg-rose-900/15 p-4">
+                  <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
+                    This action cannot be undone.
+                  </p>
+                  <p className="mt-1 text-sm text-rose-600/90 dark:text-rose-200/80">
+                    If you only want to hide the equipment, consider changing its status instead.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-200/80 dark:border-slate-700/60 px-6 py-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={handleCloseDeleteModal}
+                  disabled={deleteEquipment.isPending}
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={deleteEquipment.isPending}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/20 transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-400"
+                >
+                  {deleteEquipment.isPending ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <MdDelete className="text-lg" />
+                      Delete equipment
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 

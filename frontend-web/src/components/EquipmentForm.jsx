@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { MdClose, MdDelete, MdImage, MdUpload } from 'react-icons/md';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MdClose, MdDelete, MdImage, MdUpload, MdBuild } from 'react-icons/md';
 import { EQUIPMENT_TYPES, HIRING_EQUIPMENT_TYPES, formatEquipmentLabel } from '../constants/facilities';
 import { useCreateEquipment, useUpdateEquipment } from '../hooks/useEquipment';
 import { resourceApi } from '../api/resourceApi';
@@ -32,6 +32,7 @@ const EquipmentForm = ({ equipment, resources, mode = 'room', onClose, onSaved }
   const [selectedImages, setSelectedImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [formError, setFormError] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -78,8 +79,16 @@ const EquipmentForm = ({ equipment, resources, mode = 'room', onClose, onSaved }
     ...imagePreviews,
   ]), [formData.imageUrls, imagePreviews]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
+    if (isEditing) {
+      setShowConfirmModal(true);
+    } else {
+      executeSubmit();
+    }
+  };
+
+  const executeSubmit = async () => {
     setFormError('');
 
     const uploadedImageUrls = [];
@@ -328,6 +337,76 @@ const EquipmentForm = ({ equipment, resources, mode = 'room', onClose, onSaved }
           </div>
         </form>
       </motion.div>
+
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirmModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+              onClick={() => setShowConfirmModal(false)}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+              className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-indigo-200/60 dark:border-indigo-900/40 bg-white dark:bg-slate-800 shadow-2xl"
+            >
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+
+              <div className="flex items-start justify-between gap-4 p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300">
+                    <MdBuild className="text-2xl" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                      Save changes?
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                      Are you sure you want to save these changes to <span className="font-semibold text-slate-900 dark:text-slate-100">{formData.name}</span>?
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                >
+                  <MdClose className="text-lg" />
+                </button>
+              </div>
+
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-200/80 dark:border-slate-700/60 px-6 py-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(false)}
+                  disabled={isLoading}
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowConfirmModal(false);
+                    executeSubmit();
+                  }}
+                  disabled={isLoading}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-400"
+                >
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
