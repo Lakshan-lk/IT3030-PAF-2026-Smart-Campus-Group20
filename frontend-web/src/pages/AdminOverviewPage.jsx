@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MdCheck, MdClose, MdEvent, MdPending, MdVerified, MdOutlineCancel, MdArrowUpward, MdArrowDownward } from 'react-icons/md';
+import { MdCheck, MdClose, MdEvent, MdPending, MdVerified, MdOutlineCancel, MdArrowUpward, MdArrowDownward, MdRefresh } from 'react-icons/md';
+import { useQueryClient } from '@tanstack/react-query';
 import { useBookings, useApproveBooking, useRejectBooking } from '../hooks/useBookings';
 import { useTickets } from '../hooks/useTickets';
 
@@ -9,6 +10,8 @@ const AdminOverviewPage = () => {
   const { data: tickets = [], isLoading: ticketsLoading } = useTickets();
   const approveBooking = useApproveBooking();
   const rejectBooking = useRejectBooking();
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const stats = {
     total: bookings.length,
@@ -35,8 +38,36 @@ const AdminOverviewPage = () => {
     ? Math.round((stats.approved / (stats.approved + stats.rejected)) * 100)
     : 0;
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['tickets'] }),
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-500">Admin dashboard</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-800 dark:text-slate-50">Operations overview</h1>
+        </div>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700/50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/70"
+        >
+          <MdRefresh className={isRefreshing ? 'animate-spin' : ''} />
+          Refresh
+        </button>
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
           { label: 'Total', value: stats.total, icon: <MdEvent />, accent: 'border-l-slate-400', bg: 'bg-slate-50/80 dark:bg-slate-800/40' },
