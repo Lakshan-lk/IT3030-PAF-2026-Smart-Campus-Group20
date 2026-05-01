@@ -243,6 +243,7 @@ const ResourceForm = ({ resource, onClose, onSaved }) => {
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all"
                   >
                     <option value="ACTIVE">Active</option>
+                    <option value="UNDER_MAINTENANCE">Under Maintenance</option>
                     <option value="OUT_OF_SERVICE">Out of Service</option>
                   </select>
                 </div>

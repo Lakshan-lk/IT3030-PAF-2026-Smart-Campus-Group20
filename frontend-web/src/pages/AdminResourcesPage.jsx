@@ -30,6 +30,7 @@ const AdminResourcesPage = () => {
   const tabs = [
     { key: 'all', label: 'All' },
     { key: 'active', label: 'Active' },
+    { key: 'under_maintenance', label: 'Under Maintenance' },
     { key: 'out_of_service', label: 'Out of Service' },
   ];
 
@@ -92,8 +93,9 @@ const AdminResourcesPage = () => {
   }, [toast]);
 
   const statusColors = {
-    ACTIVE: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800/40', dot: 'bg-emerald-400' },
-    OUT_OF_SERVICE: { bg: 'bg-slate-50 dark:bg-slate-800/50', text: 'text-slate-500 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-600/50', dot: 'bg-slate-400' },
+    ACTIVE: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800/40', dot: 'bg-emerald-400', label: 'Active' },
+    UNDER_MAINTENANCE: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800/40', dot: 'bg-amber-400', label: 'Under Maintenance' },
+    OUT_OF_SERVICE: { bg: 'bg-slate-50 dark:bg-slate-800/50', text: 'text-slate-500 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-600/50', dot: 'bg-slate-400', label: 'Out of Service' },
   };
 
   const containerVariants = {
@@ -218,7 +220,7 @@ const AdminResourcesPage = () => {
                         <td className="p-4">
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${colors.bg} ${colors.text} border ${colors.border} rounded-full text-xs font-bold`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
-                            {resource.status === 'ACTIVE' ? 'Active' : 'Out of Service'}
+                            {colors.label || resource.status}
                           </span>
                         </td>
                         <td className="p-4">

@@ -9,6 +9,8 @@ public class TicketResponseDTO {
     private Long id;
     private Long resourceId;
     private String resourceName;
+    private Long equipmentId;
+    private String equipmentName;
     private Long userId;
     private String userName;
     private String category;
@@ -46,6 +48,22 @@ public class TicketResponseDTO {
 
     public void setResourceName(String resourceName) {
         this.resourceName = resourceName;
+    }
+
+    public Long getEquipmentId() {
+        return equipmentId;
+    }
+
+    public void setEquipmentId(Long equipmentId) {
+        this.equipmentId = equipmentId;
+    }
+
+    public String getEquipmentName() {
+        return equipmentName;
+    }
+
+    public void setEquipmentName(String equipmentName) {
+        this.equipmentName = equipmentName;
     }
 
     public Long getUserId() {
@@ -166,6 +184,10 @@ public class TicketResponseDTO {
         if (ticket.getResource() != null) {
             dto.setResourceId(ticket.getResource().getId());
             dto.setResourceName(ticket.getResource().getName());
+        }
+        if (ticket.getEquipment() != null) {
+            dto.setEquipmentId(ticket.getEquipment().getId());
+            dto.setEquipmentName(ticket.getEquipment().getName());
         }
         if (ticket.getUser() != null) {
             dto.setUserId(ticket.getUser().getId());

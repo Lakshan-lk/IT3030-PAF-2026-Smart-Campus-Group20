@@ -8,6 +8,7 @@ import { resolveMediaUrl } from '../utils/media';
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
+  { value: 'UNDER_MAINTENANCE', label: 'Under Maintenance' },
   { value: 'OUT_OF_SERVICE', label: 'Out of Service' },
 ];
 

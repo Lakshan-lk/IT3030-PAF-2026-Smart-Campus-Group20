@@ -35,6 +35,10 @@ public class Ticket {
     private Resource resource;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "equipment_id")
+    private Equipment equipment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @NotNull(message = "Reporter is required")
     private User user;
@@ -107,6 +111,14 @@ public class Ticket {
 
     public void setResource(Resource resource) {
         this.resource = resource;
+    }
+
+    public Equipment getEquipment() {
+        return equipment;
+    }
+
+    public void setEquipment(Equipment equipment) {
+        this.equipment = equipment;
     }
 
     public User getUser() {
