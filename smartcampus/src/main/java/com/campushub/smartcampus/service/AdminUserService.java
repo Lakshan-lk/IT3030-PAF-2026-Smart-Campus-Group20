@@ -2,8 +2,12 @@ package com.campushub.smartcampus.service;
 
 import com.campushub.smartcampus.dto.AdminUserCreateRequestDTO;
 import com.campushub.smartcampus.dto.AdminUserResponseDTO;
+import com.campushub.smartcampus.entity.Ticket;
 import com.campushub.smartcampus.entity.User;
 import com.campushub.smartcampus.enums.UserType;
+import com.campushub.smartcampus.repository.CommentRepository;
+import com.campushub.smartcampus.repository.NotificationRepository;
+import com.campushub.smartcampus.repository.TicketRepository;
 import com.campushub.smartcampus.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
@@ -19,9 +23,20 @@ public class AdminUserService {
     private static final int DEFAULT_REGISTRATION_YEAR = 2025;
 
     private final UserRepository userRepository;
+    private final TicketRepository ticketRepository;
+    private final NotificationRepository notificationRepository;
+    private final CommentRepository commentRepository;
 
-    public AdminUserService(UserRepository userRepository) {
+    public AdminUserService(
+            UserRepository userRepository,
+            TicketRepository ticketRepository,
+            NotificationRepository notificationRepository,
+            CommentRepository commentRepository
+    ) {
         this.userRepository = userRepository;
+        this.ticketRepository = ticketRepository;
+        this.notificationRepository = notificationRepository;
+        this.commentRepository = commentRepository;
     }
 
     @Transactional(readOnly = true)
@@ -102,6 +117,18 @@ public class AdminUserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
         ensureTechnician(user);
+
+        List<Ticket> assignedTickets = ticketRepository.findByAssignedToId(id);
+        if (!assignedTickets.isEmpty()) {
+            for (Ticket ticket : assignedTickets) {
+                ticket.setAssignedTo(null);
+            }
+            ticketRepository.saveAll(assignedTickets);
+        }
+
+        commentRepository.deleteByUserId(id);
+        notificationRepository.deleteByUserId(id);
+
         userRepository.delete(user);
     }
 

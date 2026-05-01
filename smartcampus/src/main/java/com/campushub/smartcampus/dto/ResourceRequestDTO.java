@@ -8,7 +8,10 @@ import jakarta.validation.constraints.Size;
 import com.campushub.smartcampus.enums.ResourceType;
 import com.campushub.smartcampus.enums.ResourceStatus;
 
+import java.util.List;
+
 public class ResourceRequestDTO {
+
 
     @NotBlank(message = "Resource name is required")
     @Size(max = 100)
@@ -30,6 +33,9 @@ public class ResourceRequestDTO {
 
     @Size(max = 500)
     private String imageUrl;
+
+    private List<String> equipmentTypes;
+
 
     public ResourceRequestDTO() {}
 
@@ -87,5 +93,13 @@ public class ResourceRequestDTO {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public List<String> getEquipmentTypes() {
+        return equipmentTypes;
+    }
+
+    public void setEquipmentTypes(List<String> equipmentTypes) {
+        this.equipmentTypes = equipmentTypes;
     }
 }

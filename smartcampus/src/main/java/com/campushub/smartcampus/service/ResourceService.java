@@ -12,12 +12,14 @@ import com.campushub.smartcampus.enums.ResourceType;
 import com.campushub.smartcampus.repository.EquipmentRepository;
 import com.campushub.smartcampus.repository.BookingRepository;
 import com.campushub.smartcampus.repository.ResourceRepository;
+import com.campushub.smartcampus.util.StatusMapper;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -34,12 +36,14 @@ public class ResourceService {
     private final ResourceRepository resourceRepository;
     private final EquipmentRepository equipmentRepository;
     private final BookingRepository bookingRepository;
+    private final ResourceImageService resourceImageService;
 
     public ResourceService(ResourceRepository resourceRepository, EquipmentRepository equipmentRepository,
-                           BookingRepository bookingRepository) {
+                           BookingRepository bookingRepository, ResourceImageService resourceImageService) {
         this.resourceRepository = resourceRepository;
         this.equipmentRepository = equipmentRepository;
         this.bookingRepository = bookingRepository;
+        this.resourceImageService = resourceImageService;
     }
 
     @Transactional(readOnly = true)
@@ -90,20 +94,17 @@ public class ResourceService {
         resource.setLocation(dto.getLocation());
         resource.setCapacity(dto.getCapacity());
         resource.setImageUrl(dto.getImageUrl());
-
-        if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
-            resource.setStatus(ResourceStatus.valueOf(dto.getStatus().trim().toUpperCase()));
-        } else {
-            resource.setStatus(ResourceStatus.ACTIVE);
-        }
+        resource.setStatus(StatusMapper.normalizeResourceStatus(dto.getStatus()));
 
         Resource saved = resourceRepository.save(resource);
-        return ResourceResponseDTO.fromEntity(saved, List.of());
+        syncEquipment(saved, dto.getEquipmentTypes());
+        return ResourceResponseDTO.fromEntity(saved, equipmentRepository.findByRoomId(saved.getId()));
     }
 
     public ResourceResponseDTO updateResource(Long id, ResourceRequestDTO dto) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
+        String previousImageUrl = resource.getImageUrl();
 
         resource.setName(dto.getName());
         resource.setDescription(dto.getDescription());
@@ -111,21 +112,29 @@ public class ResourceService {
         resource.setLocation(dto.getLocation());
         resource.setCapacity(dto.getCapacity());
         resource.setImageUrl(dto.getImageUrl());
-
-        if (dto.getStatus() != null && !dto.getStatus().isBlank()) {
-            resource.setStatus(ResourceStatus.valueOf(dto.getStatus().trim().toUpperCase()));
-        }
+        resource.setStatus(StatusMapper.normalizeResourceStatus(dto.getStatus()));
 
         Resource saved = resourceRepository.save(resource);
+        cleanupReplacedImage(previousImageUrl, resource.getImageUrl());
+        syncEquipment(saved, dto.getEquipmentTypes());
         List<Equipment> equipment = equipmentRepository.findByRoomId(id);
         return ResourceResponseDTO.fromEntity(saved, equipment);
     }
 
     public void deleteResource(Long id) {
-        if (!resourceRepository.existsById(id)) {
-            throw new EntityNotFoundException("Resource not found with id: " + id);
-        }
-        resourceRepository.deleteById(id);
+        Resource resource = resourceRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
+
+        resource.setDeleted(true);
+        resourceRepository.save(resource);
+    }
+
+    public String uploadResourceImage(MultipartFile file) throws java.io.IOException {
+        return resourceImageService.saveResourceImage(file);
+    }
+
+    public void deleteUploadedImage(String imageUrl) {
+        resourceImageService.deleteUploadedImage(imageUrl);
     }
 
     private boolean matchesSearch(Resource resource, String search) {
@@ -136,7 +145,8 @@ public class ResourceService {
                 || contains(resource.getDescription(), search)
                 || contains(resource.getLocation(), search)
                 || contains(resource.getType() != null ? resource.getType().name() : null, search)
-                || contains(resource.getStatus() != null ? resource.getStatus().name() : null, search);
+                || contains(resource.getStatus() != null ? resource.getStatus().name() : null, search)
+                || contains(getStatusLabel(resource.getStatus()), search);
     }
 
     private boolean matchesType(Resource resource, ResourceType type) {
@@ -193,6 +203,26 @@ public class ResourceService {
         return value != null && value.toLowerCase().contains(search);
     }
 
+    private String getStatusLabel(ResourceStatus status) {
+        if (status == null) {
+            return null;
+        }
+
+        return switch (status) {
+            case ACTIVE -> "available";
+            case UNDER_MAINTENANCE -> "under maintenance";
+            case OUT_OF_SERVICE -> "unavailable";
+        };
+    }
+
+    private void cleanupReplacedImage(String previousImageUrl, String currentImageUrl) {
+        if (previousImageUrl == null || previousImageUrl.equals(currentImageUrl)) {
+            return;
+        }
+
+        resourceImageService.deleteUploadedImage(previousImageUrl);
+    }
+
     private ResourceType parseResourceType(String type) {
         if (type == null || type.isBlank()) {
             return null;
@@ -209,7 +239,7 @@ public class ResourceService {
             return null;
         }
         try {
-            return ResourceStatus.valueOf(status.trim().toUpperCase());
+            return StatusMapper.normalizeResourceStatus(status);
         } catch (IllegalArgumentException e) {
             return null;
         }
@@ -232,5 +262,37 @@ public class ResourceService {
             }
         }
         return parsed;
+    }
+    private void syncEquipment(Resource resource, List<String> equipmentTypes) {
+        if (equipmentTypes == null) {
+            return;
+        }
+
+        // Get current equipment
+        List<Equipment> currentEquipment = equipmentRepository.findByRoomId(resource.getId());
+        Set<EquipmentType> currentTypes = currentEquipment.stream()
+                .map(Equipment::getType)
+                .collect(Collectors.toSet());
+
+        Set<EquipmentType> requestedTypes = parseEquipmentTypes(equipmentTypes);
+
+        // Remove equipment no longer requested
+        for (Equipment eq : currentEquipment) {
+            if (!requestedTypes.contains(eq.getType())) {
+                equipmentRepository.delete(eq);
+            }
+        }
+
+        // Add new equipment
+        for (EquipmentType type : requestedTypes) {
+            if (!currentTypes.contains(type)) {
+                Equipment eq = new Equipment();
+                eq.setName(resource.getName() + " " + type.name());
+                eq.setType(type);
+                eq.setRoom(resource);
+                eq.setStatus("ACTIVE");
+                equipmentRepository.save(eq);
+            }
+        }
     }
 }

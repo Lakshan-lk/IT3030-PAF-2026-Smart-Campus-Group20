@@ -4,6 +4,15 @@ import {
 
 export const EQUIPMENT_TYPES = ['PROJECTOR', 'WHITEBOARD', 'AC', 'MICROPHONE', 'PC', 'CAMERA'];
 
+export const HIRING_EQUIPMENT_TYPES = [
+  'IT & Computing Equipment',
+  'Audio-Visual (AV) Equipment',
+  'Event & Seminar Equipment',
+  'Sports & Recreation Equipment',
+  'Media & Content Creation Equipment',
+  'Office & Printing Equipment',
+];
+
 export const EQUIPMENT_CONFIG = {
   PROJECTOR:  { icon: MdTv,        label: 'Projector',  color: 'from-violet-500 to-purple-600',  glow: 'shadow-violet-500/30',  bg: 'bg-violet-50 dark:bg-violet-900/20',   ring: 'ring-violet-400' },
   WHITEBOARD: { icon: MdBorderAll,  label: 'Whiteboard', color: 'from-sky-400 to-blue-600',        glow: 'shadow-sky-500/30',     bg: 'bg-sky-50 dark:bg-sky-900/20',         ring: 'ring-sky-400'    },
@@ -23,3 +32,13 @@ export const TIME_SLOTS = Array.from({ length: 11 }, (_, i) => {
 export const INPUT_CLS = `w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600
   bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm
   focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 outline-none transition-all`;
+
+export const formatEquipmentLabel = (value) => {
+  if (!value) {
+    return '';
+  }
+
+  return value.includes('&') || value.includes('(')
+    ? value
+    : value.replace(/_/g, ' ').toLowerCase();
+};

@@ -74,6 +74,8 @@ export function useComments(ticketId) {
     queryKey: ['ticket-comments', ticketId],
     queryFn: () => ticketApi.getComments(ticketId).then((res) => res.data),
     enabled: !!ticketId,
+    refetchInterval: 8000, // Auto-poll every 8s so new messages appear in real time
+    refetchIntervalInBackground: false,
   });
 }
 

@@ -13,6 +13,8 @@ public class CommentRequestDTO {
     @Size(max = 5000)
     private String content;
 
+    private Boolean isInternal;
+
     public Long getUserId() {
         return userId;
     }
@@ -27,5 +29,13 @@ public class CommentRequestDTO {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public Boolean getIsInternal() {
+        return isInternal;
+    }
+
+    public void setIsInternal(Boolean isInternal) {
+        this.isInternal = isInternal;
     }
 }

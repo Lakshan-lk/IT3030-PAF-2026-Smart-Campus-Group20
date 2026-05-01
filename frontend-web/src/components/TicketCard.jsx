@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MdAssignment, MdCalendarToday, MdChevronRight, MdRoom, MdPerson } from 'react-icons/md';
+import { MdAssignment, MdCalendarToday, MdChevronRight, MdRoom, MdPerson, MdBuild } from 'react-icons/md';
 
 const statusStyles = {
   OPEN: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/40',
@@ -43,9 +43,12 @@ const TicketCard = ({ ticket, onClick }) => {
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{ticket.category}</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 flex items-center gap-1">
+            {ticket.equipmentName ? <MdBuild className="text-xs" /> : <MdRoom className="text-xs" />}
+            {ticket.category}
+          </p>
           <h3 className="mt-1 text-sm font-bold text-slate-800 dark:text-slate-100 line-clamp-2">
-            {ticket.resourceName || 'General ticket'}
+            {ticket.equipmentName || ticket.resourceName || 'General ticket'}
           </h3>
         </div>
         <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${priorityClass}`}>
@@ -59,8 +62,12 @@ const TicketCard = ({ ticket, onClick }) => {
 
       <div className="space-y-2 text-xs text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-2">
-          <MdRoom className="text-base" />
-          <span className="truncate">{ticket.resourceName || 'No room assigned'}</span>
+          {ticket.equipmentName ? <MdBuild className="text-base" /> : <MdRoom className="text-base" />}
+          <span className="truncate">
+            {ticket.equipmentName 
+              ? `Equipment: ${ticket.equipmentName}` 
+              : (ticket.resourceName || 'No room assigned')}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <MdPerson className="text-base" />

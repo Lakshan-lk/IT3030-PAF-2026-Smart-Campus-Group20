@@ -10,6 +10,7 @@ import com.campushub.smartcampus.exception.BookingConflictException;
 import com.campushub.smartcampus.repository.BookingRepository;
 import com.campushub.smartcampus.repository.ResourceRepository;
 import com.campushub.smartcampus.repository.UserRepository;
+import com.campushub.smartcampus.enums.ResourceStatus;
 import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 @Transactional
@@ -33,11 +36,13 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public BookingService(BookingRepository bookingRepository, ResourceRepository resourceRepository, UserRepository userRepository) {
+    public BookingService(BookingRepository bookingRepository, ResourceRepository resourceRepository, UserRepository userRepository, NotificationService notificationService) {
         this.bookingRepository = bookingRepository;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -99,6 +104,10 @@ public class BookingService {
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + dto.getResourceId()));
         log.info("Resource found: id={}, name={}", resource.getId(), resource.getName());
 
+        if (resource.getStatus() != ResourceStatus.ACTIVE) {
+            throw new IllegalArgumentException("Resource is not available for booking");
+        }
+
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getUserId()));
         log.info("User found: id={}, name={}", user.getId(), user.getName());
@@ -119,6 +128,14 @@ public class BookingService {
             booking.setAttendees(dto.getAttendees());
         }
         Booking saved = bookingRepository.save(booking);
+        
+        // Notification - call via proxy for async
+        try {
+            notificationService.createBookingCreatedNotificationAsync(saved);
+        } catch (Exception e) {
+            log.error("Notify failed: {}", e.getMessage());
+        }
+        
         return List.of(BookingResponseDTO.fromEntity(saved));
     }
 
@@ -202,6 +219,10 @@ public class BookingService {
         Resource resource = resourceRepository.findById(dto.getResourceId())
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + dto.getResourceId()));
 
+        if (resource.getStatus() != ResourceStatus.ACTIVE) {
+            throw new IllegalArgumentException("Resource is not available for booking");
+        }
+
         booking.setResource(resource);
         booking.setPurpose(dto.getPurpose());
         booking.setAttendees(dto.getAttendees());
@@ -223,6 +244,10 @@ public class BookingService {
 
         booking.setStatus(BookingStatus.APPROVED);
         Booking saved = bookingRepository.save(booking);
+        
+        // Async notification
+        notificationService.createBookingApprovedNotificationAsync(saved);
+        
         return BookingResponseDTO.fromEntity(saved);
     }
 
@@ -237,6 +262,10 @@ public class BookingService {
         booking.setStatus(BookingStatus.REJECTED);
         booking.setRejectionReason(reason);
         Booking saved = bookingRepository.save(booking);
+        
+        // Async notification
+        notificationService.createBookingRejectedNotificationAsync(saved, reason);
+        
         return BookingResponseDTO.fromEntity(saved);
     }
 

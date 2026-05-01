@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MdSearch, MdAdd, MdEdit, MdDelete, MdCancel, MdApartment } from 'react-icons/md';
+import { MdSearch, MdAdd, MdEdit, MdDelete, MdApartment, MdWarningAmber, MdClose, MdCheckCircle, MdInfo } from 'react-icons/md';
 import { useResources, useDeleteResource } from '../hooks/useResources';
 import ResourceForm from '../components/ResourceForm';
+import { getCampusStatusMeta } from '../utils/status';
 
 const AdminResourcesPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,7 +13,11 @@ const AdminResourcesPage = () => {
   
   const { data, isLoading } = useResources({ 
     search: searchQuery || undefined,
-    status: activeTab === 'all' ? undefined : activeTab.toUpperCase(),
+    status: activeTab === 'all' ? undefined : {
+      available: 'ACTIVE',
+      under_maintenance: 'UNDER_MAINTENANCE',
+      unavailable: 'OUT_OF_SERVICE',
+    }[activeTab],
     page,
     size 
   });
@@ -21,19 +26,17 @@ const AdminResourcesPage = () => {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingResource, setEditingResource] = useState(null);
+  const [resourceToDelete, setResourceToDelete] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const resources = data?.content || [];
-  const totalElements = data?.totalElements || 0;
   const totalPages = data?.totalPages || 0;
-
-  const stats = {
-    total: totalElements,
-  };
 
   const tabs = [
     { key: 'all', label: 'All' },
-    { key: 'active', label: 'Active' },
-    { key: 'out_of_service', label: 'Out of Service' },
+    { key: 'available', label: 'Available' },
+    { key: 'under_maintenance', label: 'Under Maintenance' },
+    { key: 'unavailable', label: 'Unavailable' },
   ];
 
   const handleEdit = (resource) => {
@@ -46,10 +49,8 @@ const AdminResourcesPage = () => {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this resource? This action will remove it from the list.')) {
-      deleteResource.mutate(id);
-    }
+  const handleDelete = (resource) => {
+    setResourceToDelete(resource);
   };
 
   const handleCloseForm = () => {
@@ -57,10 +58,44 @@ const AdminResourcesPage = () => {
     setEditingResource(null);
   };
 
-  const statusColors = {
-    ACTIVE: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800/40', dot: 'bg-emerald-400' },
-    OUT_OF_SERVICE: { bg: 'bg-slate-50 dark:bg-slate-800/50', text: 'text-slate-500 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-600/50', dot: 'bg-slate-400' },
+  const handleCloseDeleteModal = () => {
+    setResourceToDelete(null);
   };
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type, id: Date.now() });
+  };
+
+  const handleResourceSaved = ({ message } = {}) => {
+    if (message) {
+      showToast(message, 'success');
+    }
+  };
+
+  const confirmDelete = () => {
+    if (!resourceToDelete) {
+      return;
+    }
+
+    deleteResource.mutate(resourceToDelete.id, {
+      onSuccess: () => {
+        showToast(`"${resourceToDelete.name}" was deleted successfully.`, 'delete');
+        setResourceToDelete(null);
+      },
+      onError: () => {
+        showToast('Delete failed. Please try again.', 'error');
+      },
+    });
+  };
+
+  useEffect(() => {
+    if (!toast) {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -160,7 +195,7 @@ const AdminResourcesPage = () => {
                 </thead>
                 <tbody>
                   {resources.map((resource) => {
-                    const colors = statusColors[resource.status] || statusColors.ACTIVE;
+                    const colors = getCampusStatusMeta(resource.status);
 
                     return (
                       <motion.tr
@@ -182,9 +217,9 @@ const AdminResourcesPage = () => {
                           <p className="text-sm text-slate-600 dark:text-slate-300">{resource.capacity} pax</p>
                         </td>
                         <td className="p-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${colors.bg} ${colors.text} border ${colors.border} rounded-full text-xs font-bold`}>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-full text-xs font-bold ${colors.badge}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
-                            {resource.status === 'ACTIVE' ? 'Active' : 'Out of Service'}
+                            {colors.label || resource.status}
                           </span>
                         </td>
                         <td className="p-4">
@@ -197,7 +232,7 @@ const AdminResourcesPage = () => {
                               <MdEdit className="text-lg" />
                             </button>
                             <button
-                              onClick={() => handleDelete(resource.id)}
+                              onClick={() => handleDelete(resource)}
                               className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
                               title="Delete"
                             >
@@ -241,9 +276,192 @@ const AdminResourcesPage = () => {
       <AnimatePresence>
         {isFormOpen && (
           <ResourceForm 
+            key={editingResource?.id || 'create-resource'}
             resource={editingResource} 
-            onClose={handleCloseForm} 
+            onClose={handleCloseForm}
+            onSaved={handleResourceSaved}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {resourceToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          >
+            <motion.button
+              type="button"
+              aria-label="Close delete confirmation"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+              onClick={handleCloseDeleteModal}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+              className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-rose-200/60 dark:border-rose-900/40 bg-white dark:bg-slate-800 shadow-2xl"
+            >
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-500 via-orange-400 to-amber-400" />
+
+              <div className="flex items-start justify-between gap-4 p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300">
+                    <MdWarningAmber className="text-2xl" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                      Delete resource?
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                      This will remove <span className="font-semibold text-slate-900 dark:text-slate-100">{resourceToDelete.name}</span> from the list and delete its uploaded image if it has one.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseDeleteModal}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                >
+                  <MdClose className="text-lg" />
+                </button>
+              </div>
+
+              <div className="px-6 pb-5">
+                <div className="rounded-2xl border border-rose-200/70 dark:border-rose-900/30 bg-rose-50/80 dark:bg-rose-900/15 p-4">
+                  <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
+                    This action cannot be undone.
+                  </p>
+                  <p className="mt-1 text-sm text-rose-600/90 dark:text-rose-200/80">
+                    If you only want to hide the resource, consider changing its status instead.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-200/80 dark:border-slate-700/60 px-6 py-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={handleCloseDeleteModal}
+                  disabled={deleteResource.isPending}
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={deleteResource.isPending}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/20 transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-400"
+                >
+                  {deleteResource.isPending ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <MdDelete className="text-lg" />
+                      Delete resource
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 18, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.96 }}
+            transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+            className="fixed bottom-5 right-3 z-[70] w-[calc(100vw-1.5rem)] max-w-md sm:right-5 sm:w-[24rem]"
+          >
+            <div
+              className={`relative overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl ${
+                toast.type === 'delete'
+                  ? 'border-rose-200/70 bg-white/95 text-slate-800 dark:border-rose-900/40 dark:bg-slate-900/95 dark:text-slate-100'
+                  : toast.type === 'error'
+                  ? 'border-rose-200/70 bg-white/95 text-slate-800 dark:border-rose-900/40 dark:bg-slate-900/95 dark:text-slate-100'
+                  : 'border-emerald-200/70 bg-white/95 text-slate-800 dark:border-emerald-900/40 dark:bg-slate-900/95 dark:text-slate-100'
+              }`}
+            >
+              <div
+                className={`absolute inset-x-0 top-0 h-1 ${
+                  toast.type === 'delete'
+                    ? 'bg-gradient-to-r from-rose-500 via-orange-400 to-amber-400'
+                    : toast.type === 'error'
+                    ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-rose-400'
+                    : 'bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400'
+                }`}
+              />
+
+              <div className="flex items-start gap-3 p-4 sm:p-4.5">
+                <div
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                    toast.type === 'delete'
+                      ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300'
+                      : toast.type === 'error'
+                      ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-300'
+                      : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300'
+                  }`}
+                >
+                  {toast.type === 'delete' ? (
+                    <MdDelete className="text-2xl" />
+                  ) : toast.type === 'error' ? (
+                    <MdInfo className="text-2xl" />
+                  ) : (
+                    <MdCheckCircle className="text-2xl" />
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold leading-5">
+                    {toast.type === 'delete'
+                      ? 'Deleted'
+                      : toast.type === 'error'
+                      ? 'Something went wrong'
+                      : 'Saved successfully'}
+                  </p>
+                  <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">
+                    {toast.message}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setToast(null)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  aria-label="Close toast"
+                >
+                  <MdClose className="text-lg" />
+                </button>
+              </div>
+
+              <motion.div
+                initial={{ width: '100%' }}
+                animate={{ width: '0%' }}
+                transition={{ duration: 3.5, ease: 'linear' }}
+                className={`h-1 ${
+                  toast.type === 'delete'
+                    ? 'bg-gradient-to-r from-rose-500 to-amber-400'
+                    : toast.type === 'error'
+                    ? 'bg-gradient-to-r from-rose-500 to-pink-400'
+                    : 'bg-gradient-to-r from-emerald-500 to-cyan-400'
+                }`}
+              />
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MdAdd, MdFilterList, MdEvent, MdHistory, MdCancel as MdCancelIcon, MdHourglassEmpty } from 'react-icons/md';
+import { MdAdd, MdFilterList, MdEvent, MdHistory, MdCancel as MdCancelIcon, MdHourglassEmpty, MdBuild } from 'react-icons/md';
 import { useBookings, useCancelBooking, useCancelSeries } from '../hooks/useBookings';
+import { useMyEquipmentBookings, useDeleteEquipmentBooking } from '../hooks/useEquipmentBooking';
 import { useAuth } from '../context/AuthContext';
 import NewBookingForm from '../components/NewBookingForm';
 import BookingCard from '../components/BookingCard';
@@ -23,11 +24,29 @@ const BookingsPage = () => {
     }
   }, [location.state?.resourceId]);
 
-  const { data: bookings = [], isLoading, error, refetch } = useBookings(
+  const { data: facilityBookings = [], isLoading: isLoadingFacilities, error: errorFacilities, refetch: refetchFacilities } = useBookings(
     authUser?.id ? { userId: authUser.id } : {}
   );
+  
+  const { data: equipmentBookingsData, isLoading: isLoadingEquipment, error: errorEquipment, refetch: refetchEquipment } = useMyEquipmentBookings(
+    authUser?.id ? { userId: authUser.id, page: 0, size: 100 } : {}
+  );
+  const equipmentBookings = equipmentBookingsData?.content || equipmentBookingsData || [];
+
   const cancelBooking = useCancelBooking();
   const cancelSeries = useCancelSeries();
+  const cancelEquipmentBooking = useDeleteEquipmentBooking();
+
+  const isLoading = isLoadingFacilities || isLoadingEquipment;
+  const error = errorFacilities || errorEquipment;
+  const refetch = () => { refetchFacilities(); refetchEquipment(); };
+
+  const allBookings = React.useMemo(() => {
+    return [
+      ...facilityBookings.map(b => ({ ...b, _type: 'facility' })),
+      ...equipmentBookings.map(b => ({ ...b, _type: 'equipment' }))
+    ];
+  }, [facilityBookings, equipmentBookings]);
 
   const groupedBookings = React.useMemo(() => {
     const now = new Date();
@@ -36,7 +55,7 @@ const BookingsPage = () => {
     const past = [];
     const cancelled = [];
 
-    bookings.forEach(booking => {
+    allBookings.forEach(booking => {
       const startTime = new Date(booking.startTime);
       if (booking.status === 'CANCELLED' || booking.status === 'REJECTED') {
         cancelled.push(booking);
@@ -57,7 +76,7 @@ const BookingsPage = () => {
       past: past.sort(sortByTime).reverse(),
       cancelled: cancelled.sort(sortByTime).reverse(),
     };
-  }, [bookings]);
+  }, [allBookings]);
 
   const displayBookings = activeTab === 'pending' ? groupedBookings.pending
     : activeTab === 'upcoming' ? groupedBookings.upcoming
@@ -71,22 +90,26 @@ const BookingsPage = () => {
     { key: 'cancelled', label: 'Cancelled', icon: MdCancelIcon,   count: groupedBookings.cancelled.length },
   ];
 
-  const handleCancel = (bookingId) => {
-    setCancelModal({ open: true, bookingId, isSeries: false });
+  const handleCancel = (booking) => {
+    setCancelModal({ open: true, bookingId: booking.id, isSeries: false, bookingType: booking._type });
   };
 
   const handleCancelSeries = (groupId) => {
-    setCancelModal({ open: true, bookingId: groupId, isSeries: true });
+    setCancelModal({ open: true, bookingId: groupId, isSeries: true, bookingType: 'facility' });
   };
 
   const confirmCancel = async () => {
     try {
-      if (cancelModal.isSeries) {
-        await cancelSeries.mutateAsync(cancelModal.bookingId);
+      if (cancelModal.bookingType === 'equipment') {
+         await cancelEquipmentBooking.mutateAsync(cancelModal.bookingId);
       } else {
-        await cancelBooking.mutateAsync(cancelModal.bookingId);
+        if (cancelModal.isSeries) {
+          await cancelSeries.mutateAsync(cancelModal.bookingId);
+        } else {
+          await cancelBooking.mutateAsync(cancelModal.bookingId);
+        }
       }
-      setCancelModal({ open: false, bookingId: null, isSeries: false });
+      setCancelModal({ open: false, bookingId: null, isSeries: false, bookingType: null });
     } catch (err) {
       console.error('Failed to cancel:', err);
     }
@@ -193,9 +216,9 @@ const BookingsPage = () => {
           ) : (
             displayBookings.map(booking => (
               <BookingCard
-                key={booking.id}
+                key={`${booking._type}-${booking.id}`}
                 booking={booking}
-                onCancel={handleCancel}
+                onCancel={() => handleCancel(booking)}
                 onCancelSeries={handleCancelSeries}
               />
             ))
@@ -224,25 +247,29 @@ const BookingsPage = () => {
           >
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">Cancel Booking?</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-              {cancelModal.isSeries 
-                ? 'This will cancel all recurring bookings in this series. This action cannot be undone.'
-                : 'This will cancel this booking. This action cannot be undone.'}
+              {cancelModal.bookingType === 'equipment'
+                ? 'This will cancel your equipment hire request. This action cannot be undone.'
+                : cancelModal.isSeries 
+                  ? 'This will cancel all recurring bookings in this series. This action cannot be undone.'
+                  : 'This will cancel this booking. This action cannot be undone.'}
             </p>
             <div className="flex gap-3">
               <button
-                onClick={() => setCancelModal({ open: false, bookingId: null, isSeries: false })}
+                onClick={() => setCancelModal({ open: false, bookingId: null, isSeries: false, bookingType: null })}
                 className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-medium text-sm"
               >
                 Keep Booking
               </button>
               <button
                 onClick={confirmCancel}
-                disabled={cancelBooking.isPending || cancelSeries.isPending}
+                disabled={cancelBooking.isPending || cancelSeries.isPending || cancelEquipmentBooking.isPending}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-rose-500 text-white font-medium text-sm hover:bg-rose-600 transition-colors disabled:opacity-50"
               >
-                {cancelModal.isSeries 
-                  ? (cancelSeries.isPending ? 'Cancelling...' : 'Cancel All')
-                  : (cancelBooking.isPending ? 'Cancelling...' : 'Cancel Booking')}
+                {cancelModal.bookingType === 'equipment' 
+                  ? (cancelEquipmentBooking.isPending ? 'Cancelling...' : 'Cancel Hire')
+                  : cancelModal.isSeries 
+                    ? (cancelSeries.isPending ? 'Cancelling...' : 'Cancel All')
+                    : (cancelBooking.isPending ? 'Cancelling...' : 'Cancel Booking')}
               </button>
             </div>
           </motion.div>

@@ -6,15 +6,19 @@ import com.campushub.smartcampus.service.GoogleAuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.campushub.smartcampus.dto.LocalLoginRequestDTO;
-import com.campushub.smartcampus.repository.UserRepository;
 import com.campushub.smartcampus.entity.User;
+import com.campushub.smartcampus.repository.UserRepository;
 import org.springframework.http.HttpStatus;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"}, allowCredentials = "true")
@@ -42,5 +46,26 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return ResponseEntity.ok(AuthUserResponseDTO.fromEntity(user, false));
+    }
+
+    /**
+     * Returns the admin user from the database so the frontend can use the real DB id.
+     * Called immediately after the hardcoded admin login succeeds.
+     */
+    @GetMapping("/admin-me")
+    public ResponseEntity<Map<String, Object>> getAdminUser() {
+        User adminUser = userRepository.findFirstByRoleIgnoreCase("ADMIN").orElse(null);
+        Map<String, Object> result = new HashMap<>();
+        if (adminUser == null) {
+            result.put("id", -1L);
+            result.put("role", "admin");
+            result.put("name", "System Administrator");
+        } else {
+            result.put("id", adminUser.getId());
+            result.put("role", adminUser.getRole().toLowerCase());
+            result.put("name", adminUser.getName() != null ? adminUser.getName() : "System Administrator");
+            result.put("email", adminUser.getEmail() != null ? adminUser.getEmail() : "");
+        }
+        return ResponseEntity.ok(result);
     }
 }

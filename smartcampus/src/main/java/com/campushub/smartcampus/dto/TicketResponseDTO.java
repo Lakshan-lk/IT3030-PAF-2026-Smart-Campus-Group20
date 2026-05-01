@@ -2,12 +2,15 @@ package com.campushub.smartcampus.dto;
 
 import com.campushub.smartcampus.entity.Ticket;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class TicketResponseDTO {
 
     private Long id;
     private Long resourceId;
     private String resourceName;
+    private Long equipmentId;
+    private String equipmentName;
     private Long userId;
     private String userName;
     private String category;
@@ -21,6 +24,7 @@ public class TicketResponseDTO {
     private String preferredContact;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<AttachmentDTO> attachments;
 
     public Long getId() {
         return id;
@@ -44,6 +48,22 @@ public class TicketResponseDTO {
 
     public void setResourceName(String resourceName) {
         this.resourceName = resourceName;
+    }
+
+    public Long getEquipmentId() {
+        return equipmentId;
+    }
+
+    public void setEquipmentId(Long equipmentId) {
+        this.equipmentId = equipmentId;
+    }
+
+    public String getEquipmentName() {
+        return equipmentName;
+    }
+
+    public void setEquipmentName(String equipmentName) {
+        this.equipmentName = equipmentName;
     }
 
     public Long getUserId() {
@@ -150,12 +170,24 @@ public class TicketResponseDTO {
         this.updatedAt = updatedAt;
     }
 
+    public List<AttachmentDTO> getAttachments() {
+        return attachments;
+    }
+
+    public void setAttachments(List<AttachmentDTO> attachments) {
+        this.attachments = attachments;
+    }
+
     public static TicketResponseDTO fromEntity(Ticket ticket) {
         TicketResponseDTO dto = new TicketResponseDTO();
         dto.setId(ticket.getId());
         if (ticket.getResource() != null) {
             dto.setResourceId(ticket.getResource().getId());
             dto.setResourceName(ticket.getResource().getName());
+        }
+        if (ticket.getEquipment() != null) {
+            dto.setEquipmentId(ticket.getEquipment().getId());
+            dto.setEquipmentName(ticket.getEquipment().getName());
         }
         if (ticket.getUser() != null) {
             dto.setUserId(ticket.getUser().getId());

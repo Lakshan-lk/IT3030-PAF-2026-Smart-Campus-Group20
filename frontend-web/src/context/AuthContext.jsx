@@ -1,25 +1,23 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
 import { authApi } from '../api/authApi';
+import { normalizeUsername, toSessionUser } from '../utils/auth';
 
 const STORAGE_KEY = 'smartcampus-auth-user';
 
 const AuthContext = createContext();
-
-function normalizeUsername(username) {
-  return username.trim().toLowerCase();
-}
 
 function readStoredUser() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed?.role || !parsed?.username) return null;
+    if (!parsed?.role || !parsed?.id) return null;
     return parsed;
   } catch {
     return null;
   }
 }
+
 
 export function AuthProvider({ children }) {
   const [authUser, setAuthUser] = useState(() => readStoredUser());
@@ -27,20 +25,42 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     const normalizedUser = normalizeUsername(username);
 
-    // Keep admin/admin hardcoded fallback if needed, but return same structure
     if (normalizedUser === 'admin' && password === 'admin') {
-      const user = { id: 1, username: 'admin', role: 'admin', name: 'System Administrator' };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      setAuthUser(user);
-      return { success: true, role: 'admin' };
+      // Fetch the real admin user from the DB so we use the actual DB id
+      try {
+        const res = await authApi.getAdminUser();
+        const dbAdmin = res.data;
+        const user = toSessionUser({
+          id: dbAdmin.id,
+          username: 'admin',
+          role: dbAdmin.role || 'admin',
+          name: dbAdmin.name || 'System Administrator',
+          provider: 'local',
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+        setAuthUser(user);
+        return { success: true, role: user.role, user };
+      } catch {
+        // Fallback if backend is down — id: -1 will still fail comments but at least the UI works
+        const user = toSessionUser({
+          id: -1,
+          username: 'admin',
+          role: 'admin',
+          name: 'System Administrator',
+          provider: 'local',
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+        setAuthUser(user);
+        return { success: true, role: user.role, user };
+      }
     }
 
     try {
       const res = await authApi.localLogin(username, password);
-      const user = res.data;
+      const user = toSessionUser(res.data);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
       setAuthUser(user);
-      return { success: true, role: user.role };
+      return { success: true, role: user.role, user };
     } catch (error) {
       return {
         success: false,
@@ -51,7 +71,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = (username, password) => {
+  const register = () => {
     return { success: false, message: 'Direct registration is disabled. Ask an admin or use Google sign-in.' };
   };
 
@@ -63,11 +83,7 @@ export function AuthProvider({ children }) {
     try {
       const response = await authApi.googleLogin(credential);
       const user = response.data;
-      const sessionUser = {
-        ...user,
-        username: user.username || user.name || user.email?.split('@')[0] || 'user',
-        role: user.role || 'user',
-      };
+      const sessionUser = toSessionUser(user);
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser));
       setAuthUser(sessionUser);

@@ -101,7 +101,7 @@ const AdminUserForm = () => {
       <div className="mt-4 rounded-xl bg-slate-50 dark:bg-slate-700/30 p-3 text-xs text-slate-500 dark:text-slate-400">
         <div className="flex items-start gap-2">
           <MdBadge className="text-base mt-0.5" />
-          <p>Technician accounts are created by admins and stored in the shared campus database.</p>
+          <p>Technician accounts created here can sign in using their assigned username and password.</p>
         </div>
       </div>
     </section>

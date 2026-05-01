@@ -7,6 +7,7 @@ import com.campushub.smartcampus.entity.Resource;
 import com.campushub.smartcampus.enums.EquipmentType;
 import com.campushub.smartcampus.repository.EquipmentRepository;
 import com.campushub.smartcampus.repository.ResourceRepository;
+import com.campushub.smartcampus.util.StatusMapper;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -62,14 +63,57 @@ public class EquipmentController {
     public ResponseEntity<EquipmentDTO> createEquipment(
             @PathVariable Long roomId,
             @Valid @RequestBody EquipmentRequestDTO dto) {
+        validateName(dto.getName());
+        validateRoomEquipmentType(dto.getType());
+
         Resource room = resourceRepository.findById(roomId)
                 .orElseThrow(() -> new EntityNotFoundException("Room not found with id: " + roomId));
 
         Equipment equipment = new Equipment();
         equipment.setName(dto.getName());
         equipment.setType(EquipmentType.valueOf(dto.getType()));
-        equipment.setStatus(dto.getStatus() != null ? dto.getStatus() : "ACTIVE");
+        equipment.setStatus(StatusMapper.normalizeEquipmentStatus(dto.getStatus()));
         equipment.setRoom(room);
+        equipment.setHiringEquipment(false);
+        equipment.setHireType(null);
+        equipment.setDescription(dto.getDescription());
+        equipment.setImageUrls(dto.getImageUrls() != null ? dto.getImageUrls() : List.of());
+
+        Equipment saved = equipmentRepository.save(equipment);
+        return ResponseEntity.status(HttpStatus.CREATED).body(EquipmentDTO.fromEntity(saved));
+    }
+
+    @PostMapping("/equipment")
+    public ResponseEntity<EquipmentDTO> createStandaloneEquipment(@Valid @RequestBody EquipmentRequestDTO dto) {
+        validateName(dto.getName());
+
+        Equipment equipment = new Equipment();
+        equipment.setName(dto.getName());
+        equipment.setStatus(StatusMapper.normalizeEquipmentStatus(dto.getStatus()));
+        equipment.setDescription(dto.getDescription());
+        equipment.setImageUrls(dto.getImageUrls() != null ? dto.getImageUrls() : List.of());
+
+        boolean hiringEquipment = Boolean.TRUE.equals(dto.getHiringEquipment());
+        equipment.setHiringEquipment(hiringEquipment);
+
+        if (hiringEquipment) {
+            if (dto.getHireType() == null || dto.getHireType().isBlank()) {
+                throw new IllegalArgumentException("Hire type is required for hiring equipment");
+            }
+            equipment.setHireType(dto.getHireType().trim());
+            equipment.setType(null);
+            equipment.setRoom(null);
+        } else {
+            if (dto.getRoomId() == null) {
+                throw new EntityNotFoundException("Room id is required for room equipment");
+            }
+            validateRoomEquipmentType(dto.getType());
+            Resource room = resourceRepository.findById(dto.getRoomId())
+                    .orElseThrow(() -> new EntityNotFoundException("Room not found with id: " + dto.getRoomId()));
+            equipment.setType(EquipmentType.valueOf(dto.getType()));
+            equipment.setRoom(room);
+            equipment.setHireType(null);
+        }
 
         Equipment saved = equipmentRepository.save(equipment);
         return ResponseEntity.status(HttpStatus.CREATED).body(EquipmentDTO.fromEntity(saved));
@@ -79,18 +123,37 @@ public class EquipmentController {
     public ResponseEntity<EquipmentDTO> updateEquipment(
             @PathVariable Long id,
             @Valid @RequestBody EquipmentRequestDTO dto) {
+        validateName(dto.getName());
+
         Equipment equipment = equipmentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Equipment not found with id: " + id));
 
         equipment.setName(dto.getName());
-        equipment.setType(EquipmentType.valueOf(dto.getType()));
         if (dto.getStatus() != null) {
-            equipment.setStatus(dto.getStatus());
+            equipment.setStatus(StatusMapper.normalizeEquipmentStatus(dto.getStatus()));
         }
-        if (dto.getRoomId() != null) {
-            Resource room = resourceRepository.findById(dto.getRoomId())
-                    .orElseThrow(() -> new EntityNotFoundException("Room not found with id: " + dto.getRoomId()));
-            equipment.setRoom(room);
+        equipment.setDescription(dto.getDescription());
+        equipment.setImageUrls(dto.getImageUrls() != null ? dto.getImageUrls() : List.of());
+
+        boolean hiringEquipment = Boolean.TRUE.equals(dto.getHiringEquipment()) || equipment.isHiringEquipment();
+        equipment.setHiringEquipment(hiringEquipment);
+
+        if (hiringEquipment) {
+            if (dto.getHireType() == null || dto.getHireType().isBlank()) {
+                throw new IllegalArgumentException("Hire type is required for hiring equipment");
+            }
+            equipment.setHireType(dto.getHireType().trim());
+            equipment.setType(null);
+            equipment.setRoom(null);
+        } else {
+            validateRoomEquipmentType(dto.getType());
+            equipment.setType(EquipmentType.valueOf(dto.getType()));
+            equipment.setHireType(null);
+            if (dto.getRoomId() != null) {
+                Resource room = resourceRepository.findById(dto.getRoomId())
+                        .orElseThrow(() -> new EntityNotFoundException("Room not found with id: " + dto.getRoomId()));
+                equipment.setRoom(room);
+            }
         }
 
         Equipment saved = equipmentRepository.save(equipment);
@@ -104,5 +167,17 @@ public class EquipmentController {
         }
         equipmentRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private void validateName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Name is required");
+        }
+    }
+
+    private void validateRoomEquipmentType(String type) {
+        if (type == null || type.isBlank()) {
+            throw new IllegalArgumentException("Type is required for room equipment");
+        }
     }
 }
