@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MdAdd, MdSearch, MdDelete, MdEdit, MdBuild, MdRoom, MdSell } from 'react-icons/md';
 import { useAllEquipment, useDeleteEquipment } from '../hooks/useEquipment';
+import { useAllEquipmentBookings, useApproveEquipmentBooking, useRejectEquipmentBooking } from '../hooks/useEquipmentBooking';
 import { useResources } from '../hooks/useResources';
 import EquipmentForm from '../components/EquipmentForm';
 import { EQUIPMENT_CONFIG, formatEquipmentLabel } from '../constants/facilities';
@@ -18,7 +19,14 @@ const AdminEquipmentPage = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState(null);
   const [formMode, setFormMode] = useState('room');
+  const [viewMode, setViewMode] = useState('equipment');
+  const [actionModal, setActionModal] = useState({ open: false, type: null, bookingId: null });
+  const [rejectReason, setRejectReason] = useState('');
 
+  const { data: bookingsData, isLoading: isLoadingBookings } = useAllEquipmentBookings();
+  const approveBooking = useApproveEquipmentBooking();
+  const rejectBooking = useRejectEquipmentBooking();
+  const bookings = bookingsData?.content || bookingsData || [];
   const { data: equipmentData, isLoading } = useAllEquipment();
   const { data: resourcesData } = useResources({ page: 0, size: 200 });
   const deleteEquipment = useDeleteEquipment();
@@ -81,9 +89,43 @@ const AdminEquipmentPage = () => {
     setEditingEquipment(null);
   };
 
+  const handleApproveClick = (id) => setActionModal({ open: true, type: 'approve', bookingId: id });
+  
+  const handleRejectClick = (id) => {
+    setRejectReason('');
+    setActionModal({ open: true, type: 'reject', bookingId: id });
+  };
+
+  const confirmAction = () => {
+    if (actionModal.type === 'approve') {
+      approveBooking.mutate(actionModal.bookingId);
+    } else if (actionModal.type === 'reject') {
+      if (!rejectReason.trim()) return; // Required
+      rejectBooking.mutate({ id: actionModal.bookingId, reason: rejectReason });
+    }
+    setActionModal({ open: false, type: null, bookingId: null });
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex border-b border-slate-200 dark:border-slate-700">
+        <button
+          onClick={() => setViewMode('equipment')}
+          className={`px-4 py-2 font-medium text-sm ${viewMode === 'equipment' ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+        >
+          Equipment Inventory
+        </button>
+        <button
+          onClick={() => setViewMode('bookings')}
+          className={`px-4 py-2 font-medium text-sm ${viewMode === 'bookings' ? 'border-b-2 border-amber-500 text-amber-600 dark:text-amber-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+        >
+          Booking Requests
+        </button>
+      </div>
+
+      {viewMode === 'equipment' ? (
+        <>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
             Equipment Management
@@ -270,6 +312,73 @@ const AdminEquipmentPage = () => {
           </div>
         )}
       </div>
+      </>
+      ) : (
+        <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-700/40 p-5">
+          <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-100">Equipment Booking Requests</h2>
+          {isLoadingBookings ? (
+            <p>Loading...</p>
+          ) : bookings.length === 0 ? (
+            <p className="text-slate-500">No booking requests found.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-slate-700/40">
+                    <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400">Equipment</th>
+                    <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400">User</th>
+                    <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400">Period</th>
+                    <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400">Purpose</th>
+                    <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400">Status</th>
+                    <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.map(booking => (
+                    <tr key={booking.id} className="border-b border-slate-50 dark:border-slate-700/20">
+                      <td className="p-4">
+                        <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{booking.equipmentName}</p>
+                        <p className="text-xs text-slate-500">{booking.equipmentType}</p>
+                      </td>
+                      <td className="p-4">
+                        <p className="text-sm text-slate-800 dark:text-slate-100">{booking.userName}</p>
+                        <p className="text-xs text-slate-500">{booking.userEmail}</p>
+                      </td>
+                      <td className="p-4">
+                        <p className="text-xs text-slate-600 dark:text-slate-300">From: {new Date(booking.startTime).toLocaleString()}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-300">To: {new Date(booking.endTime).toLocaleString()}</p>
+                      </td>
+                      <td className="p-4">
+                        <p className="text-sm text-slate-600 dark:text-slate-300 max-w-xs truncate" title={booking.purpose}>{booking.purpose}</p>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                          booking.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
+                          booking.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {booking.status}
+                        </span>
+                        {booking.status === 'REJECTED' && booking.rejectionReason && (
+                           <p className="text-[10px] mt-1 text-rose-500">Reason: {booking.rejectionReason}</p>
+                        )}
+                      </td>
+                      <td className="p-4 text-right">
+                        {booking.status === 'PENDING' && (
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => handleApproveClick(booking.id)} className="px-3 py-1 bg-emerald-500 text-white text-xs font-semibold rounded hover:bg-emerald-600 transition-colors">Approve</button>
+                            <button onClick={() => handleRejectClick(booking.id)} className="px-3 py-1 bg-rose-500 text-white text-xs font-semibold rounded hover:bg-rose-600 transition-colors">Reject</button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       <AnimatePresence>
         {isFormOpen && (
@@ -280,6 +389,63 @@ const AdminEquipmentPage = () => {
             mode={formMode}
             onClose={closeForm}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {actionModal.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              onClick={() => setActionModal({ open: false, type: null, bookingId: null })}
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-sm bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-2xl"
+            >
+              <h3 className={`text-lg font-bold mb-2 ${actionModal.type === 'approve' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {actionModal.type === 'approve' ? 'Approve Booking?' : 'Reject Booking?'}
+              </h3>
+              
+              {actionModal.type === 'reject' ? (
+                <div className="mb-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Please provide a reason for rejecting this equipment booking.</p>
+                  <textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Enter reason..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-sm bg-slate-50 dark:bg-slate-900 outline-none focus:ring-2 focus:ring-rose-400 resize-none"
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Are you sure you want to approve this equipment booking? The user will be notified.</p>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setActionModal({ open: false, type: null, bookingId: null })}
+                  className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmAction}
+                  disabled={actionModal.type === 'reject' && !rejectReason.trim()}
+                  className={`flex-1 px-4 py-2 rounded-xl text-white font-medium text-sm disabled:opacity-50 transition-colors ${
+                    actionModal.type === 'approve' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600'
+                  }`}
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

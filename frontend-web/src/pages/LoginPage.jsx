@@ -37,6 +37,7 @@ const LoginPage = () => {
 
     const initializeGoogle = () => {
       if (!window.google?.accounts?.id || !googleButtonRef.current) return;
+      if (window.google.accounts.id._isInitialized) return; // Prevent multiple initializations
 
       window.google.accounts.id.initialize({
         client_id: googleClientId,
@@ -54,6 +55,9 @@ const LoginPage = () => {
           navigate(getPostLoginRoute(result.role, requestedPath), { replace: true });
         },
       });
+
+      // Mark as initialized to prevent the [GSI_LOGGER] multiple initialization warning
+      window.google.accounts.id._isInitialized = true;
 
       googleButtonRef.current.innerHTML = '';
       window.google.accounts.id.renderButton(googleButtonRef.current, {
