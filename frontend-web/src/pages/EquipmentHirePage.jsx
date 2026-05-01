@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { MdSearch, MdCheckCircle, MdCategory } from 'react-icons/md';
 import { useAllEquipment } from '../hooks/useEquipment';
 import HireModal from '../components/HireModal';
+import { resolveMediaUrl } from '../utils/media';
 
 const EquipmentHirePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -90,7 +91,7 @@ const EquipmentHirePage = () => {
             <motion.div key={item.id} whileHover={{ y: -4 }} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col">
               <div className="h-40 bg-slate-100 dark:bg-slate-700 relative">
                 {item.imageUrls?.length > 0 ? (
-                  <img src={item.imageUrls[0]} alt={item.name} className="w-full h-full object-cover" />
+                  <img src={resolveMediaUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-300">No Image</div>
                 )}
