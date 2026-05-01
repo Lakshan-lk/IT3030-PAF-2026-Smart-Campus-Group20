@@ -5,6 +5,7 @@ import { MdArrowForward, MdVisibility, MdVisibilityOff } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 import { canAccessPath, getHomeRouteForRole } from '../utils/auth';
 import loginImage from '../assets/Login_Image.png';
+import backgroundImage from '../assets/background.png';
 
 function getPostLoginRoute(role, requestedPath) {
   return canAccessPath(role, requestedPath) ? requestedPath : getHomeRouteForRole(role);
@@ -106,7 +107,10 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_0%_10%,rgba(14,165,233,0.15),transparent_35%),radial-gradient(circle_at_100%_80%,rgba(249,115,22,0.16),transparent_40%),linear-gradient(140deg,#f8fafc,#fff7ed)] flex items-center justify-center p-4">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url(${backgroundImage})` }}
+    >
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}

@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MdDashboard, MdEventSeat, MdEvent, MdBuild, MdSell } from 'react-icons/md';
+import logo from '../assets/logo.png';
 
 const Sidebar = () => {
   const links = [
@@ -19,7 +20,8 @@ const Sidebar = () => {
       animate={{ x: 0 }}
       className="w-64 h-screen bg-white dark:bg-slate-800 shadow-[2px_0_15px_-3px_rgba(0,0,0,0.1)] dark:shadow-black/20 flex flex-col fixed left-0 top-0 z-20"
     >
-      <div className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-slate-700/40">
+      <div className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-slate-700/40 gap-3">
+        <img src={logo} alt="Logo" className="w-8 h-8 object-contain" />
         <h1 className="text-xl font-bold bg-gradient-to-r from-amber-600 to-orange-500 bg-clip-text text-transparent">
           Smart Campus
         </h1>

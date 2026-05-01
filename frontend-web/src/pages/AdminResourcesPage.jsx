@@ -72,6 +72,15 @@ const AdminResourcesPage = () => {
     }
   };
 
+  const getErrorMessage = (error) => {
+    return (
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      'Delete failed. Please try again.'
+    );
+  };
+
   const confirmDelete = () => {
     if (!resourceToDelete) {
       return;
@@ -82,8 +91,8 @@ const AdminResourcesPage = () => {
         showToast(`"${resourceToDelete.name}" was deleted successfully.`, 'delete');
         setResourceToDelete(null);
       },
-      onError: () => {
-        showToast('Delete failed. Please try again.', 'error');
+      onError: (error) => {
+        showToast(getErrorMessage(error), 'error');
       },
     });
   };

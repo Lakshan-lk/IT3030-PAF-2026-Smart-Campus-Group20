@@ -2,6 +2,7 @@ package com.campushub.smartcampus.controller;
 
 import com.campushub.smartcampus.dto.BookingRequestDTO;
 import com.campushub.smartcampus.dto.BookingResponseDTO;
+import com.campushub.smartcampus.dto.CancelBookingRequestDTO;
 import com.campushub.smartcampus.dto.CancelSeriesResponse;
 import com.campushub.smartcampus.dto.RejectBookingRequestDTO;
 import com.campushub.smartcampus.enums.BookingStatus;
@@ -82,8 +83,11 @@ public class BookingController {
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<BookingResponseDTO> cancelBooking(@PathVariable Long id) {
-        return ResponseEntity.ok(bookingService.cancelBooking(id));
+    public ResponseEntity<BookingResponseDTO> cancelBooking(
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) CancelBookingRequestDTO dto) {
+        String reason = dto != null ? dto.getReason() : null;
+        return ResponseEntity.ok(bookingService.cancelBooking(id, reason));
     }
 
     @DeleteMapping("/{id}")

@@ -78,3 +78,11 @@ export const getCampusStatusMeta = (value) => {
 export const getCampusStatusLabel = (value) => getCampusStatusMeta(value).label;
 export const isCampusStatusAvailable = (value) => normalizeStatusKey(value) === 'ACTIVE';
 
+export const normalizeBookingStatus = (value) => {
+  if (!value) {
+    return 'PENDING';
+  }
+
+  return String(value).trim().toUpperCase();
+};
+

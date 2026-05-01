@@ -1,5 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { equipmentBookingApi } from '../api/equipmentBookingApi';
+import { normalizeBookingStatus } from '../utils/status';
+
+const normalizeBooking = (booking) => ({
+    ...booking,
+    status: normalizeBookingStatus(booking?.status),
+});
 
 export function useCreateEquipmentBooking() {
     const queryClient = useQueryClient();
@@ -14,14 +20,32 @@ export function useCreateEquipmentBooking() {
 export function useAllEquipmentBookings(params = { page: 0, size: 100 }) {
     return useQuery({
         queryKey: ['equipment-bookings', 'all', params],
-        queryFn: () => equipmentBookingApi.getAll(params).then(res => res.data)
+        queryFn: () => equipmentBookingApi.getAll(params).then(res => {
+            const data = res.data;
+            if (Array.isArray(data)) {
+                return data.map(normalizeBooking);
+            }
+            if (data?.content && Array.isArray(data.content)) {
+                return { ...data, content: data.content.map(normalizeBooking) };
+            }
+            return data;
+        })
     });
 }
 
 export function useMyEquipmentBookings(params = { page: 0, size: 100 }) {
     return useQuery({
         queryKey: ['equipment-bookings', 'my', params],
-        queryFn: () => equipmentBookingApi.getMyBookings(params).then(res => res.data)
+        queryFn: () => equipmentBookingApi.getMyBookings(params).then(res => {
+            const data = res.data;
+            if (Array.isArray(data)) {
+                return data.map(normalizeBooking);
+            }
+            if (data?.content && Array.isArray(data.content)) {
+                return { ...data, content: data.content.map(normalizeBooking) };
+            }
+            return data;
+        })
     });
 }
 

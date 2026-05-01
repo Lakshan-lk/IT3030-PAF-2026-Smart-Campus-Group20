@@ -9,6 +9,7 @@ import com.campushub.smartcampus.enums.EquipmentType;
 import com.campushub.smartcampus.enums.BookingStatus;
 import com.campushub.smartcampus.enums.ResourceStatus;
 import com.campushub.smartcampus.enums.ResourceType;
+import com.campushub.smartcampus.repository.EquipmentBookingRepository;
 import com.campushub.smartcampus.repository.EquipmentRepository;
 import com.campushub.smartcampus.repository.BookingRepository;
 import com.campushub.smartcampus.repository.ResourceRepository;
@@ -35,13 +36,16 @@ public class ResourceService {
 
     private final ResourceRepository resourceRepository;
     private final EquipmentRepository equipmentRepository;
+    private final EquipmentBookingRepository equipmentBookingRepository;
     private final BookingRepository bookingRepository;
     private final ResourceImageService resourceImageService;
 
     public ResourceService(ResourceRepository resourceRepository, EquipmentRepository equipmentRepository,
+                           EquipmentBookingRepository equipmentBookingRepository,
                            BookingRepository bookingRepository, ResourceImageService resourceImageService) {
         this.resourceRepository = resourceRepository;
         this.equipmentRepository = equipmentRepository;
+        this.equipmentBookingRepository = equipmentBookingRepository;
         this.bookingRepository = bookingRepository;
         this.resourceImageService = resourceImageService;
     }
@@ -124,6 +128,18 @@ public class ResourceService {
     public void deleteResource(Long id) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
+
+        List<Equipment> relatedEquipment = equipmentRepository.findByRoomId(id);
+        if (!relatedEquipment.isEmpty()) {
+            List<Long> equipmentIds = relatedEquipment.stream()
+                    .map(Equipment::getId)
+                    .filter(java.util.Objects::nonNull)
+                    .toList();
+            if (!equipmentIds.isEmpty()) {
+                equipmentBookingRepository.deleteByEquipmentIdIn(equipmentIds);
+            }
+            equipmentRepository.deleteAll(relatedEquipment);
+        }
 
         resource.setDeleted(true);
         resourceRepository.save(resource);

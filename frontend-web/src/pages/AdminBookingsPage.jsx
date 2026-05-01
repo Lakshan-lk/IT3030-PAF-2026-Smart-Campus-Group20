@@ -19,9 +19,13 @@ const STAT_CARDS = [
 ];
 
 const COLS = ['Resource', 'User', 'Purpose', 'Date & Time', 'Status', 'Actions'];
+const PAGE_SIZE = 20;
 
 const AdminBookingsPage = () => {
-  const { data: bookings = [], isLoading } = useBookings();
+  const { data: bookings = [], isLoading } = useBookings({ page: 0, size: 1000, sort: 'createdAt,desc' }, {
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
+  });
   const approveBooking = useApproveBooking();
   const rejectBooking  = useRejectBooking();
   const cancelBooking  = useCancelBooking();
@@ -29,6 +33,9 @@ const AdminBookingsPage = () => {
   const [activeTab, setActiveTab]     = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredRow, setHoveredRow]   = useState(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [actionModal, setActionModal] = useState({ open: false, type: null, bookingId: null });
+  const [cancelNote, setCancelNote] = useState('');
 
   useEffect(() => {
     if (document.getElementById('ab-fonts')) return;
@@ -49,6 +56,11 @@ const AdminBookingsPage = () => {
     setShowRejectModal(true);
   };
 
+  const handleActionClick = (type, bookingId) => {
+    setActionModal({ open: true, type, bookingId });
+    setCancelNote('');
+  };
+
   const handleRejectConfirm = () => {
     if (rejectReason.trim()) {
       rejectBooking.mutate({ id: rejectBookingId, reason: rejectReason.trim() });
@@ -56,6 +68,16 @@ const AdminBookingsPage = () => {
       setRejectBookingId(null);
       setRejectReason('');
     }
+  };
+
+  const handleActionConfirm = async () => {
+    if (actionModal.type === 'approve') {
+      await approveBooking.mutateAsync(actionModal.bookingId);
+    } else if (actionModal.type === 'cancel' && cancelNote.trim()) {
+      await cancelBooking.mutateAsync({ id: actionModal.bookingId, reason: cancelNote.trim() });
+    }
+    setActionModal({ open: false, type: null, bookingId: null });
+    setCancelNote('');
   };
 
   const stats = {
@@ -66,7 +88,9 @@ const AdminBookingsPage = () => {
     cancelled: bookings.filter(b => b.status === 'CANCELLED').length,
   };
 
-  const filtered = bookings
+  const sortedBookings = [...bookings].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+  const filtered = sortedBookings
     .filter(b => {
       if (activeTab === 'all') return true;
       return b.status === activeTab.toUpperCase();
@@ -78,6 +102,10 @@ const AdminBookingsPage = () => {
              b.userName?.toLowerCase().includes(q) ||
              b.purpose?.toLowerCase().includes(q);
     });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages - 1);
+  const pagedBookings = filtered.slice(safeCurrentPage * PAGE_SIZE, (safeCurrentPage + 1) * PAGE_SIZE);
 
   const containerV = {
     hidden:  { opacity: 0 },
@@ -192,7 +220,10 @@ const AdminBookingsPage = () => {
                 <button
                   key={card.key}
                   className="ab-tab"
-                  onClick={() => setActiveTab(card.key)}
+                  onClick={() => {
+                    setActiveTab(card.key);
+                    setCurrentPage(0);
+                  }}
                   style={{
                     padding: '6px 13px', borderRadius: 8, cursor: 'pointer',
                     fontSize: 13, fontWeight: 600, fontFamily: "'Outfit', sans-serif",
@@ -217,12 +248,15 @@ const AdminBookingsPage = () => {
           {/* Search */}
           <div style={{ position: 'relative', minWidth: 210 }}>
             <MdSearch style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#475569', fontSize: 15, pointerEvents: 'none' }} />
-            <input
-              className="ab-search"
-              type="text"
-              placeholder="Search bookings…"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              <input
+                className="ab-search"
+                type="text"
+                placeholder="Search bookings…"
+                value={searchQuery}
+                onChange={e => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(0);
+                }}
               style={{
                 width: '100%', padding: '8px 12px 8px 32px',
                 borderRadius: 9, border: '1px solid rgba(255,255,255,0.08)',
@@ -281,7 +315,7 @@ const AdminBookingsPage = () => {
               </thead>
               <motion.tbody variants={containerV} initial="hidden" animate="visible">
                 <AnimatePresence>
-                  {filtered.map(booking => {
+                  {pagedBookings.map(booking => {
                     const cfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
                     return (
                       <motion.tr
@@ -377,7 +411,7 @@ const AdminBookingsPage = () => {
                               <>
                                 <button
                                   className="ab-act-btn"
-                                  onClick={() => approveBooking.mutate(booking.id)}
+                                  onClick={() => handleActionClick('approve', booking.id)}
                                   title="Approve"
                                   style={{
                                     padding: '6px 14px', borderRadius: 8, cursor: 'pointer',
@@ -410,7 +444,7 @@ const AdminBookingsPage = () => {
                             {(booking.status === 'PENDING' || booking.status === 'APPROVED') && (
                               <button
                                 className="ab-act-btn"
-                                onClick={() => cancelBooking.mutate(booking.id)}
+                                onClick={() => handleActionClick('cancel', booking.id)}
                                 title="Cancel"
                                 style={{
                                   width: 32, height: 32, borderRadius: 8, cursor: 'pointer',
@@ -443,20 +477,56 @@ const AdminBookingsPage = () => {
           <div style={{
             padding: '10px 18px',
             borderTop: '1px solid rgba(255,255,255,0.05)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
           }}>
             <p style={{ fontSize: 12, color: '#475569', fontFamily: "'JetBrains Mono', monospace" }}>
-              {filtered.length} booking{filtered.length !== 1 ? 's' : ''} · {activeTab === 'all' ? 'all statuses' : activeTab.toLowerCase()}
+              {filtered.length} booking{filtered.length !== 1 ? 's' : ''} · page {safeCurrentPage + 1} of {totalPages}
             </p>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              {STAT_CARDS.slice(1).map(c => (
-                <div key={c.key} style={{
-                  width: 6, height: 6, borderRadius: '50%',
-                  background: c.color,
-                  opacity: stats[c.statKey] > 0 ? 0.65 : 0.12,
-                  transition: 'opacity 0.3s',
-                }} />
-              ))}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(0, page - 1))}
+                disabled={safeCurrentPage === 0}
+                style={{
+                  padding: '7px 12px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: safeCurrentPage === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(99,102,241,0.12)',
+                  color: safeCurrentPage === 0 ? '#475569' : '#818cf8',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: safeCurrentPage === 0 ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages - 1, page + 1))}
+                disabled={safeCurrentPage >= totalPages - 1}
+                style={{
+                  padding: '7px 12px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: safeCurrentPage >= totalPages - 1 ? 'rgba(255,255,255,0.03)' : 'rgba(99,102,241,0.12)',
+                  color: safeCurrentPage >= totalPages - 1 ? '#475569' : '#818cf8',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: safeCurrentPage >= totalPages - 1 ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Next
+              </button>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                {STAT_CARDS.slice(1).map(c => (
+                  <div key={c.key} style={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: c.color,
+                    opacity: stats[c.statKey] > 0 ? 0.65 : 0.12,
+                    transition: 'opacity 0.3s',
+                  }} />
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -533,6 +603,100 @@ const AdminBookingsPage = () => {
           </motion.div>
         </div>
       )}
+
+      <AnimatePresence>
+        {actionModal.open && (
+          <div className="fixed inset-0 z-[75] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+              onClick={() => setActionModal({ open: false, type: null, bookingId: null })}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+              className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-slate-200/60 dark:border-slate-700/60 bg-white dark:bg-slate-800 shadow-2xl"
+            >
+              <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${
+                actionModal.type === 'approve'
+                  ? 'from-emerald-500 via-emerald-400 to-cyan-400'
+                  : 'from-rose-500 via-orange-400 to-amber-400'
+              }`} />
+
+              <div className="flex items-start justify-between gap-4 p-6">
+                <div className="flex items-start gap-4">
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                    actionModal.type === 'approve'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300'
+                      : 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300'
+                  }`}>
+                    {actionModal.type === 'approve' ? <MdCheck className="text-2xl" /> : <MdCancel className="text-2xl" />}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                      {actionModal.type === 'approve' ? 'Approve booking?' : 'Cancel booking?'}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                      {actionModal.type === 'approve'
+                        ? 'Are you sure you want to approve this booking? The user will be notified.'
+                        : 'Are you sure you want to cancel this booking? Please add a short note so the user knows why it was cancelled.'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActionModal({ open: false, type: null, bookingId: null })}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                >
+                  <MdClose className="text-lg" />
+                </button>
+              </div>
+
+              {actionModal.type === 'cancel' && (
+                <div className="px-6 pb-5">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Cancellation note
+                  </label>
+                  <textarea
+                    value={cancelNote}
+                    onChange={(e) => setCancelNote(e.target.value)}
+                    placeholder="Example: Maintenance work was scheduled for this room."
+                    rows={3}
+                    className="w-full resize-none rounded-2xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm text-slate-700 dark:text-slate-100 outline-none focus:ring-2 focus:ring-rose-400/40"
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-200/80 dark:border-slate-700/60 px-6 py-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setActionModal({ open: false, type: null, bookingId: null })}
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleActionConfirm}
+                  disabled={actionModal.type === 'cancel' && !cancelNote.trim()}
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                    actionModal.type === 'approve'
+                      ? 'bg-emerald-600 shadow-emerald-500/20 hover:bg-emerald-700'
+                      : 'bg-rose-600 shadow-rose-500/20 hover:bg-rose-700'
+                  }`}
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

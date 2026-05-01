@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MdBuild, MdLogout } from 'react-icons/md';
+import logo from '../assets/logo.png';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,10 +25,8 @@ const TechnicianSidebar = () => {
       animate={{ x: 0 }}
       className="w-64 h-screen bg-white dark:bg-slate-800 shadow-[2px_0_15px_-3px_rgba(0,0,0,0.1)] dark:shadow-black/20 flex flex-col fixed left-0 top-0 z-20"
     >
-      <div className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-slate-700/40 gap-2">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-600 to-teal-700 flex items-center justify-center">
-          <MdBuild className="w-4 h-4 text-white" />
-        </div>
+      <div className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-slate-700/40 gap-3">
+        <img src={logo} alt="Logo" className="w-8 h-8 object-contain" />
         <h1 className="text-lg font-bold bg-gradient-to-r from-cyan-700 to-teal-600 dark:from-cyan-300 dark:to-teal-400 bg-clip-text text-transparent">
           Technician
         </h1>

@@ -6,7 +6,10 @@ import { useBookings, useApproveBooking, useRejectBooking } from '../hooks/useBo
 import { useTickets } from '../hooks/useTickets';
 
 const AdminOverviewPage = () => {
-  const { data: bookings = [], isLoading } = useBookings();
+  const { data: bookings = [], isLoading } = useBookings({ page: 0, size: 1000, sort: 'createdAt,desc' }, {
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
+  });
   const { data: tickets = [], isLoading: ticketsLoading } = useTickets();
   const approveBooking = useApproveBooking();
   const rejectBooking = useRejectBooking();

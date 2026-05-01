@@ -171,7 +171,7 @@ class BookingServiceTest {
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(pendingBooking));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
 
-        BookingResponseDTO result = bookingService.cancelBooking(1L);
+        BookingResponseDTO result = bookingService.cancelBooking(1L, null);
 
         assertEquals(BookingStatus.CANCELLED, result.getStatus());
     }
@@ -190,7 +190,7 @@ class BookingServiceTest {
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(approvedBooking));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
 
-        BookingResponseDTO result = bookingService.cancelBooking(1L);
+        BookingResponseDTO result = bookingService.cancelBooking(1L, null);
 
         assertEquals(BookingStatus.CANCELLED, result.getStatus());
     }
@@ -207,7 +207,7 @@ class BookingServiceTest {
 
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(pastBooking));
 
-        assertThrows(IllegalArgumentException.class, () -> bookingService.cancelBooking(1L));
+        assertThrows(IllegalArgumentException.class, () -> bookingService.cancelBooking(1L, null));
     }
 
     @Test
