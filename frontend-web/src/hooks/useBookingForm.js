@@ -7,6 +7,7 @@ const DEFAULT_FORM = {
   endTime: '',
   purpose: '',
   attendees: '',
+  additionalEquipment: {},
 };
 
 export const useBookingForm = ({ onSuccess, initialDate = '', initialStartTime = '', initialEndTime = '', userId } = {}) => {
@@ -48,6 +49,18 @@ export const useBookingForm = ({ onSuccess, initialDate = '', initialStartTime =
     setConflictError('');
   };
 
+  const updateAdditionalEquipment = (equipmentKey, quantity) => {
+    setBookingData((prev) => {
+      const next = { ...(prev.additionalEquipment || {}) };
+      if (!quantity || Number(quantity) < 1) {
+        delete next[equipmentKey];
+      } else {
+        next[equipmentKey] = Number(quantity);
+      }
+      return { ...prev, additionalEquipment: next };
+    });
+  };
+
   const isValid = () =>
     bookingData.date &&
     bookingData.startTime &&
@@ -67,6 +80,7 @@ export const useBookingForm = ({ onSuccess, initialDate = '', initialStartTime =
       startTime: `${bookingData.date}T${fmt(bookingData.startTime)}`,
       endTime: `${bookingData.date}T${fmt(bookingData.endTime)}`,
       recurring: false,
+      additionalEquipment: bookingData.additionalEquipment,
     };
     try {
       await createBooking.mutateAsync(payload);
@@ -87,6 +101,7 @@ export const useBookingForm = ({ onSuccess, initialDate = '', initialStartTime =
     setBookingData,
     conflictError,
     handleChange,
+    updateAdditionalEquipment,
     isValid,
     submit,
     isPending: createBooking.isPending,

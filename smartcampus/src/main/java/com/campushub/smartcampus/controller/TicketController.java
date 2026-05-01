@@ -1,13 +1,14 @@
 package com.campushub.smartcampus.controller;
 
 import com.campushub.smartcampus.dto.AssignTicketRequestDTO;
+import com.campushub.smartcampus.dto.AttachmentDTO;
 import com.campushub.smartcampus.dto.StatusUpdateDTO;
 import com.campushub.smartcampus.dto.TicketRequestDTO;
 import com.campushub.smartcampus.dto.TicketResponseDTO;
+import com.campushub.smartcampus.service.TicketAttachmentService;
 import com.campushub.smartcampus.service.TicketService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,11 +17,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -29,9 +31,11 @@ import java.util.List;
 public class TicketController {
 
     private final TicketService ticketService;
+    private final TicketAttachmentService ticketAttachmentService;
 
-    public TicketController(TicketService ticketService) {
+    public TicketController(TicketService ticketService, TicketAttachmentService ticketAttachmentService) {
         this.ticketService = ticketService;
+        this.ticketAttachmentService = ticketAttachmentService;
     }
 
     @GetMapping
@@ -54,6 +58,13 @@ public class TicketController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ticketService.createTicket(dto));
     }
 
+    @PostMapping(value = "/{id}/attachments", consumes = "multipart/form-data")
+    public ResponseEntity<List<AttachmentDTO>> uploadAttachments(
+            @PathVariable Long id,
+            @RequestParam("files") List<MultipartFile> files) throws IOException {
+        return ResponseEntity.ok(ticketAttachmentService.addAttachments(id, files));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<TicketResponseDTO> updateTicket(@PathVariable Long id, @Valid @RequestBody TicketRequestDTO dto) {
         return ResponseEntity.ok(ticketService.updateTicket(id, dto));
@@ -67,11 +78,6 @@ public class TicketController {
     @PutMapping("/{id}/status")
     public ResponseEntity<TicketResponseDTO> updateStatus(@PathVariable Long id, @Valid @RequestBody StatusUpdateDTO dto) {
         return ResponseEntity.ok(ticketService.updateStatus(id, dto));
-    }
-
-    @PostMapping(value = "/{id}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<TicketResponseDTO> uploadAttachments(@PathVariable Long id, @RequestParam("files") List<MultipartFile> files) {
-        return ResponseEntity.ok(ticketService.addAttachments(id, files));
     }
 
     @DeleteMapping("/{id}")

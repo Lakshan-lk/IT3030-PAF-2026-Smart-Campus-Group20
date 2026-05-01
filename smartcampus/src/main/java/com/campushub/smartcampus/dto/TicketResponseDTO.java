@@ -1,10 +1,7 @@
 package com.campushub.smartcampus.dto;
 
 import com.campushub.smartcampus.entity.Ticket;
-import com.campushub.smartcampus.entity.TicketAttachment;
-
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 public class TicketResponseDTO {
@@ -23,9 +20,9 @@ public class TicketResponseDTO {
     private String resolutionNotes;
     private String rejectionReason;
     private String preferredContact;
-    private List<AttachmentDTO> attachments = new ArrayList<>();
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<AttachmentDTO> attachments;
 
     public Long getId() {
         return id;
@@ -139,14 +136,6 @@ public class TicketResponseDTO {
         this.preferredContact = preferredContact;
     }
 
-    public List<AttachmentDTO> getAttachments() {
-        return attachments;
-    }
-
-    public void setAttachments(List<AttachmentDTO> attachments) {
-        this.attachments = attachments;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -163,7 +152,15 @@ public class TicketResponseDTO {
         this.updatedAt = updatedAt;
     }
 
-    public static TicketResponseDTO fromEntity(Ticket ticket, List<TicketAttachment> attachments) {
+    public List<AttachmentDTO> getAttachments() {
+        return attachments;
+    }
+
+    public void setAttachments(List<AttachmentDTO> attachments) {
+        this.attachments = attachments;
+    }
+
+    public static TicketResponseDTO fromEntity(Ticket ticket) {
         TicketResponseDTO dto = new TicketResponseDTO();
         dto.setId(ticket.getId());
         if (ticket.getResource() != null) {
@@ -187,9 +184,6 @@ public class TicketResponseDTO {
         dto.setPreferredContact(ticket.getPreferredContact());
         dto.setCreatedAt(ticket.getCreatedAt());
         dto.setUpdatedAt(ticket.getUpdatedAt());
-        if (attachments != null) {
-            dto.setAttachments(attachments.stream().map(AttachmentDTO::fromEntity).toList());
-        }
         return dto;
     }
 }

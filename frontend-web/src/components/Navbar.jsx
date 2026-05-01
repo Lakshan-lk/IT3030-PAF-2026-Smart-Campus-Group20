@@ -1,9 +1,10 @@
 import React from 'react';
-import { MdNotifications, MdAccountCircle, MdLightMode, MdDarkMode, MdLogout } from 'react-icons/md';
+import { MdAccountCircle, MdLightMode, MdDarkMode, MdLogout } from 'react-icons/md';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const Navbar = () => {
   const { theme, toggleTheme } = useTheme();
@@ -27,14 +28,7 @@ const Navbar = () => {
         >
           {theme === 'dark' ? <MdLightMode className="w-5 h-5 text-amber-400" /> : <MdDarkMode className="w-5 h-5 text-slate-500" />}
         </motion.button>
-        <motion.button 
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
-        >
-          <MdNotifications className="w-6 h-6" />
-          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-800"></span>
-        </motion.button>
+        <NotificationBell />
         <div className="flex items-center gap-3 cursor-pointer p-1.5 rounded-full hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight">{authUser?.username || 'User'}</p>

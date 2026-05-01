@@ -23,6 +23,7 @@ public class AuthUserResponseDTO {
     private Integer yearOfStudy;
     private String department;
     private String designation;
+    private String profession;
     private LocalDateTime createdAt;
     private boolean newUser;
 
@@ -154,6 +155,14 @@ public class AuthUserResponseDTO {
         this.createdAt = createdAt;
     }
 
+    public String getProfession() {
+        return profession;
+    }
+
+    public void setProfession(String profession) {
+        this.profession = profession;
+    }
+
     public boolean isNewUser() {
         return newUser;
     }
@@ -165,9 +174,9 @@ public class AuthUserResponseDTO {
     public static AuthUserResponseDTO fromEntity(User user, boolean newUser) {
         AuthUserResponseDTO dto = new AuthUserResponseDTO();
         dto.setId(user.getId());
-        dto.setUsername(user.getName() != null && !user.getName().isBlank()
-                ? user.getName()
-                : user.getEmail());
+        dto.setUsername(user.getUsername() != null && !user.getUsername().isBlank()
+                ? user.getUsername()
+                : (user.getName() != null && !user.getName().isBlank() ? user.getName() : user.getEmail()));
         dto.setName(user.getName());
         dto.setEmail(user.getEmail());
         dto.setRole(user.getRole() != null ? user.getRole().toLowerCase(Locale.ROOT) : "user");
@@ -181,6 +190,7 @@ public class AuthUserResponseDTO {
         dto.setYearOfStudy(user.getYearOfStudy());
         dto.setDepartment(user.getDepartment());
         dto.setDesignation(user.getDesignation());
+        dto.setProfession(user.getProfession());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setNewUser(newUser);
         return dto;

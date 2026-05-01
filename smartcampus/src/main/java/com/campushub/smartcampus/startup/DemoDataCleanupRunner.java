@@ -26,6 +26,8 @@ public class DemoDataCleanupRunner implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         // Remove the legacy demo records that were previously seeded into Supabase.
         // This is idempotent and skips tables that do not exist in the live schema.
+        deleteUsersByUsername(List.of("john.doe.tech", "johndoe.tech", "technician", "tech_john"));
+        deleteUsersByName(List.of("John Doe", "Jhone Doe"));
         deleteInOrder("comments", "ticket_id", List.of(1L, 2L, 3L, 4L, 5L, 6L));
         deleteInOrder("ticket_attachments", "ticket_id", List.of(1L, 2L, 3L, 4L, 5L, 6L));
         deleteInOrder("tickets", "id", List.of(1L, 2L, 3L, 4L, 5L, 6L, 7L));
@@ -51,6 +53,34 @@ public class DemoDataCleanupRunner implements ApplicationRunner {
             jdbcTemplate.update(sql, ids.toArray());
         } catch (Exception ex) {
             log.warn("Skipping cleanup for table '{}' due to SQL error: {}", table, ex.getMessage());
+        }
+    }
+
+    private void deleteUsersByUsername(List<String> usernames) {
+        if (!tableExists("users") || usernames.isEmpty()) {
+            return;
+        }
+
+        String placeholders = String.join(",", usernames.stream().map(username -> "?").toList());
+        String sql = "DELETE FROM users WHERE lower(username) IN (" + placeholders + ")";
+        try {
+            jdbcTemplate.update(sql, usernames.stream().map(String::toLowerCase).toArray());
+        } catch (Exception ex) {
+            log.warn("Skipping username cleanup due to SQL error: {}", ex.getMessage());
+        }
+    }
+
+    private void deleteUsersByName(List<String> names) {
+        if (!tableExists("users") || names.isEmpty()) {
+            return;
+        }
+
+        String placeholders = String.join(",", names.stream().map(name -> "?").toList());
+        String sql = "DELETE FROM users WHERE role = 'TECHNICIAN' AND name IN (" + placeholders + ")";
+        try {
+            jdbcTemplate.update(sql, names.toArray());
+        } catch (Exception ex) {
+            log.warn("Skipping demo technician name cleanup due to SQL error: {}", ex.getMessage());
         }
     }
 

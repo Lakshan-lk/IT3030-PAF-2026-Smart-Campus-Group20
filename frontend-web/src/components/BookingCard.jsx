@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MdEvent, MdAccessTime, MdPeople, MdCancel, MdInfo, MdRepeat, MdHourglassEmpty, MdCheckCircle } from 'react-icons/md';
+import { MdEvent, MdAccessTime, MdPeople, MdCancel, MdInfo, MdRepeat, MdHourglassEmpty, MdCheckCircle, MdMic } from 'react-icons/md';
 
 const STATUS_LABELS = {
   PENDING: 'Pending Approval',
@@ -127,6 +127,13 @@ const BookingCard = ({ booking, onCancel, onCancelSeries, isAdmin = false }) => 
         <div className="text-sm text-slate-700 dark:text-slate-200 pt-2 border-t border-slate-100 dark:border-slate-700/40">
           {booking.purpose}
         </div>
+
+        {booking.additionalEquipmentSummary && (
+          <div className="flex items-start gap-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/30 px-3 py-2 text-sm text-indigo-700 dark:text-indigo-300">
+            <MdMic className="text-base mt-0.5 flex-shrink-0" />
+            <span>Additional request: {booking.additionalEquipmentSummary}</span>
+          </div>
+        )}
 
         {booking.isRecurring && (
           <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">

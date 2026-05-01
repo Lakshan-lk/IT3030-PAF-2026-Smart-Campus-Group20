@@ -6,6 +6,8 @@ import com.campushub.smartcampus.enums.BookingStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.StringJoiner;
 
 public class BookingResponseDTO {
 
@@ -25,6 +27,8 @@ public class BookingResponseDTO {
     private boolean isRecurring;
     private String recurrenceGroupId;
     private LocalDate recurrenceEndDate;
+    private Map<String, Integer> additionalEquipment;
+    private String additionalEquipmentSummary;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -163,6 +167,22 @@ public class BookingResponseDTO {
         this.recurrenceEndDate = recurrenceEndDate;
     }
 
+    public Map<String, Integer> getAdditionalEquipment() {
+        return additionalEquipment;
+    }
+
+    public void setAdditionalEquipment(Map<String, Integer> additionalEquipment) {
+        this.additionalEquipment = additionalEquipment;
+    }
+
+    public String getAdditionalEquipmentSummary() {
+        return additionalEquipmentSummary;
+    }
+
+    public void setAdditionalEquipmentSummary(String additionalEquipmentSummary) {
+        this.additionalEquipmentSummary = additionalEquipmentSummary;
+    }
+
     public static BookingResponseDTO fromEntity(Booking booking) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm");
         BookingResponseDTO dto = new BookingResponseDTO();
@@ -182,7 +202,24 @@ public class BookingResponseDTO {
         dto.setRecurring(booking.isRecurring());
         dto.setRecurrenceGroupId(booking.getRecurrenceGroupId());
         dto.setRecurrenceEndDate(booking.getRecurrenceEndDate());
+        Map<String, Integer> additionalEquipment = BookingRequestDTO.deserializeAdditionalEquipment(booking.getAdditionalEquipmentRequest());
+        dto.setAdditionalEquipment(additionalEquipment);
+        dto.setAdditionalEquipmentSummary(formatAdditionalEquipment(additionalEquipment));
         dto.setCreatedAt(booking.getCreatedAt());
         return dto;
+    }
+
+    private static String formatAdditionalEquipment(Map<String, Integer> additionalEquipment) {
+        if (additionalEquipment == null || additionalEquipment.isEmpty()) {
+            return null;
+        }
+
+        StringJoiner joiner = new StringJoiner(", ");
+        additionalEquipment.forEach((key, value) -> {
+            String label = key.toLowerCase().replace('_', ' ');
+            String normalized = Character.toUpperCase(label.charAt(0)) + label.substring(1);
+            joiner.add(normalized + " x" + value);
+        });
+        return joiner.toString();
     }
 }

@@ -1,13 +1,12 @@
 package com.campushub.smartcampus.service;
 
-import com.campushub.smartcampus.dto.AttachmentDTO;
 import com.campushub.smartcampus.dto.AssignTicketRequestDTO;
+import com.campushub.smartcampus.dto.AttachmentDTO;
 import com.campushub.smartcampus.dto.StatusUpdateDTO;
 import com.campushub.smartcampus.dto.TicketRequestDTO;
 import com.campushub.smartcampus.dto.TicketResponseDTO;
 import com.campushub.smartcampus.entity.Resource;
 import com.campushub.smartcampus.entity.Ticket;
-import com.campushub.smartcampus.entity.TicketAttachment;
 import com.campushub.smartcampus.entity.User;
 import com.campushub.smartcampus.enums.TicketCategory;
 import com.campushub.smartcampus.enums.TicketPriority;
@@ -18,46 +17,46 @@ import com.campushub.smartcampus.repository.TicketAttachmentRepository;
 import com.campushub.smartcampus.repository.TicketRepository;
 import com.campushub.smartcampus.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 @Service
 @Transactional
 public class TicketService {
 
+    private static final Logger log = LoggerFactory.getLogger(TicketService.class);
+
     private final TicketRepository ticketRepository;
     private final TicketAttachmentRepository ticketAttachmentRepository;
+    private final TicketAttachmentService ticketAttachmentService;
     private final CommentRepository commentRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
-
-    @Value("${app.upload-dir:uploads}")
-    private String uploadDir;
+    private final NotificationService notificationService;
 
     public TicketService(TicketRepository ticketRepository,
                          TicketAttachmentRepository ticketAttachmentRepository,
                          CommentRepository commentRepository,
                          ResourceRepository resourceRepository,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         NotificationService notificationService,
+                         TicketAttachmentService ticketAttachmentService) {
         this.ticketRepository = ticketRepository;
         this.ticketAttachmentRepository = ticketAttachmentRepository;
         this.commentRepository = commentRepository;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
+        this.ticketAttachmentService = ticketAttachmentService;
     }
 
     @Transactional(readOnly = true)
@@ -105,10 +104,18 @@ public class TicketService {
     }
 
     public TicketResponseDTO createTicket(TicketRequestDTO dto) {
+        log.info("Creating ticket with userId: {}", dto.getUserId());
         Ticket ticket = new Ticket();
         applyRequest(ticket, dto);
         ticket.setStatus(TicketStatus.OPEN);
         Ticket saved = ticketRepository.save(ticket);
+        log.info("Ticket saved with id: {}, calling notification service", saved.getId());
+        try {
+            notificationService.createTicketCreatedNotification(saved);
+            log.info("Notification created successfully");
+        } catch (Exception e) {
+            log.error("Failed to create notification: {}", e.getMessage(), e);
+        }
         return toResponse(saved);
     }
 
@@ -141,6 +148,7 @@ public class TicketService {
         ticket.setAssignedTo(assignee);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
         Ticket saved = ticketRepository.save(ticket);
+        notificationService.createTicketAssignedNotification(saved, assignee);
         return toResponse(saved);
     }
 
@@ -164,6 +172,15 @@ public class TicketService {
         }
 
         Ticket saved = ticketRepository.save(ticket);
+
+        if (nextStatus == TicketStatus.REJECTED) {
+            notificationService.createTicketRejectedNotification(saved);
+        } else if (nextStatus == TicketStatus.RESOLVED) {
+            notificationService.createTicketResolvedNotification(saved);
+        } else if (nextStatus == TicketStatus.CLOSED) {
+            notificationService.createTicketClosedNotification(saved);
+        }
+
         return toResponse(saved);
     }
 
@@ -171,68 +188,9 @@ public class TicketService {
         if (!ticketRepository.existsById(id)) {
             throw new EntityNotFoundException("Ticket not found with id: " + id);
         }
-        ticketAttachmentRepository.findByTicketId(id).forEach(ticketAttachmentRepository::delete);
+        ticketAttachmentService.deleteAttachments(id);
         commentRepository.findByTicketIdOrderByCreatedAtAsc(id).forEach(commentRepository::delete);
         ticketRepository.deleteById(id);
-    }
-
-    public TicketResponseDTO addAttachments(Long ticketId, List<MultipartFile> files) {
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + ticketId));
-
-        if (files == null || files.isEmpty()) {
-            throw new IllegalArgumentException("At least one file is required");
-        }
-
-        long currentCount = ticketAttachmentRepository.countByTicketId(ticketId);
-        if (currentCount + files.size() > 3) {
-            throw new IllegalStateException("Maximum 3 attachments allowed");
-        }
-
-        Path uploadBase = Paths.get(uploadDir);
-        try {
-            Files.createDirectories(uploadBase);
-        } catch (IOException e) {
-            throw new IllegalStateException("Unable to prepare upload directory", e);
-        }
-
-        for (MultipartFile file : files) {
-            if (file.isEmpty()) {
-                continue;
-            }
-            String contentType = file.getContentType();
-            if (contentType == null || !contentType.startsWith("image/")) {
-                throw new IllegalArgumentException("Only image files are allowed");
-            }
-
-            String originalFilename = file.getOriginalFilename();
-            String safeName = (originalFilename == null || originalFilename.isBlank())
-                    ? "ticket-upload"
-                    : originalFilename.replaceAll("[\\\\/]+", "_");
-            String uniqueFilename = UUID.randomUUID() + "_" + safeName;
-            Path target = uploadBase.resolve(uniqueFilename);
-
-            try {
-                Files.write(target, file.getBytes());
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to store attachment " + safeName, e);
-            }
-
-            TicketAttachment attachment = new TicketAttachment();
-            attachment.setTicket(ticket);
-            attachment.setFileName(safeName);
-            attachment.setFilePath(uniqueFilename);
-            attachment.setContentType(contentType);
-            ticketAttachmentRepository.save(attachment);
-        }
-
-        return toResponse(ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + ticketId)));
-    }
-
-    @Transactional(readOnly = true)
-    public List<TicketAttachment> getAttachments(Long ticketId) {
-        return ticketAttachmentRepository.findByTicketId(ticketId);
     }
 
     private void applyRequest(Ticket ticket, TicketRequestDTO dto) {
@@ -295,7 +253,10 @@ public class TicketService {
     }
 
     private TicketResponseDTO toResponse(Ticket ticket) {
-        List<TicketAttachment> attachments = ticketAttachmentRepository.findByTicketId(ticket.getId());
-        return TicketResponseDTO.fromEntity(ticket, attachments);
+        TicketResponseDTO dto = TicketResponseDTO.fromEntity(ticket);
+        dto.setAttachments(ticketAttachmentRepository.findByTicketId(ticket.getId()).stream()
+                .map(AttachmentDTO::fromEntity)
+                .toList());
+        return dto;
     }
 }

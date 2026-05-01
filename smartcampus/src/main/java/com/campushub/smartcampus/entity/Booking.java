@@ -62,6 +62,9 @@ public class Booking {
     @Column(columnDefinition = "TEXT")
     private String skipDates;
 
+    @Column(columnDefinition = "TEXT")
+    private String additionalEquipmentRequest;
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -185,5 +188,13 @@ public class Booking {
 
     public void setSkipDates(String skipDates) {
         this.skipDates = skipDates;
+    }
+
+    public String getAdditionalEquipmentRequest() {
+        return additionalEquipmentRequest;
+    }
+
+    public void setAdditionalEquipmentRequest(String additionalEquipmentRequest) {
+        this.additionalEquipmentRequest = additionalEquipmentRequest;
     }
 }

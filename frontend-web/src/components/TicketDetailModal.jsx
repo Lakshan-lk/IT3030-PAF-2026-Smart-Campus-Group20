@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { MdClose, MdUploadFile, MdPersonAdd, MdTune, MdImage, MdWarning } from 'react-icons/md';
+import { MdClose, MdPersonAdd, MdTune, MdWarning } from 'react-icons/md';
 import { useQuery } from '@tanstack/react-query';
-import { useTicketById, useUploadTicketAttachments, useUpdateTicketStatus, useAssignTicket } from '../hooks/useTickets';
+import { useTicketById, useUpdateTicketStatus, useAssignTicket } from '../hooks/useTickets';
 import { useAuth } from '../context/AuthContext';
 import { userApi } from '../api/userApi';
 import CommentThread from './CommentThread';
+import { resolveMediaUrl } from '../utils/media';
 
 const statusStyles = {
   OPEN: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300',
@@ -36,7 +37,6 @@ function formatDate(value) {
 
 const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
   const { data: ticket, isLoading } = useTicketById(ticketId);
-  const uploadAttachments = useUploadTicketAttachments();
   const updateStatus = useUpdateTicketStatus();
   const assignTicket = useAssignTicket();
   const { authUser } = useAuth();
@@ -49,12 +49,9 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
     enabled: canAssignTechnician,
   });
 
-  const [selectedFiles, setSelectedFiles] = useState([]);
   const [statusForm, setStatusForm] = useState({ status: 'IN_PROGRESS', reason: '', resolutionNotes: '' });
   const [assigneeId, setAssigneeId] = useState('');
   const [error, setError] = useState('');
-
-  const attachments = useMemo(() => ticket?.attachments ?? [], [ticket]);
   const technicianOptions = useMemo(
     () => users.filter((user) => (user.role || '').toUpperCase() === 'TECHNICIAN'),
     [users]
@@ -62,7 +59,7 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
   const availableStatusOptions = useMemo(() => {
     switch (ticket?.status) {
       case 'OPEN':
-        return ['IN_PROGRESS', 'REJECTED'];
+        return ['REJECTED']; // IN_PROGRESS happens automatically upon assignment
       case 'IN_PROGRESS':
         return ['RESOLVED', 'REJECTED'];
       case 'RESOLVED':
@@ -77,26 +74,6 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
   if (!isOpen) {
     return null;
   }
-
-  const handleUpload = async (event) => {
-    event.preventDefault();
-    setError('');
-
-    if (!selectedFiles.length) {
-      setError('Choose at least one image to upload.');
-      return;
-    }
-
-    const formData = new FormData();
-    selectedFiles.forEach((file) => formData.append('files', file));
-
-    try {
-      await uploadAttachments.mutateAsync({ id: ticketId, formData });
-      setSelectedFiles([]);
-    } catch (mutationError) {
-      setError(mutationError.response?.data?.message || 'Could not upload attachments.');
-    }
-  };
 
   const handleStatusUpdate = async (event) => {
     event.preventDefault();
@@ -186,6 +163,29 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
 
                     <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{ticket.description}</p>
 
+                    {ticket.attachments?.length > 0 && (
+                      <div className="mt-5">
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Attachments</p>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                          {ticket.attachments.map((attachment) => (
+                            <a
+                              key={attachment.id}
+                              href={resolveMediaUrl(attachment.url)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="group overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50"
+                            >
+                              <img
+                                src={resolveMediaUrl(attachment.url)}
+                                alt={attachment.fileName || 'Attachment'}
+                                className="h-24 w-full object-cover transition group-hover:scale-[1.03]"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="mt-5 grid gap-4 md:grid-cols-2">
                       <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/40 p-4">
                         <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Reported by</p>
@@ -200,62 +200,6 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
                     </div>
                   </>
                 ) : null}
-              </section>
-
-              <section className="rounded-3xl border border-slate-200/60 dark:border-slate-700/50 bg-white/85 dark:bg-slate-800/60 p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Attachments</p>
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Images</h3>
-                  </div>
-                  <MdImage className="text-2xl text-amber-500" />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {attachments.length === 0 ? (
-                    <div className="sm:col-span-2 lg:col-span-3 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700/50 px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                      No attachments uploaded yet.
-                    </div>
-                  ) : (
-                    attachments.map((attachment) => (
-                      <a
-                        key={attachment.id}
-                        href={attachment.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-100 dark:bg-slate-900/50"
-                      >
-                        <div className="aspect-[4/3] overflow-hidden">
-                          <img src={attachment.url} alt={attachment.fileName} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
-                        </div>
-                        <div className="p-3">
-                          <p className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">{attachment.fileName}</p>
-                        </div>
-                      </a>
-                    ))
-                  )}
-                </div>
-
-                <form onSubmit={handleUpload} className="mt-4 space-y-3">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(event) => setSelectedFiles(Array.from(event.target.files || []))}
-                    className="block w-full rounded-2xl border border-dashed border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/40 px-4 py-3 text-sm text-slate-600 dark:text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-amber-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-amber-600"
-                  />
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">You can upload up to 3 images per ticket.</p>
-                    <button
-                      type="submit"
-                      disabled={uploadAttachments.isPending}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:from-amber-600 hover:to-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <MdUploadFile className="text-lg" />
-                      Upload
-                    </button>
-                  </div>
-                </form>
               </section>
 
               <CommentThread ticketId={ticketId} />

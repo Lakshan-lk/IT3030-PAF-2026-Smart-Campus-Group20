@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MdClose, MdCircle } from 'react-icons/md';
-import { TIME_SLOTS } from '../constants/facilities';
+import { MdClose, MdEventAvailable, MdCircle, MdTv, MdMic, MdVideocam, MdSpeaker, MdBorderAll } from 'react-icons/md';
+import { TIME_SLOTS, EQUIPMENT_CONFIG } from '../constants/facilities';
 import { useBookingForm } from '../hooks/useBookingForm';
 import { useAuth } from '../context/AuthContext';
 import { useResourceAvailability } from '../hooks/useResourceAvailability';
@@ -17,6 +17,14 @@ const STATUS_STYLE = {
   full: { bg: 'bg-rose-500', ring: 'ring-rose-300', label: 'Fully booked' },
 };
 
+const EXTRA_EQUIPMENT_OPTIONS = [
+  { key: 'PROJECTOR', label: 'Projector', icon: MdTv },
+  { key: 'MIC', label: 'Microphone', icon: MdMic },
+  { key: 'CAMERA', label: 'Camera', icon: MdVideocam },
+  { key: 'SPEAKER', label: 'Speaker', icon: MdSpeaker },
+  { key: 'WHITEBOARD', label: 'Whiteboard', icon: MdBorderAll },
+];
+
 const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartTime, initialEndTime }) => {
   const isAvailable = resource.status === 'ACTIVE' || resource.status === 'AVAILABLE';
   const imageUrl = resolveMediaUrl(resource.imageUrl);
@@ -25,6 +33,7 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
     bookingData, setBookingData,
     conflictError,
     handleChange,
+    updateAdditionalEquipment,
     isValid,
     submit,
     isPending,
@@ -248,6 +257,83 @@ const BookingModal = ({ resource, onClose, onSuccess, initialDate, initialStartT
               <input type="number" name="attendees" value={bookingData.attendees} onChange={handleChange}
                 placeholder="1" min="1"
                 className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm outline-none focus:ring-2 focus:ring-indigo-400/50" />
+            </div>
+
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700/50 p-4">
+              <div className="mb-4">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Additional Equipment</p>
+                <p className="text-xs text-slate-400 mt-1">Optional. Select extras needed for your booking.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {EXTRA_EQUIPMENT_OPTIONS.map((option) => {
+                  const value = bookingData.additionalEquipment?.[option.key] || 0;
+                  const Icon = option.icon;
+                  const hasValue = value > 0;
+                  return (
+                    <motion.div
+                      key={option.key}
+                      whileTap={{ scale: 0.98 }}
+                      className={`
+                        relative group flex items-center gap-3 rounded-xl p-3 transition-all duration-300 overflow-hidden border cursor-pointer
+                        ${hasValue
+                          ? 'border-transparent shadow-lg ring-2 ring-indigo-400/50 bg-indigo-50/80 dark:bg-indigo-900/30'
+                          : 'border-slate-200 dark:border-slate-600 bg-white/60 dark:bg-slate-800/40 hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 dark:hover:border-slate-500'
+                        }
+                      `}
+                      onClick={() => {
+                        if (!hasValue) {
+                          updateAdditionalEquipment(option.key, '1');
+                        } else {
+                          updateAdditionalEquipment(option.key, '0');
+                        }
+                      }}
+                    >
+                      <div className={`
+                        w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-300
+                        ${hasValue ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg' : 'bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-700'}
+                      `}>
+                        <Icon className={`text-sm ${hasValue ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium truncate ${hasValue ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-200'}`}>
+                          {option.label}
+                        </p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newVal = Math.max(0, value - 1);
+                              updateAdditionalEquipment(option.key, newVal === 0 ? '' : String(newVal));
+                            }}
+                            disabled={value <= 0}
+                            className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            -
+                          </button>
+                          <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 w-6 text-center">
+                            {value}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (value < 3) {
+                                updateAdditionalEquipment(option.key, String(value + 1));
+                              }
+                            }}
+                            disabled={value >= 3}
+                            className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
             </div>
 
             {conflictError && (

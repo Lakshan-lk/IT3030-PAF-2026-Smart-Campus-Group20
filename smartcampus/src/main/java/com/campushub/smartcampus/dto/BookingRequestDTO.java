@@ -10,7 +10,10 @@ import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
 
 public class BookingRequestDTO {
 
@@ -39,6 +42,8 @@ public class BookingRequestDTO {
     private LocalDate recurrenceEndDate;
 
     private List<String> skipDates;
+
+    private Map<String, Integer> additionalEquipment;
 
     public Long getResourceId() {
         return resourceId;
@@ -120,6 +125,14 @@ public class BookingRequestDTO {
         this.skipDates = skipDates;
     }
 
+    public Map<String, Integer> getAdditionalEquipment() {
+        return additionalEquipment;
+    }
+
+    public void setAdditionalEquipment(Map<String, Integer> additionalEquipment) {
+        this.additionalEquipment = additionalEquipment;
+    }
+
     public static Booking toEntity(BookingRequestDTO dto, Resource resource, User user) {
         Booking booking = new Booking();
         booking.setResource(resource);
@@ -136,6 +149,48 @@ public class BookingRequestDTO {
         if (dto.getSkipDates() != null && !dto.getSkipDates().isEmpty()) {
             booking.setSkipDates(String.join(",", dto.getSkipDates()));
         }
+        booking.setAdditionalEquipmentRequest(serializeAdditionalEquipment(dto.getAdditionalEquipment()));
         return booking;
+    }
+
+    public static String serializeAdditionalEquipment(Map<String, Integer> additionalEquipment) {
+        if (additionalEquipment == null || additionalEquipment.isEmpty()) {
+            return null;
+        }
+
+        StringJoiner joiner = new StringJoiner("|");
+        additionalEquipment.forEach((key, value) -> {
+            if (key == null || key.isBlank() || value == null || value < 1) {
+                return;
+            }
+            joiner.add(key.trim().toUpperCase() + ":" + value);
+        });
+
+        String serialized = joiner.toString();
+        return serialized.isBlank() ? null : serialized;
+    }
+
+    public static Map<String, Integer> deserializeAdditionalEquipment(String raw) {
+        Map<String, Integer> parsed = new LinkedHashMap<>();
+        if (raw == null || raw.isBlank()) {
+            return parsed;
+        }
+
+        String[] entries = raw.split("\\|");
+        for (String entry : entries) {
+            String[] parts = entry.split(":");
+            if (parts.length != 2) {
+                continue;
+            }
+            try {
+                int qty = Integer.parseInt(parts[1].trim());
+                if (qty > 0) {
+                    parsed.put(parts[0].trim().toUpperCase(), qty);
+                }
+            } catch (NumberFormatException ignored) {
+                // Ignore malformed stored values and return valid ones only.
+            }
+        }
+        return parsed;
     }
 }

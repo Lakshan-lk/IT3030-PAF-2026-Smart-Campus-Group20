@@ -7,6 +7,7 @@ const AdminSidebar = () => {
   const links = [
     { name: 'Overview', path: '/admin/overview', icon: <MdDashboard /> },
     { name: 'Tickets', path: '/admin/tickets', icon: <MdAssignment /> },
+    { name: 'Technicians', path: '/admin/users', icon: <MdAdminPanelSettings /> },
     { name: 'Resources', path: '/admin/resources', icon: <MdApartment /> },
     { name: 'Equipment', path: '/admin/equipment', icon: <MdBuild /> },
     { name: 'Bookings', path: '/admin/bookings', icon: <MdEvent /> },
