@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   MdBuild, MdSearch, MdFilterAlt, MdClose, MdTune, MdWarning,
   MdCheckCircle, MdPending, MdComment, MdPersonPin,
+  MdRefresh,
 } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 import { useTickets, useTicketById, useUpdateTicketStatus } from '../hooks/useTickets';
@@ -41,7 +43,6 @@ function formatDate(value) {
 
 // ─── Ticket detail panel (slide-in) ───────────────────────────────────────────
 const TicketDetailPanel = ({ ticketId, onClose }) => {
-  const { authUser } = useAuth();
   const { data: ticket, isLoading } = useTicketById(ticketId);
   const updateStatus = useUpdateTicketStatus();
 
@@ -278,6 +279,8 @@ const TechnicianTicketsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const queryClient = useQueryClient();
 
   const queryParams = useMemo(() => {
     const p = {};
@@ -304,6 +307,15 @@ const TechnicianTicketsPage = () => {
     RESOLVED: filtered.filter((t) => t.status === 'RESOLVED'),
   }), [filtered]);
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ['tickets'] });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="relative space-y-6">
       {/* Decorative blobs */}
@@ -312,11 +324,24 @@ const TechnicianTicketsPage = () => {
 
       {/* Page header */}
       <div className="relative">
-        <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-600 dark:text-cyan-400">Technician portal</p>
-        <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-800 dark:text-slate-50">My Assigned Tickets</h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-          View and resolve tickets assigned to you. Add work-log comments while you work, then mark as resolved when done.
-        </p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-600 dark:text-cyan-400">Technician portal</p>
+            <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-800 dark:text-slate-50">My Assigned Tickets</h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+              View and resolve tickets assigned to you. Add work-log comments while you work, then mark as resolved when done.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700/50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/70"
+          >
+            <MdRefresh className={isRefreshing ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Search + filter bar */}

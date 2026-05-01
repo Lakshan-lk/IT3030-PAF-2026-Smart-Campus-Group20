@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -12,7 +12,9 @@ import {
   MdLocationOn,
   MdPendingActions,
   MdReportProblem,
+  MdRefresh,
 } from 'react-icons/md';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { useBookings } from '../hooks/useBookings';
 import { useTickets } from '../hooks/useTickets';
@@ -99,6 +101,8 @@ const DashboardPage = () => {
     page: 0,
     size: 6,
   });
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const resources = resourcesData?.content || resourcesData || [];
 
@@ -135,6 +139,19 @@ const DashboardPage = () => {
   const firstName = authUser?.name?.split(' ')?.[0] || authUser?.username || 'User';
   const isLoading = bookingsLoading || ticketsLoading;
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['bookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['tickets'] }),
+        queryClient.invalidateQueries({ queryKey: ['resources'] }),
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="relative space-y-8">
       <div className="absolute -top-24 right-0 h-72 w-72 rounded-full bg-amber-300/15 blur-3xl pointer-events-none dark:bg-amber-500/10" />
@@ -152,6 +169,16 @@ const DashboardPage = () => {
               Manage your upcoming bookings, track support requests, and jump back into the services you use most.
             </p>
           </div>
+
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700/50 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/70"
+          >
+            <MdRefresh className={isRefreshing ? 'animate-spin' : ''} />
+            Refresh
+          </button>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:w-[34rem]">
             {[
