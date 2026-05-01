@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MdClose, MdPersonAdd, MdTune, MdWarning } from 'react-icons/md';
 import { useQuery } from '@tanstack/react-query';
@@ -70,6 +70,17 @@ const TicketDetailModal = ({ ticketId, isOpen, onClose }) => {
         return [];
     }
   }, [ticket?.status]);
+
+  useEffect(() => {
+    if (!availableStatusOptions.length) {
+      return;
+    }
+    setStatusForm((current) =>
+      current.status === availableStatusOptions[0]
+        ? current
+        : { ...current, status: availableStatusOptions[0] }
+    );
+  }, [availableStatusOptions]);
 
   if (!isOpen) {
     return null;

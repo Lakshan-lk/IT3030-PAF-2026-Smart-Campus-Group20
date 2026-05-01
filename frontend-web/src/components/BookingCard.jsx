@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MdEvent, MdAccessTime, MdPeople, MdCancel, MdInfo, MdRepeat, MdHourglassEmpty, MdCheckCircle, MdMic } from 'react-icons/md';
+import { MdEvent, MdAccessTime, MdPeople, MdCancel, MdInfo, MdRepeat, MdHourglassEmpty, MdCheckCircle, MdMic, MdBuild } from 'react-icons/md';
 
 const STATUS_LABELS = {
   PENDING: 'Pending Approval',
@@ -75,8 +75,9 @@ const BookingCard = ({ booking, onCancel, onCancelSeries, isAdmin = false }) => 
     >
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg truncate">
-            {booking.resourceName}
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg truncate flex items-center gap-2">
+            {booking._type === 'equipment' && <MdBuild className="text-slate-400 text-base" />}
+            {booking.resourceName || booking.equipmentName}
           </h3>
           {isAdmin && booking.userName && (
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
