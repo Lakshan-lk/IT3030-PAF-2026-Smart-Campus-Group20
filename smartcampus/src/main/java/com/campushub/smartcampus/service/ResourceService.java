@@ -125,8 +125,8 @@ public class ResourceService {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Resource not found with id: " + id));
 
-        resourceImageService.deleteUploadedImage(resource.getImageUrl());
-        resourceRepository.deleteById(id);
+        resource.setDeleted(true);
+        resourceRepository.save(resource);
     }
 
     public String uploadResourceImage(MultipartFile file) throws java.io.IOException {

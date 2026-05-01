@@ -11,7 +11,7 @@ import {
   normalizeEquipmentStatusForForm,
 } from '../utils/status';
 
-const EquipmentForm = ({ equipment, resources, mode = 'room', onClose }) => {
+const EquipmentForm = ({ equipment, resources, mode = 'room', onClose, onSaved }) => {
   const isEditing = !!equipment;
   const isHiringMode = mode === 'hiring' || equipment?.hiringEquipment;
   const createEquipment = useCreateEquipment();
@@ -103,8 +103,10 @@ const EquipmentForm = ({ equipment, resources, mode = 'room', onClose }) => {
 
       if (isEditing) {
         await updateEquipment.mutateAsync({ id: equipment.id, data: payload });
+        if (onSaved) onSaved({ message: `"${payload.name}" updated successfully.` });
       } else {
         await createEquipment.mutateAsync(payload);
+        if (onSaved) onSaved({ message: `"${payload.name}" created successfully.` });
       }
 
       onClose();
