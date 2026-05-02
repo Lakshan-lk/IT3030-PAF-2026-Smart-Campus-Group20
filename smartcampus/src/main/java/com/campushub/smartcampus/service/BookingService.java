@@ -269,7 +269,7 @@ public class BookingService {
         return BookingResponseDTO.fromEntity(saved);
     }
 
-    public BookingResponseDTO cancelBooking(Long id) {
+    public BookingResponseDTO cancelBooking(Long id, String reason) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Booking not found with id: " + id));
 
@@ -282,6 +282,7 @@ public class BookingService {
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
+        booking.setRejectionReason(reason);
         Booking saved = bookingRepository.save(booking);
         return BookingResponseDTO.fromEntity(saved);
     }

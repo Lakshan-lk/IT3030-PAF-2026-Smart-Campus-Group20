@@ -1,17 +1,34 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingApi } from '../api/bookingApi';
+import { normalizeBookingStatus } from '../utils/status';
 
-export function useBookings(params = {}) {
+const normalizeBooking = (booking) => ({
+  ...booking,
+  status: normalizeBookingStatus(booking?.status),
+});
+
+export function useBookings(params = {}, options = {}) {
   return useQuery({
     queryKey: ['bookings', params],
-    queryFn: () => bookingApi.getAll(params).then(res => res.data),
+    queryFn: () => bookingApi.getAll(params).then(res => {
+      const data = res.data;
+      if (Array.isArray(data)) {
+        return data.map(normalizeBooking);
+      }
+      if (data?.content && Array.isArray(data.content)) {
+        return { ...data, content: data.content.map(normalizeBooking) };
+      }
+      return data;
+    }),
+    refetchOnWindowFocus: true,
+    ...options,
   });
 }
 
 export function useBookingById(id) {
   return useQuery({
     queryKey: ['bookings', id],
-    queryFn: () => bookingApi.getById(id).then(res => res.data),
+    queryFn: () => bookingApi.getById(id).then(res => normalizeBooking(res.data)),
     enabled: !!id,
   });
 }
@@ -66,7 +83,12 @@ export function useRejectBooking() {
 export function useCancelBooking() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id) => bookingApi.cancel(id),
+    mutationFn: (input) => {
+      if (typeof input === 'object' && input !== null) {
+        return bookingApi.cancel(input.id, input.reason);
+      }
+      return bookingApi.cancel(input);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },

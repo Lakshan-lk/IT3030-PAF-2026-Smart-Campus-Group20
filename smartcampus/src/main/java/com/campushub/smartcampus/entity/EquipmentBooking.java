@@ -1,10 +1,21 @@
 package com.campushub.smartcampus.entity;
 
 import com.campushub.smartcampus.enums.BookingStatus;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -12,38 +23,41 @@ import java.time.LocalDateTime;
 public class EquipmentBooking {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "equip_bookings_generator")
-    @SequenceGenerator(name = "equip_bookings_generator", sequenceName = "equip_bookings_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "equipment_bookings_seq_gen")
+    @SequenceGenerator(name = "equipment_bookings_seq_gen", sequenceName = "equipment_bookings_seq", allocationSize = 50)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "equipment_id", nullable = false)
-    @NotNull(message = "Equipment is required")
     private Equipment equipment;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @NotNull(message = "User is required")
     private User user;
 
-    @NotBlank(message = "Purpose is required")
-    @Size(max = 500)
+    @Column(nullable = false, length = 500)
     private String purpose;
 
-    @NotNull(message = "Start time is required")
+    @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
-    @NotNull(message = "End time is required")
+    @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private BookingStatus status = BookingStatus.PENDING;
 
-    @Size(max = 500)
+    @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
 
-    @Column(updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     public EquipmentBooking() {}
 
@@ -117,5 +131,13 @@ public class EquipmentBooking {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

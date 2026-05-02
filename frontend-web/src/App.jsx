@@ -6,11 +6,12 @@ import TechnicianLayout from './layouts/TechnicianLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import FacilitiesPage from './pages/FacilitiesPage';
+import EquipmentHirePage from './pages/EquipmentHirePage';
 import BookingsPage from './pages/BookingsPage';
 import TicketsPage from './pages/TicketsPage';
-import EquipmentHirePage from './pages/EquipmentHirePage';
 import AdminOverviewPage from './pages/AdminOverviewPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
+import AdminEquipmentBookingsPage from './pages/AdminEquipmentBookingsPage';
 import AdminResourcesPage from './pages/AdminResourcesPage';
 import AdminEquipmentPage from './pages/AdminEquipmentPage';
 import AdminTicketsPage from './pages/AdminTicketsPage';
@@ -57,6 +58,7 @@ function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/facilities" element={<FacilitiesPage />} />
+            <Route path="/hire-equipment" element={<EquipmentHirePage />} />
             <Route path="/bookings" element={<BookingsPage />} />
             <Route path="/equipment-hire" element={<EquipmentHirePage />} />
             <Route path="/tickets" element={<TicketsPage />} />
@@ -69,6 +71,7 @@ function App() {
           <Route element={<AdminLayout />}>
             <Route path="/admin/overview" element={<AdminOverviewPage />} />
             <Route path="/admin/bookings" element={<AdminBookingsPage />} />
+            <Route path="/admin/equipment-bookings" element={<AdminEquipmentBookingsPage />} />
             <Route path="/admin/resources" element={<AdminResourcesPage />} />
             <Route path="/admin/equipment" element={<AdminEquipmentPage />} />
             <Route path="/admin/tickets" element={<AdminTicketsPage />} />

@@ -2,14 +2,20 @@ name: CI
 
 on:
   push:
-    branches: ["main", "develop"]
+    branches: ["main"]
   pull_request:
-    branches: ["main", "develop"]
+    branches: ["main"]
 
 jobs:
   backend:
     name: Backend - Build & Test
     runs-on: ubuntu-latest
+
+    env:
+      SPRING_DATASOURCE_URL: ${{ secrets.DB_URL }}
+      SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USERNAME }}
+      SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      SPRING_PROFILES_ACTIVE: ci
 
     steps:
       - name: Checkout
@@ -24,7 +30,7 @@ jobs:
 
       - name: Build and test
         working-directory: smartcampus
-        run: ./mvnw clean verify
+        run: ./mvnw -B clean verify
 
   frontend:
     name: Frontend - Build & Test
@@ -37,17 +43,21 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "18"
           cache: "npm"
           cache-dependency-path: frontend-web/package-lock.json
 
       - name: Install dependencies
         working-directory: frontend-web
-        run: npm install
+        run: npm ci
 
       - name: Lint
         working-directory: frontend-web
         run: npm run lint
+
+      - name: Test
+        working-directory: frontend-web
+        run: npm run test --if-present
 
       - name: Build
         working-directory: frontend-web

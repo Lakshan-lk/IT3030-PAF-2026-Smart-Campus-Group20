@@ -13,7 +13,9 @@ export const bookingApi = {
 
   reject: (id, reason) => api.put(`/api/v1/bookings/${id}/reject`, { reason }),
 
-  cancel: (id) => api.post(`/api/v1/bookings/${id}/cancel`),
+  cancel: (id, reason) => (reason
+    ? api.post(`/api/v1/bookings/${id}/cancel`, { reason })
+    : api.post(`/api/v1/bookings/${id}/cancel`)),
 
   cancelSeries: (groupId) => api.post(`/api/v1/bookings/series/${groupId}/cancel`),
 

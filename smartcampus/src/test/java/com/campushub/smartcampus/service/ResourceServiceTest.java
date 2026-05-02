@@ -2,7 +2,9 @@ package com.campushub.smartcampus.service;
 
 import com.campushub.smartcampus.dto.ResourceRequestDTO;
 import com.campushub.smartcampus.dto.ResourceResponseDTO;
+import com.campushub.smartcampus.entity.Equipment;
 import com.campushub.smartcampus.repository.EquipmentRepository;
+import com.campushub.smartcampus.repository.EquipmentBookingRepository;
 import com.campushub.smartcampus.entity.Resource;
 import com.campushub.smartcampus.enums.ResourceStatus;
 import com.campushub.smartcampus.enums.ResourceType;
@@ -20,6 +22,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +33,9 @@ class ResourceServiceTest {
 
     @Mock
     private EquipmentRepository equipmentRepository;
+
+    @Mock
+    private EquipmentBookingRepository equipmentBookingRepository;
 
     @InjectMocks
     private ResourceService resourceService;
@@ -123,10 +129,17 @@ class ResourceServiceTest {
     @Test
     void deleteResource_Success() {
         when(resourceRepository.findById(1L)).thenReturn(Optional.of(resource));
+        Equipment equipment1 = new Equipment();
+        equipment1.setId(10L);
+        Equipment equipment2 = new Equipment();
+        equipment2.setId(11L);
+        when(equipmentRepository.findByRoomId(1L)).thenReturn(List.of(equipment1, equipment2));
 
         resourceService.deleteResource(1L);
 
         assertTrue(resource.isDeleted());
         verify(resourceRepository, times(1)).save(resource); // Should save with isDeleted=true
+        verify(equipmentBookingRepository, times(1)).deleteByEquipmentIdIn(List.of(10L, 11L));
+        verify(equipmentRepository, times(1)).deleteAll(anyList());
     }
 }
