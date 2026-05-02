@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
+import ChatbotWidget from '../components/ChatbotWidget';
 
 const MainLayout = () => {
   const location = useLocation();
@@ -27,6 +28,7 @@ const MainLayout = () => {
             </motion.div>
           </AnimatePresence>
         </main>
+        <ChatbotWidget />
       </div>
     </div>
   );
